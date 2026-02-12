@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ubungo Municipal Web Atlas</title>
+
+<!-- Cesium -->
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  :root{
+    --bg: #061018;
+    --panel: rgba(10, 20, 28, 0.72);
+    --panel2: rgba(10, 20, 28, 0.55);
+    --text: #e8f2ff;
+    --muted: rgba(232,242,255,0.72);
+    --accent: #1abc9c;
+    --accent2:#3498db;
+    --border: rgba(255,255,255,0.12);
+    --shadow: 0 18px 45px rgba(0,0,0,0.45);
+    --radius: 18px;
+  }
+
+  html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden; /* key: no scrolling */
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Poppins", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* App screens (Home + Atlas) */
+  .section{
+    position: fixed; /* keep out of document flow */
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+
+    /* Fade animation */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 450ms ease, visibility 450ms ease;
+  }
+  .section.active{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= HOME ================= */
+  #home{ background: var(--bg); }
+
+  #globe{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+
+  /* Dark overlay gradient to make text readable */
+  .hero-scrim{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(1200px 700px at 18% 20%, rgba(26,188,156,0.22), transparent 55%),
+      radial-gradient(1000px 600px at 78% 75%, rgba(52,152,219,0.18), transparent 60%),
+      linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+    pointer-events:none;
+  }
+
+  /* Top bar */
+  .topbar{
+    position:absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    display:flex;
+    gap:14px;
+    align-items:center;
+    justify-content:space-between;
+    z-index: 5;
+  }
+
+  .brand{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    padding: 10px 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+  }
+  .brand-badge{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(26,188,156,0.95), rgba(52,152,219,0.85));
+    display:grid;
+    place-items:center;
+    font-weight:800;
+  }
+  .brand-title{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+  }
+  .brand-title b{ font-size: 13px; letter-spacing:0.2px; }
+  .brand-title span{ font-size: 12px; color: var(--muted); }
+
+  .topbar-actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .chip{
+    padding: 10px 12px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    color: var(--muted);
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  #basemapStatus{
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Main hero card */
+  .hero{
+    position:absolute;
+    left: 6%;
+    top: 18%;
+    width: min(680px, 88vw);
+    z-index: 5;
+  }
+
+  .hero-card{
+    position: relative;
+    background: 
+      linear-gradient(rgba(6,16,24,0.78), rgba(6,16,24,0.88)),
+      url('data:image/jpeg;base64,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');
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px 26px 18px 26px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+  }
+
+  .kicker{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .hero-card h1{
+    margin: 10px 0 10px 0;
+    font-size: clamp(28px, 4.2vw, 40px);
+    letter-spacing: -0.4px;
+  }
+
+  .hero-card p{
+    margin: 0 0 14px 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .cta-row{
+    display:flex;
+    gap:12px;
+    flex-wrap: wrap;
+    align-items:center;
+    margin-top: 10px;
+  }
+
+  .btn{
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor:pointer;
+    font-weight: 700;
+    font-size: 14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    user-select:none;
+    transition: transform 140ms ease, filter 140ms ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+
+  .btn-primary{
+    background: rgba(26,188,156,0.95);
+    color: #04221c;
+  }
+  .btn-secondary{
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .btn:hover{ filter: brightness(1.06); }
+
+  .divider{
+    height: 1px;
+    background: rgba(255,255,255,0.10);
+    margin: 16px 0 14px 0;
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .stat{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 12px 12px;
+  }
+  .stat b{ font-size: 16px; }
+  .stat span{ display:block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .features{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .pill{
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.10);
+    padding: 8px 10px;
+    border-radius: 999px;
+  }
+
+  /* Home controls (labels/borders/search) */
+  #globeControls{
+    position:absolute;
+    bottom:16px;
+    right:16px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background: rgba(0,0,0,0.50);
+    color:#fff;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    z-index: 6;
+  }
+  #globeControls input[type="text"]{
+    width: 190px;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.10);
+    color:#fff;
+    outline:none;
+  }
+  #globeControls button{
+    padding: 7px 11px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(26,188,156,0.90);
+    color:#fff;
+    cursor:pointer;
+  }
+
+  /* ================= ATLAS ================= */
+  /* IMPORTANT: do NOT set #explore display:flex here (it caused your “extra page”). */
+  #explore{
+    background: #0b141c;
+  }
+  /* Only when active, Atlas becomes flex */
+  #explore.active{
+    display:flex;
+  }
+
+  .sidebar{
+    width: 320px;
+    background: rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.10);
+    padding: 14px;
+    overflow-y: auto;
+  }
+
+  .sidebar .title{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding: 10px 10px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 12px;
+  }
+  .sidebar .title b{ font-size: 13px; }
+  .sidebar .title span{ font-size: 12px; color: var(--muted); display:block; margin-top:2px; }
+
+  .sidebar button{
+    width: 100%;
+    padding: 11px 12px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(52,152,219,0.80);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .sidebar button.secondary{
+    background: rgba(255,255,255,0.06);
+  }
+
+  .content{
+    flex: 1;
+    position: relative;
+  }
+  #map{
+    position:absolute;
+    inset:0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #dashboard{
+    position:absolute;
+    inset:0;
+    display:none;
+    padding: 26px;
+    overflow:auto;
+  }
+  .dash-grid{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .dash-card{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .dash-card b{ font-size: 18px; }
+  .dash-card span{ display:block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+
+  .dash-section{
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .dash-section h2{
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    letter-spacing: .2px;
+  }
+  .dash-actions{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .dash-action{
+    text-align: left;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  }
+  .dash-action:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .dash-action b{ display:block; font-size: 16px; margin-bottom: 4px; }
+  .dash-action span{ display:block; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* Small screens */
+  @media (max-width: 920px){
+    .hero{ left: 4%; top: 14%; }
+    .stats{ grid-template-columns: 1fr; }
+    .sidebar{ width: 280px; }
+    #globeControls input[type="text"]{ width: 150px; }
+  }
+</style>
+</head>
+
+<body>
+
+<!-- ================= HOME ================= -->
+<div id="home" class="section active" aria-label="Home">
+  <div id="globe"></div>
+  <div class="hero-scrim"></div>
+
+  <div class="topbar">
+    <div class="brand" title="Ubungo Municipal Web Atlas">
+      <div class="brand-badge">UM</div>
+      <div class="brand-title">
+        <b>UBUNGO MUNICIPAL ATLAS</b>
+        <span>3D Globe • 2D Maps </span>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <div class="chip">
+        <span style="opacity:.9">Basemap:</span>
+        <span id="basemapStatus">Loading…</span>
+      </div>
+      <div class="chip" title="Data source">
+        🛰️ Esri World Imagery
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-card">
+      <div class="kicker">📍 Ubungo Municipal • Dar es Salaam • Tanzania</div>
+      <h1><b>WELCOME</b></h1>      
+      <p>
+        Explore Ubungo in <b>3D</b> and <b>2D</b>, visualize environmental layers, Road network map, Topographic map, Social services maps
+        and a detailed dashboard.
+
+
+        This Atlas was prepared by <b>Group No:05</b>
+      </p>
+
+      <div class="cta-row">
+        <div class="btn btn-primary" onclick="showExplore()">
+          🗺 Enter Atlas
+          <span style="opacity:.9;font-weight:800">→</span>
+        </div>
+        <div class="btn btn-secondary" onclick="viewer.camera.flyHome(1.8)">
+          🌍 Reset Globe View
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="stats">
+        <div class="stat"><b>3D Globe</b><span>Cesium + imagery overlays</span></div>
+        <div class="stat"><b>2D Map</b><span>Leaflet sample layers</span></div>
+      </div>
+
+      
+      </div>
+    </div>
+  </div>
+
+  <!-- Globe controls -->
+  <div id="globeControls">
+    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none">
+      <input id="toggleLabels" type="checkbox" checked /> Labels
+    </label>
+    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none">
+      <input id="toggleBorders" type="checkbox" checked /> Borders
+    </label>
+    <div style="width:1px;height:18px;background:rgba(255,255,255,0.25)"></div>
+    <input id="placeSearch" type="text" placeholder="Search place…" />
+    <button id="searchBtn">Go</button>
+  </div>
+</div>
+
+<!-- ================= ATLAS ================= -->
+<div id="explore" class="section" aria-label="Atlas">
+  <div class="sidebar">
+    <button class="secondary" onclick="showHome()">← Home</button>
+
+    <div class="title">
+      <div style="width:34px;height:34px;border-radius:12px;background:rgba(26,188,156,0.85);display:grid;place-items:center;font-weight:900">🗺</div>
+      <div>
+        <b>Explore Ubungo</b>
+        <span>2D layers & dashboard</span>
+      </div>
+    </div>
+
+    <button onclick="showMap(); loadLayer('landcover')">Landcover Map</button>
+    <button onclick="showMap(); loadLayer('police')">Police Stations Map</button>
+    <button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button>
+    <button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button>
+    <button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button>
+    <button onclick="showMap(); loadLayer('roads')">Road Network Map</button>
+    <button onclick="showMap(); loadLayer('transport')">Transport Network Map</button>
+    <button onclick="showMap(); loadLayer('water')">Water Supply Network</button>
+    <button onclick="showMap(); loadLayer('boreholes')">Borehole Map & Service Areas</button>
+    <button onclick="showMap(); loadLayer('popdist')">Population Distribution</button>
+    <button onclick="showMap(); loadLayer('popdens')">Population Density Map</button>
+    <button onclick="showMap(); loadLayer('slope')">Slope Map</button>
+    <button onclick="showMap(); loadLayer('aspect')">Aspect Map</button>
+    <button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button>
+    <button onclick="showMap(); loadLayer('contours')">Contours Map</button>
+    <button onclick="showMap(); loadLayer('topo')">Topographic Map</button>
+    <button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button>
+    <button onclick="showMap(); loadLayer('landuse')">Land Use Map</button>
+    <button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button>
+    <button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button>
+    <button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button>
+    <button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button>
+    <div style="height:10px"></div>
+    <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
+
+    <div style="margin-top:12px;color:rgba(255,255,255,0.75);font-size:12px;line-height:1.5">
+      Tip: If tiles don’t load on GitHub Pages, it’s usually your network or mixed-content rules.
+      This demo uses HTTPS for all basemaps.
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="map"></div>
+
+    <div id="dashboard">
+      <h1 style="margin:0 0 6px 0">Dashboard Overview</h1>
+      <div style="color:rgba(255,255,255,0.75);font-size:13px">
+        Sample indicators (replace with your computed stats later).
+      </div>
+
+      <div class="dash-grid">
+        <div class="dash-card">🌿 <b>0.56</b><span>Mean NDVI</span></div>
+        <div class="dash-card">🌧 <b>112</b><span>Rainfall (mm/month)</span></div>
+                <div class=\"dash-card\">🌡 <b>31.2</b><span>Air Temperature (°C)</span></div>
+<div class="dash-card">🔥 <b>29.4</b><span>LST (°C)</span></div>
+      </div>
+
+      <div class="dash-section">
+        <h2>Climate</h2>
+        <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-bottom:8px">
+          Analytical layers for climate relationships and patterns.
+        </div>
+        <div class="dash-actions">
+          <button class="dash-action" onclick="window.location.href='Correlation.html'">
+            <b>Correlation</b>
+            <span>Explore relationships between climate variables (demo placeholder).</span>
+          </button>
+          <button class="dash-action" onclick="window.location.href='Trend.html'">
+            <b>Trend</b>
+            <span>View time-based climate trends (demo placeholder).</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ Screen switching (with fade) ============ */
+function showHome(){
+  document.getElementById('explore').classList.remove('active');
+  document.getElementById('home').classList.add('active');
+}
+
+function showExplore(){
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('explore').classList.add('active');
+  setTimeout(()=>map.invalidateSize(), 500); // after fade
+}
+
+function showDashboard(){
+  document.getElementById('map').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+function showMap(){
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('map').style.display = 'block';
+  map.invalidateSize();
+}
+
+function setStatus(text){
+  const el = document.getElementById('basemapStatus');
+  if(el) el.textContent = text;
+}
+
+/* ============ Cesium Globe ============ */
+function makeEsriWorldImageryProvider(){
+  return new Cesium.UrlTemplateImageryProvider({
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+  });
+}
+
+const viewer = new Cesium.Viewer('globe',{
+  animation:false,
+  timeline:false,
+  baseLayerPicker:false,
+  geocoder:false,
+  sceneModePicker:false,
+  navigationHelpButton:false,
+  fullscreenButton:false,
+  homeButton:false,
+  infoBox:true,
+  selectionIndicator:true,
+  imageryProvider:false,
+  terrainProvider:new Cesium.EllipsoidTerrainProvider()
+});
+
+// Basemap
+viewer.imageryLayers.addImageryProvider(makeEsriWorldImageryProvider());
+setStatus('Esri World Imagery');
+
+// Borders overlay (Esri reference layer)
+const bordersLayer = viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    maximumLevel: 19
+  })
+);
+bordersLayer.alpha = 0.75;
+
+// Labels overlay (Carto labels-only)
+const labelsLayer = viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png',
+    subdomains: ['a','b','c','d'],
+    maximumLevel: 20,
+    credit: new Cesium.Credit('© CARTO')
+  })
+);
+labelsLayer.alpha = 0.95;
+
+// Initial view (Africa)
+viewer.camera.setView({
+  destination: Cesium.Cartesian3.fromDegrees(0, 15, 25000000)
+});
+
+// Toggles
+const toggleLabelsEl = document.getElementById('toggleLabels');
+const toggleBordersEl = document.getElementById('toggleBorders');
+
+function applyToggles(){
+  labelsLayer.show = !!toggleLabelsEl.checked;
+  bordersLayer.show = !!toggleBordersEl.checked;
+}
+toggleLabelsEl.addEventListener('change', applyToggles);
+toggleBordersEl.addEventListener('change', applyToggles);
+applyToggles();
+
+// Ubungo boundary (sample)
+const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
+
+Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
+  stroke: Cesium.Color.YELLOW,
+  fill: Cesium.Color.YELLOW.withAlpha(0.25),
+  strokeWidth: 3
+}).then(ds=>{
+  viewer.dataSources.add(ds);
+  ds.entities.values.forEach(ent=>{
+    ent.name = 'Ubungo Municipal';
+    ent.description = '<b>Ubungo Municipal</b><br/>Sample study-area boundary.<br/><i>Replace with your real boundary later.</i>';
+    ent.label = new Cesium.LabelGraphics({
+      text: 'Ubungo',
+      font: '18px sans-serif',
+      fillColor: Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -10),
+      distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
+    });
+  });
+
+  setTimeout(()=>viewer.flyTo(ds,{duration:3.2}), 1200);
+});
+
+// Place search (Nominatim)
+async function geocodePlace(q){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if(!res.ok) throw new Error('Geocoding failed: ' + res.status);
+  const json = await res.json();
+  return json && json.length ? json[0] : null;
+}
+
+async function runSearch(){
+  const input = document.getElementById('placeSearch');
+  const q = (input.value || '').trim();
+  if(!q) return;
+  setStatus('Searching…');
+  try{
+    const hit = await geocodePlace(q);
+    if(!hit){
+      setStatus('Not found');
+      return;
+    }
+    const lon = Number(hit.lon);
+    const lat = Number(hit.lat);
+
+    const pin = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lon, lat),
+      point: { pixelSize: 10, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 2 },
+      label: { text: hit.display_name, font: '14px sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -18), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 5.0e6) }
+    });
+
+    viewer.flyTo(pin, { duration: 2.6 });
+    setStatus('Esri + Overlays');
+  }catch(e){
+    console.error(e);
+    setStatus('Search error');
+  }
+}
+document.getElementById('searchBtn').addEventListener('click', runSearch);
+document.getElementById('placeSearch').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') runSearch();
+});
+
+/* ============ Leaflet 2D Map ============ */
+const map = L.map('map').setView([-6.79,39.25],12);
+
+L.tileLayer(
+  'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN' }
+).addTo(map);
+
+L.geoJSON(ubungoGeoJSON,{color:'orange', weight:2, fillOpacity:0}).addTo(map);
+
+// Sample layers (placeholders)
+// Replace each layer with your real GeoJSON, WMS, tiles, etc.
+function demoCircle(label, lat, lon, radius){
+  const c = L.circle([lat, lon], {
+    radius: radius,
+    weight: 2,
+    fillOpacity: 0.12
+  });
+  c.bindPopup('<b>' + label + '</b><br/>Demo layer placeholder. Connect your real data source here.');
+  return c;
+}
+
+const sampleLayers = {
+landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
+  police:     demoCircle('Police Stations Map', -6.79, 39.25, 2000),
+  health:     demoCircle('Public Health Centres Map', -6.79, 39.25, 2000),
+  primary:    demoCircle('Public Primary Schools Map', -6.79, 39.25, 2000),
+  secondary:  demoCircle('Public Secondary Schools Map', -6.79, 39.25, 2000),
+  roads:      demoCircle('Road Network Map', -6.79, 39.25, 2400),
+  transport:  demoCircle('Transport Network Map', -6.79, 39.25, 2400),
+  water:      demoCircle('Water Supply Network', -6.79, 39.25, 2100),
+  boreholes:  demoCircle('Borehole Map & Service Areas', -6.79, 39.25, 2100),
+  popdist:    demoCircle('Population Distribution', -6.79, 39.25, 2600),
+  popdens:    demoCircle('Population Density Map', -6.79, 39.25, 2600),
+  slope:      demoCircle('Slope Map', -6.79, 39.25, 2300),
+  aspect:     demoCircle('Aspect Map', -6.79, 39.25, 2300),
+  hillshade:  demoCircle('Hillshade Map', -6.79, 39.25, 2300),
+  contours:   demoCircle('Contours Map', -6.79, 39.25, 2300),
+  topo:       demoCircle('Topographic Map', -6.79, 39.25, 2300),
+  lcchange:   demoCircle('Landcover Change Map', -6.79, 39.25, 2200),
+  landuse:    demoCircle('Land Use Map', -6.79, 39.25, 2200),
+  rainfall:   demoCircle('Rainfall Map', -6.79, 39.25, 2600),
+  airtemp:    demoCircle('Air Temperature Map', -6.79, 39.25, 2600),
+  lst:        demoCircle('Land Surface Temperature Map', -6.79, 39.25, 2600),
+  ndvi:       demoCircle('Normalized Difference Vegetation Index (NDVI)', -6.79, 39.25, 2600),
+  correlation: demoCircle('Correlation (Climate)', -6.79, 39.25, 2800),
+  trend:       demoCircle('Trend (Climate)', -6.79, 39.25, 2800)
+};
+
+let activeLayer;
+
+function loadLayer(type){
+  if(activeLayer) map.removeLayer(activeLayer);
+
+  const layer = sampleLayers[type];
+  if(!layer){
+    alert('Layer not found: ' + type);
+    return;
+  }
+
+  activeLayer = layer;
+  activeLayer.addTo(map);
+
+  // Open popup for quick feedback
+  if(activeLayer.getPopup){
+    activeLayer.openPopup();
+  }
+}
+</script>
+
+</body>
+</html>
