@@ -1,18 +1,16 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>Ubungo Municipal Web Atlas</title>
-
 <!-- Cesium -->
-<link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet"/>
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
-
 <!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
   :root{
     --bg: #061018;
@@ -415,164 +413,732 @@
     .sidebar{ width: 280px; }
     #globeControls input[type="text"]{ width: 150px; }
   }
+
+  /* ================= MAP UX OVERLAYS (Legend / Coords / Toast) ================= */
+  #map-ui{
+    position:absolute;
+    inset:0;
+    z-index: 1200; /* above map */
+    pointer-events:none; /* allow map interaction */
+  }
+
+  .map-chip{
+    position:absolute;
+    left: 16px;
+    bottom: 60px; /* keep above scale bar */
+    padding: 8px 10px;
+    background: rgba(10, 20, 28, 0.65);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+    font-size: 12px;
+    color: rgba(232,242,255,0.78);
+    letter-spacing: 0.2px;
+    pointer-events:none;
+  }
+
+  .map-legend{
+    position:absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.72);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    overflow:hidden;
+    pointer-events:auto; /* clickable */
+  }
+
+  .legend-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: rgba(232,242,255,0.9);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+
+  .legend-toggle{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.85);
+    cursor:pointer;
+  }
+  .legend-toggle:hover{ background: rgba(255,255,255,0.10); }
+
+  .legend-body{
+    padding: 10px 12px;
+    max-height: 220px;
+    overflow:auto;
+  }
+  .map-legend.collapsed .legend-body{ display:none; }
+  .map-legend.collapsed .legend-toggle{ transform: rotate(-90deg); }
+
+  .legend-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 6px 0;
+    font-size: 12px;
+    color: rgba(232,242,255,0.78);
+  }
+  .legend-swatch{
+    width: 14px;
+    height: 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(26,188,156,0.95);
+    background: rgba(26,188,156,0.16);
+    flex: 0 0 auto;
+  }
+  .legend-text{ line-height: 1.25; }
+
+  /* Toasts */
+  #toastHost{
+    position:absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    width: min(520px, calc(100vw - 32px));
+    pointer-events:none;
+  }
+  .toast{
+    pointer-events:none;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.78);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .toast .tag{
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.8);
+  }
+  .toast.info .tag{ border-color: rgba(52,152,219,0.55); }
+  .toast.success .tag{ border-color: rgba(26,188,156,0.60); }
+  .toast.error .tag{ border-color: rgba(231,76,60,0.60); }
+
+
+  /* ================= ABOUT MODAL (UI ONLY) ================= */
+  .chip-btn{
+    cursor: pointer;
+    color: var(--text);
+  }
+  .chip-btn:hover{
+    filter: brightness(1.06);
+  }
+
+  .modal{
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: rgba(0,0,0,0.58);
+    z-index: 9999;
+  }
+  .modal.open{ display: flex; }
+
+  .modal-card{
+    width: min(860px, 92vw);
+    max-height: min(76vh, 720px);
+    overflow: auto;
+    background: rgba(10, 20, 28, 0.86);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    box-shadow: 0 22px 60px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+  }
+
+  .modal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 16px 16px 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  
+  .modal-head-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .modal-action-btn{
+    padding:8px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.08);
+    color:rgba(232,242,255,0.92);
+    cursor:pointer;
+    font-weight:800;
+  }
+  .modal-action-btn:hover{ filter: brightness(1.06); }
+.modal-head h2{
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: .2px;
+  }
+  .modal-head p{
+    margin: 6px 0 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .modal-close{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .modal-close:hover{ background: rgba(255,255,255,0.10); }
+
+  .modal-body{
+    padding: 14px 16px 18px 16px;
+    color: rgba(232,242,255,0.88);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .modal-grid{
+    display:grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 14px;
+  }
+  .modal-panel{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 12px 12px;
+  }
+  .modal-panel b{
+    display:block;
+    margin-bottom: 6px;
+  }
+  .modal-body ul{
+    margin: 8px 0 0 18px;
+    padding: 0;
+    color: rgba(232,242,255,0.80);
+  }
+  .modal-body li{ margin: 4px 0; }
+  @media (max-width: 860px){
+    .modal-grid{ grid-template-columns: 1fr; }
+  }
+
+
+/* Show home-only controls (labels, borders, contact, search) only on HOME */
+#explore #globeControls,
+#explore .topbar-actions,
+#explore #contactBtn,
+#explore #labelsToggle,
+#explore #bordersToggle {
+  display: none !important;
+}
+
+
+  /* ================= HOME CONTROLS FADE (during transition) ================= */
+  #home .topbar,
+  #home .hero,
+  #home #globeControls{
+    transition: opacity 320ms ease, transform 320ms ease;
+    opacity: 1;
+  }
+  #home .topbar{ transform: translateY(0); }
+  #home .hero{ transform: translateY(0); }
+  #home #globeControls{ transform: translateY(0); }
+
+  /* When HOME section is not active, fade controls out smoothly */
+  #home:not(.active) .topbar{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  #home:not(.active) .hero{
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  #home:not(.active) #globeControls{
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+
+  /* ================= ATLAS FLOATING SETTINGS ================= */
+  .atlas-settings-btn{
+    position:absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1400;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.72);
+    color: rgba(232,242,255,0.92);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    cursor:pointer;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .atlas-settings-btn:hover{ background: rgba(10, 20, 28, 0.80); }
+
+  .atlas-settings{
+    position:absolute;
+    top: 64px;
+    right: 16px;
+    z-index: 1400;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.78);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+    overflow:hidden;
+    pointer-events:auto;
+    transform-origin: top right;
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  }
+  .atlas-settings.open{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  .atlas-settings .head{
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
+  .atlas-settings .body{
+    padding: 10px 12px 12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color: rgba(232,242,255,0.86);
+    font-size: 12px;
+  }
+  .atlas-settings label{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+  }
+  .atlas-settings select, .atlas-settings input[type="checkbox"]{
+    pointer-events:auto;
+  }
+  .atlas-settings select{
+    width: 120px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .xbtn{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .atlas-settings .xbtn:hover{ background: rgba(255,255,255,0.10); }
+
+
+  /* Settings search row */
+  .atlas-settings .search-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .atlas-settings .search-row input{
+    flex: 1 1 auto;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .search-row button{
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(52,152,219,0.80);
+    color: #fff;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .atlas-settings .search-row button:hover{ filter: brightness(1.06); }
+
+
+
+      /* ================= Optional UI visibility defaults ================= */
+  /* Floating Contact button stays hidden (Contact is inside About Us modal) */
+  #contactBtn{ display:none !important; }
+
+  /* North arrow removed */
+  img[src*="North_arrow.svg"]{ display:none !important; }
+
+  /* ===== Atlas Map Search panel (toggle in Atlas settings) ===== */
+  #mapSearchPanel{
+    position:absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1200;
+    display:none;
+    width: min(340px, calc(100vw - 28px));
+    background: rgba(10, 20, 28, 0.75);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    padding: 10px;
+  }
+  #mapSearchPanel .row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  #mapSearchPanel input{
+    flex:1;
+    padding:10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: rgba(232,242,255,0.95);
+    outline:none;
+  }
+  #mapSearchPanel button{
+    padding:10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(52,152,219,0.72);
+    color:#fff;
+    font-weight: 900;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  #mapSearchPanel .hint{
+    margin-top:8px;
+    font-size: 12px;
+    color: rgba(232,242,255,0.70);
+  }
+
+  /* ===== Metadata modal (layer-aware) ===== */
+  #layerMetaModal{
+    display:none;
+    position: fixed;
+    inset:0;
+    background: rgba(0,0,0,0.55);
+    z-index: 10050;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+  }
+  #layerMetaCard{
+    width: min(720px, 96vw);
+    max-height: 85vh;
+    overflow:hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(10, 20, 28, 0.92);
+    box-shadow: 0 22px 70px rgba(0,0,0,0.55);
+    backdrop-filter: blur(12px);
+    color: rgba(232,242,255,0.95);
+  }
+  #layerMetaCard .head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  #layerMetaCard .head b{
+    font-size: 15px;
+    letter-spacing: 0.2px;
+  }
+  #layerMetaClose{
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.08);
+    color: rgba(232,242,255,0.95);
+    cursor:pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  #layerMetaCard .body{
+    padding: 14px 16px 16px 16px;
+    overflow:auto;
+    max-height: calc(85vh - 62px);
+  }
+  .meta-grid{
+    display:grid;
+    grid-template-columns: 170px 1fr;
+    gap: 10px 12px;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .meta-k{
+    color: rgba(232,242,255,0.70);
+  }
+  .meta-v{
+    color: rgba(232,242,255,0.95);
+  }
+  .meta-pill{
+    display:inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border:1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    font-size: 12px;
+    margin-right: 6px;
+  }
+
 </style>
-</head>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script></head>
 <body>
-
 <!-- ================= HOME ================= -->
-<div id="home" class="section active" aria-label="Home">
-  <div id="globe"></div>
-  <div class="hero-scrim"></div>
-
-  <div class="topbar">
-    <div class="brand" title="Ubungo Municipal Web Atlas">
-      <div class="brand-badge">UM</div>
-      <div class="brand-title">
-        <b>UBUNGO MUNICIPAL ATLAS</b>
-        <span>3D Globe • 2D Maps </span>
-      </div>
-    </div>
-
-    <div class="topbar-actions">
-      <div class="chip">
-        <span style="opacity:.9">Basemap:</span>
-        <span id="basemapStatus">Loading…</span>
-      </div>
-      <div class="chip" title="Data source">
+<div aria-label="Home" class="section active" id="home">
+<div id="globe"></div>
+<div class="hero-scrim"></div>
+<div class="topbar">
+<div class="brand" title="Ubungo Municipal Web Atlas">
+<div class="brand-badge">UM</div>
+<div class="brand-title">
+<b>UBUNGO MUNICIPAL ATLAS</b>
+<span>3D Globe • 2D Maps </span>
+</div>
+</div>
+<div class="topbar-actions">
+<div class="chip">
+<span style="opacity:.9">Basemap:</span>
+<span id="basemapStatus">Loading…</span>
+</div>
+<div class="chip" title="Data source">
         🛰️ Esri World Imagery
       </div>
-    </div>
-  </div>
-
-  <div class="hero">
-    <div class="hero-card">
-      <div class="kicker">📍 Ubungo Municipal • Dar es Salaam • Tanzania</div>
-      <h1><b>WELCOME</b></h1>      
-      <p>
+<button aria-controls="aboutModal" aria-haspopup="dialog" class="chip chip-btn" id="aboutBtn" title="About this project" type="button">
+        ℹ️ About Us
+      </button>
+</div>
+</div>
+<div class="hero">
+<div class="hero-card">
+<div class="kicker">📍 Ubungo Municipal • Dar es Salaam • Tanzania</div>
+<h1><b>WELCOME</b></h1>
+<p>
         Explore Ubungo in <b>3D</b> and <b>2D</b>, visualize environmental layers, Road network map, Topographic map, Social services maps
         and a detailed dashboard.
 
 
         This Atlas was prepared by <b>Group No:05</b>
-      </p>
-
-      <div class="cta-row">
-        <div class="btn btn-primary" onclick="showExplore()">
+</p>
+<div class="cta-row">
+<div class="btn btn-primary" onclick="showExplore()">
           🗺 Enter Atlas
           <span style="opacity:.9;font-weight:800">→</span>
-        </div>
-        <div class="btn btn-secondary" onclick="viewer.camera.flyHome(1.8)">
+</div>
+<div class="btn btn-secondary" onclick="viewer.camera.flyHome(1.8)">
           🌍 Reset Globe View
         </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <div class="stats">
-        <div class="stat"><b>3D Globe</b><span>Cesium + imagery overlays</span></div>
-        <div class="stat"><b>2D Map</b><span>Leaflet sample layers</span></div>
-      </div>
-
-      
-      </div>
-    </div>
-  </div>
-
-  <!-- Globe controls -->
-  <div id="globeControls">
-    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none">
-      <input id="toggleLabels" type="checkbox" checked /> Labels
-    </label>
-    <label style="display:flex;gap:6px;align-items:center;cursor:pointer;user-select:none">
-      <input id="toggleBorders" type="checkbox" checked /> Borders
-    </label>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,0.25)"></div>
-    <input id="placeSearch" type="text" placeholder="Search place…" />
-    <button id="searchBtn">Go</button>
-  </div>
 </div>
-
+<div class="divider"></div>
+<div class="stats">
+<div class="stat"><b>3D Globe</b><span>Cesium + imagery overlays</span></div>
+<div class="stat"><b>2D Map</b><span>Leaflet sample layers</span></div>
+</div>
+</div>
+</div>
+</div>
+<input id="placeSearch" placeholder="Search place…" type="text"/>
+<button id="searchBtn">Go</button>
+</div>
 <!-- ================= ATLAS ================= -->
-<div id="explore" class="section" aria-label="Atlas">
-  <div class="sidebar">
-    <button class="secondary" onclick="showHome()">← Home</button>
-
-    <div class="title">
-      <div style="width:34px;height:34px;border-radius:12px;background:rgba(26,188,156,0.85);display:grid;place-items:center;font-weight:900">🗺</div>
-      <div>
-        <b>Explore Ubungo</b>
-        <span>2D layers & dashboard</span>
-      </div>
-    </div>
-
-    <button onclick="showMap(); loadLayer('landcover')">Landcover Map</button>
-    <button onclick="showMap(); loadLayer('police')">Police Stations Map</button>
-    <button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button>
-    <button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button>
-    <button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button>
-    <button onclick="showMap(); loadLayer('roads')">Road Network Map</button>
-    <button onclick="showMap(); loadLayer('transport')">Transport Network Map</button>
-    <button onclick="showMap(); loadLayer('water')">Water Supply Network</button>
-    <button onclick="showMap(); loadLayer('boreholes')">Borehole Map & Service Areas</button>
-    <button onclick="showMap(); loadLayer('popdist')">Population Distribution</button>
-    <button onclick="showMap(); loadLayer('popdens')">Population Density Map</button>
-    <button onclick="showMap(); loadLayer('slope')">Slope Map</button>
-    <button onclick="showMap(); loadLayer('aspect')">Aspect Map</button>
-    <button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button>
-    <button onclick="showMap(); loadLayer('contours')">Contours Map</button>
-    <button onclick="showMap(); loadLayer('topo')">Topographic Map</button>
-    <button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button>
-    <button onclick="showMap(); loadLayer('landuse')">Land Use Map</button>
-    <button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button>
-    <button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button>
-    <button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button>
-    <button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button>
-    <div style="height:10px"></div>
-    <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
-
-    <div style="margin-top:12px;color:rgba(255,255,255,0.75);font-size:12px;line-height:1.5">
+<div aria-label="Atlas" class="section" id="explore">
+<div class="sidebar">
+<button class="secondary" onclick="showHome()">← Home</button>
+<div class="title">
+<div style="width:34px;height:34px;border-radius:12px;background:rgba(26,188,156,0.85);display:grid;place-items:center;font-weight:900">🗺</div>
+<div>
+<b>Explore Ubungo</b>
+<span>2D layers &amp; dashboard</span>
+</div>
+</div><div class="sidebar-controls">
+<button aria-expanded="false" class="secondary layers-toggle" id="layersToggle" type="button">
+    Layers <span class="chev">▸</span>
+</button>
+<div aria-label="Resize sidebar" class="sidebar-size-buttons">
+<button class="secondary" id="sidebarSmaller" title="Make sidebar smaller" type="button">−</button>
+<button class="secondary" id="sidebarLarger" title="Make sidebar larger" type="button">+</button>
+</div>
+</div><div class="layers-group" id="layersGroup"><button onclick="showMap(); loadLayer('landcover')">Landcover Map</button><button onclick="showMap(); loadLayer('police')">Police Stations Map</button><button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button><button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button><button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button><button onclick="showMap(); loadLayer('roads')">Road Network Map</button><button onclick="showMap(); loadLayer('transport')">Transport Network Map</button><button onclick="showMap(); loadLayer('water')">Water Supply Network</button><button onclick="showMap(); loadLayer('boreholes')">Borehole Map &amp; Service Areas</button><button onclick="showMap(); loadLayer('popdist')">Population Distribution</button><button onclick="showMap(); loadLayer('popdens')">Population Density Map</button><button onclick="showMap(); loadLayer('slope')">Slope Map</button><button onclick="showMap(); loadLayer('aspect')">Aspect Map</button><button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button><button onclick="showMap(); loadLayer('contours')">Contours Map</button><button onclick="showMap(); loadLayer('topo')">Topographic Map</button><button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button><button onclick="showMap(); loadLayer('landuse')">Land Use Map</button><button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button><button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button><button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button><button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button></div>
+<div style="height:10px"></div>
+<button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
+<div style="margin-top:12px;color:rgba(255,255,255,0.75);font-size:12px;line-height:1.5">
       Tip: If tiles don’t load on GitHub Pages, it’s usually your network or mixed-content rules.
       This demo uses HTTPS for all basemaps.
     </div>
-  </div>
-
-  <div class="content">
-    <div id="map"></div>
-
-    <div id="dashboard">
-      <h1 style="margin:0 0 6px 0">Dashboard Overview</h1>
-      <div style="color:rgba(255,255,255,0.75);font-size:13px">
-        Sample indicators (replace with your computed stats later).
-      </div>
-
-      <div class="dash-grid">
-        <div class="dash-card">🌿 <b>0.56</b><span>Mean NDVI</span></div>
-        <div class="dash-card">🌧 <b>112</b><span>Rainfall (mm/month)</span></div>
-                <div class=\"dash-card\">🌡 <b>31.2</b><span>Air Temperature (°C)</span></div>
-<div class="dash-card">🔥 <b>29.4</b><span>LST (°C)</span></div>
-      </div>
-
-      <div class="dash-section">
-        <h2>Climate</h2>
-        <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-bottom:8px">
-          Analytical layers for climate relationships and patterns.
-        </div>
-        <div class="dash-actions">
-          <button class="dash-action" onclick="window.location.href='Correlation.html'">
-            <b>Correlation</b>
-            <span>Explore relationships between climate variables (demo placeholder).</span>
-          </button>
-          <button class="dash-action" onclick="window.location.href='Trend.html'">
-            <b>Trend</b>
-            <span>View time-based climate trends (demo placeholder).</span>
-          </button>
-        </div>
-      </div>
+<div aria-label="Resize sidebar" class="sidebar-resizer" id="sidebarResizer" role="separator"></div></div>
+<div class="content">
+<div id="map">
+<!-- Map UI overlays (professional UX) -->
+<div id="map-ui">
+  <!-- Atlas settings (floating) -->
+  <button id="atlasSettingsBtn" class="atlas-settings-btn" type="button" aria-label="Atlas settings">⚙</button>
+  <div id="atlasSettings" class="atlas-settings" role="dialog" aria-label="Atlas settings panel" aria-hidden="true">
+    <div class="head">
+      <b>Atlas settings</b>
+      <button id="atlasSettingsClose" class="xbtn" type="button" aria-label="Close settings">✕</button>
     </div>
-  </div>
+    <div class="body">
+<label>
+        <span>Labels</span>
+        <input id="atlasToggleLabels" type="checkbox" checked>
+      </label>
+
+      <label>
+        <span>Borders</span>
+        <input id="atlasToggleBorders" type="checkbox" checked>
+      </label>
+      <label>
+        <span>Search panel</span>
+        <input id="atlasToggleSearch" type="checkbox">
+      </label>
+
+      <label>
+        <span>Scale bar</span>
+        <input id="atlasToggleScale" type="checkbox">
+      </label>
+
+<label>
+        <span>Basemap</span>
+        <select id="atlasBasemap">
+          <option value="imagery" selected>Imagery</option>
+          <option value="streets">Streets</option>
+        </select>
+      </label>
+      <label>
+        <span>Show legend</span>
+        <input id="atlasShowLegend" type="checkbox" checked>
+      </label>
+<div style="margin-top:8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:rgba(232,242,255,0.82); font-size:12.5px;">
+  <b style="color:rgba(232,242,255,0.95)">Selected layer:</b>
+  <span id="atlasCurrentLayerName" class="meta-pill">None</span>
+</div>
+<div style="display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px;">
+  <button id="atlasMetaBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(52,152,219,0.72); color:#fff; cursor:pointer; font-weight:800;">Metadata</button>
+  <button id="atlasExportBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(26,188,156,0.78); color:#04221c; cursor:pointer; font-weight:900;">Export layer</button>
 </div>
 
+</div>
+  
+  <!-- Map Search (toggle in Atlas settings) -->
+  <div id="mapSearchPanel" aria-label="Place search panel">
+    <div class="row">
+      <input id="atlasSearchInput" type="text" placeholder="Search place…" />
+      <button id="atlasSearchGo" type="button">Search</button>
+    </div>
+    <div class="hint">Tip: You can type a place name, ward, or POI. Press Enter to search.</div>
+  </div>
+
+</div>
+<div aria-label="Map legend" class="map-legend collapsed" id="mapLegend">
+<div class="legend-header">
+<span>Legend</span>
+<button aria-label="Toggle legend" class="legend-toggle" id="legendToggle" type="button">▾</button>
+</div>
+<div class="legend-body" id="legendBody">
+<div class="legend-row">
+<span class="legend-swatch"></span>
+<span class="legend-text">No layer selected</span>
+</div>
+</div>
+</div>
+<div aria-atomic="true" aria-live="polite" id="toastHost"></div>
+</div>
+</div>
+<div id="dashboard">
+<h1 style="margin:0 0 6px 0">Dashboard Overview</h1>
+<div class="dash-grid">
+<div class="dash-card">🌿 <b id="kpiNdvi">--</b><span>Mean NDVI</span></div>
+<div class="dash-card">🌧 <b id="kpiRain">--</b><span>Rainfall (mm/month)</span></div>
+<div class="dash-card">🌡 <b id="kpiAT">--</b><span>Air Temperature (°C)</span></div>
+<div class="dash-card">🔥 <b id="kpiLST">--</b><span>LST (°C)</span></div>
+</div>
+<div class="dash-section">
+<h2>Climate</h2>
+<div style="color:rgba(255,255,255,0.75);font-size:13px;margin-bottom:8px">
+          Analytical layers for climate relationships and patterns.
+        </div>
+<div class="dash-actions">
+<button class="dash-action" onclick="window.location.href='Correlation.html'">
+<b>Correlation</b>
+<span>Explore relationships between climate variables (demo placeholder).</span>
+</button>
+<button class="dash-action" onclick="window.location.href='Trend.html'">
+<b>Trend</b>
+<span>View time-based climate trends (demo placeholder).</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
 <script>
 /* ============ Screen switching (with fade) ============ */
 function showHome(){
@@ -658,13 +1224,12 @@ const toggleLabelsEl = document.getElementById('toggleLabels');
 const toggleBordersEl = document.getElementById('toggleBorders');
 
 function applyToggles(){
-  labelsLayer.show = !!toggleLabelsEl.checked;
-  bordersLayer.show = !!toggleBordersEl.checked;
+  labelsLayer.show = toggleLabelsEl ? !!toggleLabelsEl.checked : true;
+  bordersLayer.show = toggleBordersEl ? !!toggleBordersEl.checked : true;
 }
-toggleLabelsEl.addEventListener('change', applyToggles);
-toggleBordersEl.addEventListener('change', applyToggles);
+if(toggleLabelsEl) toggleLabelsEl.addEventListener('change', applyToggles);
+if(toggleBordersEl) toggleBordersEl.addEventListener('change', applyToggles);
 applyToggles();
-
 // Ubungo boundary (sample)
 const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
 
@@ -729,20 +1294,440 @@ async function runSearch(){
     setStatus('Search error');
   }
 }
-document.getElementById('searchBtn').addEventListener('click', runSearch);
-document.getElementById('placeSearch').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') runSearch();
-});
-
+const _searchBtn = document.getElementById('searchBtn');
+const _placeSearch = document.getElementById('placeSearch');
+if(_searchBtn) _searchBtn.addEventListener('click', runSearch);
+if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runSearch(); });
 /* ============ Leaflet 2D Map ============ */
 const map = L.map('map').setView([-6.79,39.25],12);
 
-L.tileLayer(
+// Basemaps (switchable)
+const baseImagery = L.tileLayer(
   'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
   { attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN' }
-).addTo(map);
+);
 
-L.geoJSON(ubungoGeoJSON,{color:'orange', weight:2, fillOpacity:0}).addTo(map);
+const baseStreets = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap contributors' }
+);
+
+let activeBasemap = baseImagery;
+window.activeBasemap = activeBasemap;
+activeBasemap.addTo(map);
+
+const ubungoLayer = L.geoJSON(ubungoGeoJSON,{color:'orange', weight:2, fillOpacity:0}).addTo(map);
+
+// Scale bar (metric only)
+
+// Legend (bottom-right) + toggle
+const legendEl = document.getElementById('mapLegend');
+const legendBody = document.getElementById('legendBody');
+const legendToggle = document.getElementById('legendToggle');
+if(legendToggle && legendEl){
+  legendToggle.addEventListener('click', ()=>{
+    legendEl.classList.toggle('collapsed');
+  });
+}
+
+// ============ Atlas Settings panel wiring ============
+
+// ============ Atlas Settings: Search + Labels/Borders ============
+const atlasToggleLabels = document.getElementById('atlasToggleLabels');
+const atlasToggleBorders = document.getElementById('atlasToggleBorders');
+
+// Wire Labels/Borders toggles to Cesium overlay layers if they exist
+function atlasApplyOverlays(){
+  try{
+    const showLabels = atlasToggleLabels ? !!atlasToggleLabels.checked : true;
+    const showBorders = atlasToggleBorders ? !!atlasToggleBorders.checked : true;
+
+    // Cesium overlays (globe)
+    if(typeof labelsLayer !== 'undefined' && labelsLayer) labelsLayer.show = showLabels;
+    if(typeof bordersLayer !== 'undefined' && bordersLayer) bordersLayer.show = showBorders;
+
+    // Leaflet borders (Ubungo boundary on 2D map)
+    if(typeof ubungoLayer !== 'undefined' && ubungoLayer && typeof map !== 'undefined'){
+      const hasUbungo = map.hasLayer(ubungoLayer);
+      if(showBorders && !hasUbungo){
+        ubungoLayer.addTo(map);
+      }else if(!showBorders && hasUbungo){
+        map.removeLayer(ubungoLayer);
+      }
+    }
+
+    // "OSM labels" on the 2D map -> Streets basemap
+    // When labels are turned OFF, force basemap back to Imagery so OSM streets/labels disappear.
+    if(typeof setBasemap === 'function'){
+      if(!showLabels){
+        if(typeof basemapSel !== 'undefined' && basemapSel){
+          if(basemapSel.value === 'streets'){
+            basemapSel.value = 'imagery';
+            setBasemap('imagery');
+          }
+        }else if(typeof activeBasemap !== 'undefined' && typeof baseStreets !== 'undefined' && activeBasemap === baseStreets){
+          setBasemap('imagery');
+        }
+      }
+      // When labels are ON we don't force any basemap; user chooses via Basemap dropdown.
+    }
+
+  }catch(e){}
+}
+
+// Keep initial state consistent with whatever the real toggles are (if present)
+try{
+  const tL = document.getElementById('toggleLabels');
+  const tB = document.getElementById('toggleBorders');
+  if(tL && atlasToggleLabels) atlasToggleLabels.checked = !!tL.checked;
+  if(tB && atlasToggleBorders) atlasToggleBorders.checked = !!tB.checked;
+}catch(e){}
+
+if(atlasToggleLabels) atlasToggleLabels.addEventListener('change', ()=>{
+  // also sync the hidden home toggle if present
+  const tL = document.getElementById('toggleLabels');
+  if(tL) tL.checked = atlasToggleLabels.checked;
+  atlasApplyOverlays();
+});
+if(atlasToggleBorders) atlasToggleBorders.addEventListener('change', ()=>{
+  const tB = document.getElementById('toggleBorders');
+  if(tB) tB.checked = atlasToggleBorders.checked;
+  atlasApplyOverlays();
+});
+
+atlasApplyOverlays();
+
+
+// ============ Atlas Settings actions (Search / Scale / Metadata / Export) ============
+const atlasMetaBtn = document.getElementById('atlasMetaBtn');
+const atlasExportBtn = document.getElementById('atlasExportBtn');
+const atlasToggleSearch = document.getElementById('atlasToggleSearch');
+const atlasToggleScale  = document.getElementById('atlasToggleScale');
+const atlasCurrentLayerName = document.getElementById('atlasCurrentLayerName');
+
+// Map search panel + geocoding (Leaflet)
+const mapSearchPanel = document.getElementById('mapSearchPanel');
+const atlasSearchInput = document.getElementById('atlasSearchInput');
+const atlasSearchGo = document.getElementById('atlasSearchGo');
+let atlasSearchMarker = null;
+
+function setSearchPanelVisible(on){
+  if(!mapSearchPanel) return;
+  mapSearchPanel.style.display = on ? '' : 'none';
+}
+
+async function runAtlasGeocode(){
+  const q = (atlasSearchInput?.value || '').trim();
+  if(!q){ toast('Type a place to search', 'info', 1800); return; }
+
+  toast('Searching…', 'info', 1200);
+  try{
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if(!res.ok) throw new Error('Search failed');
+    const arr = await res.json();
+    if(!arr || !arr.length){
+      toast('No results found', 'error', 2200);
+      return;
+    }
+    const hit = arr[0];
+    const lat = parseFloat(hit.lat), lon = parseFloat(hit.lon);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Bad result');
+    map.setView([lat, lon], Math.max(map.getZoom(), 14));
+
+    if(atlasSearchMarker){ try{ map.removeLayer(atlasSearchMarker); }catch(e){} }
+    atlasSearchMarker = L.marker([lat, lon]).addTo(map);
+    atlasSearchMarker.bindPopup('<b>' + (hit.display_name || q) + '</b>').openPopup();
+    toast('Location found', 'success', 1800);
+  }catch(e){
+    console.error(e);
+    toast('Search error', 'error', 2600);
+  }
+}
+
+if(atlasSearchGo) atlasSearchGo.addEventListener('click', runAtlasGeocode);
+if(atlasSearchInput) atlasSearchInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runAtlasGeocode(); });
+
+if(atlasToggleSearch){
+  atlasToggleSearch.addEventListener('change', ()=>{
+    setSearchPanelVisible(!!atlasToggleSearch.checked);
+  });
+  // default off
+  setSearchPanelVisible(!!atlasToggleSearch.checked);
+}
+
+// Scale bar (bottom-left) toggle
+let scaleControl = null;
+function setScaleBarVisible(on){
+  if(on){
+    if(!scaleControl){
+      scaleControl = L.control.scale({ position:'bottomleft', metric:true, imperial:false });
+    }
+    try{ scaleControl.addTo(map); }catch(e){}
+  }else{
+    if(scaleControl){
+      try{ scaleControl.remove(); }catch(e){ try{ map.removeControl(scaleControl); }catch(_){} }
+    }
+  }
+}
+if(atlasToggleScale){
+  atlasToggleScale.addEventListener('change', ()=> setScaleBarVisible(!!atlasToggleScale.checked));
+  // default off
+  setScaleBarVisible(!!atlasToggleScale.checked);
+}
+
+// ===== Layer-aware metadata =====
+const layerMetaModal = document.getElementById('layerMetaModal');
+const layerMetaClose = document.getElementById('layerMetaClose');
+const layerMetaBody  = document.getElementById('layerMetaBody');
+const layerMetaTitle = document.getElementById('layerMetaTitle');
+
+const layerMetadata = {
+  landcover: { Theme:'Landcover', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector / Raster', Notes:'Replace demo placeholder with your real landcover layer.' },
+  police:    { Theme:'Public safety', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your police stations layer.' },
+  health:    { Theme:'Health services', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your health facilities layer.' },
+  primary:   { Theme:'Education', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your primary schools layer.' },
+  secondary: { Theme:'Education', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your secondary schools layer.' },
+  roads:     { Theme:'Transport', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your road network layer.' },
+  transport: { Theme:'Transport', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your transport network layer.' },
+  water:     { Theme:'Water supply', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your water network layer.' },
+  boreholes: { Theme:'Water points', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector', Notes:'Replace demo placeholder with your boreholes/service areas layer.' },
+  popdist:   { Theme:'Population', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your population distribution layer.' },
+  popdens:   { Theme:'Population', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your population density layer.' },
+  slope:     { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your slope layer.' },
+  aspect:    { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your aspect layer.' },
+  hillshade: { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your hillshade layer.' },
+  contours:  { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your contour layer.' },
+  topo:      { Theme:'Topographic', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster / Vector', Notes:'Replace demo placeholder with your topographic map layer.' },
+  lcchange:  { Theme:'Landcover change', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your change detection layer.' },
+  landuse:   { Theme:'Land use', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster / Vector', Notes:'Replace demo placeholder with your land use layer.' },
+  rainfall:  { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your rainfall layer.' },
+  airtemp:   { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your air temperature layer.' },
+  lst:       { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your LST layer.' },
+  ndvi:      { Theme:'Vegetation', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your NDVI layer.' }
+};
+
+function currentLayerTitle(){
+  return (window.activeLayerTitle || '').trim() || 'None';
+}
+function currentLayerKey(){
+  return window.activeLayerKey || null;
+}
+
+function renderMetadata(){
+  if(!layerMetaBody || !layerMetaTitle) return;
+
+  const k = currentLayerKey();
+  const title = currentLayerTitle();
+  layerMetaTitle.textContent = 'Metadata — ' + title;
+
+  if(!k){
+    layerMetaBody.innerHTML = '<div style="color:rgba(232,242,255,0.8); font-size:13px;">No layer selected. Choose a layer from <b>Layers</b> then open Metadata.</div>';
+    return;
+  }
+
+  const meta = layerMetadata[k] || {};
+  const rows = [
+    ['Layer name', title],
+    ['Key', k],
+    ['Theme', meta.Theme || '—'],
+    ['Source', meta.Source || '—'],
+    ['Date', meta.Date || '—'],
+    ['CRS', meta.CRS || '—'],
+    ['Format', meta.Format || '—'],
+    ['Notes', meta.Notes || '—']
+  ];
+
+  layerMetaBody.innerHTML = '<div class="meta-grid">' + rows.map(([a,b]) =>
+    '<div class="meta-k">' + a + '</div><div class="meta-v">' + (b||'—') + '</div>'
+  ).join('') + '</div>';
+}
+
+function openMetadata(){
+  if(!layerMetaModal) return;
+  renderMetadata();
+  layerMetaModal.style.display = 'flex';
+  try{ layerMetaModal.setAttribute('aria-hidden','false'); }catch(e){}
+  if(layerMetaClose) layerMetaClose.focus();
+}
+function closeMetadata(){
+  if(!layerMetaModal) return;
+  layerMetaModal.style.display = 'none';
+  try{ layerMetaModal.setAttribute('aria-hidden','true'); }catch(e){}
+}
+
+if(layerMetaClose) layerMetaClose.addEventListener('click', closeMetadata);
+if(layerMetaModal) layerMetaModal.addEventListener('click', (e)=>{ if(e.target === layerMetaModal) closeMetadata(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && layerMetaModal && layerMetaModal.style.display === 'flex') closeMetadata(); });
+
+if(atlasMetaBtn){
+  atlasMetaBtn.addEventListener('click', ()=>{ openMetadata(); closeSettings(); });
+}
+
+// ===== Export selected layer only =====
+async function exportSelectedLayer(){
+  if(!window.activeLayerKey || !window.activeLayer){
+    toast('Select a layer first (Layers → choose a map)', 'error', 2800);
+    return;
+  }
+
+  // Hide UI overlays to export clean layer
+  const ui = document.getElementById('map-ui');
+  const legend = document.getElementById('mapLegend');
+  const controls = document.querySelector('.leaflet-control-container');
+
+  const prevUI = ui ? ui.style.display : '';
+  const prevLegend = legend ? legend.style.display : '';
+  const prevControls = controls ? controls.style.display : '';
+
+  // Remove basemap temporarily to export only the active layer
+  let basemapWasOn = false;
+  try{
+    if(window.activeBasemap && map.hasLayer(window.activeBasemap)){
+      basemapWasOn = true;
+      map.removeLayer(window.activeBasemap);
+    }
+  }catch(e){}
+
+  try{
+    if(ui) ui.style.display = 'none';
+    if(legend) legend.style.display = 'none';
+    if(controls) controls.style.display = 'none';
+
+    // Let map re-render
+    await new Promise(r => setTimeout(r, 180));
+
+    const target = map.getContainer();
+    const canvas = await html2canvas(target, { useCORS:true, backgroundColor: null, scale: 2 });
+
+    const link = document.createElement('a');
+    const safeName = (currentLayerTitle() || 'layer').replace(/[^a-z0-9\-\_]+/gi, '_');
+    link.download = safeName + '_export.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    toast('Export saved', 'success', 1800);
+  }catch(e){
+    console.error(e);
+    toast('Export failed (tile CORS may block)', 'error', 3200);
+  }finally{
+    // Restore basemap and UI
+    try{
+      if(basemapWasOn && window.activeBasemap){
+        window.activeBasemap.addTo(map);
+      }
+    }catch(e){}
+    try{ if(window.activeLayer && window.activeLayer.bringToFront) window.activeLayer.bringToFront(); }catch(e){}
+    if(ui) ui.style.display = prevUI || '';
+    if(legend) legend.style.display = prevLegend || '';
+    if(controls) controls.style.display = prevControls || '';
+  }
+}
+
+if(atlasExportBtn){
+  atlasExportBtn.addEventListener('click', ()=>{ exportSelectedLayer(); closeSettings(); });
+}
+
+// Update "Selected layer" chip whenever layer changes
+function refreshSelectedLayerChip(){
+  if(!atlasCurrentLayerName) return;
+  const title = currentLayerTitle();
+  atlasCurrentLayerName.textContent = title || 'None';
+}
+
+// Expose so loadLayer can call it
+window.refreshSelectedLayerChip = refreshSelectedLayerChip;
+window.renderMetadata = renderMetadata;
+
+
+const settingsBtn = document.getElementById('atlasSettingsBtn');
+const settingsPanel = document.getElementById('atlasSettings');
+const settingsClose = document.getElementById('atlasSettingsClose');
+const basemapSel = document.getElementById('atlasBasemap');
+const showLegendChk = document.getElementById('atlasShowLegend');
+const showCoordsChk = document.getElementById('atlasShowCoords');
+
+function openSettings(){
+  if(!settingsPanel) return;
+  settingsPanel.classList.add('open');
+  settingsPanel.setAttribute('aria-hidden','false');
+}
+function closeSettings(){
+  if(!settingsPanel) return;
+  settingsPanel.classList.remove('open');
+  settingsPanel.setAttribute('aria-hidden','true');
+}
+
+if(settingsBtn) settingsBtn.addEventListener('click', ()=>{
+  if(!settingsPanel) return;
+  if(settingsPanel.classList.contains('open')) closeSettings();
+  else openSettings();
+});
+if(settingsClose) settingsClose.addEventListener('click', closeSettings);
+
+// Click outside closes (only when clicking on map-ui backdrop isn't possible; so we use ESC)
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') closeSettings();
+});
+
+// Basemap switching
+function setBasemap(which){
+  const next = (which === 'streets') ? baseStreets : baseImagery;
+  if(next === activeBasemap) return;
+  try{ map.removeLayer(activeBasemap); }catch(e){}
+  activeBasemap = next;
+  window.activeBasemap = activeBasemap;
+  activeBasemap.addTo(map);
+}
+if(basemapSel){
+  basemapSel.addEventListener('change', ()=> setBasemap(basemapSel.value));
+}
+
+// Legend show/hide
+if(showLegendChk && legendEl){
+  showLegendChk.addEventListener('change', ()=>{
+    legendEl.style.display = showLegendChk.checked ? '' : 'none';
+  });
+}
+
+// Coords enable/disable
+if(showCoordsChk){
+  showCoordsChk.addEventListener('change', ()=>{
+    coordsEnabled = !!showCoordsChk.checked;
+    if(!coordsEnabled && coordEl){
+      coordEl.style.display = 'none';
+    }
+  });
+}
+
+function setLegend(layerTitle){
+  if(!legendBody) return;
+  legendBody.innerHTML = `
+    <div class="legend-row">
+      <span class="legend-swatch"></span>
+      <span class="legend-text">${layerTitle || 'No layer selected'}</span>
+    </div>
+  `;
+}
+
+// Toast notifications (top-center)
+const toastHost = document.getElementById('toastHost');
+function toast(message, kind='info', ms=2400){
+  if(!toastHost) return;
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  const tag = kind === 'success' ? 'Loaded' : (kind === 'error' ? 'Error' : 'Info');
+  el.innerHTML = `<span>${message}</span><span class="tag">${tag}</span>`;
+  toastHost.appendChild(el);
+  // animate in
+  requestAnimationFrame(()=>el.classList.add('show'));
+  // remove
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{ try{ el.remove(); }catch(e){} }, 220);
+  }, ms);
+}
+
 
 // Sample layers (placeholders)
 // Replace each layer with your real GeoJSON, WMS, tiles, etc.
@@ -784,25 +1769,836 @@ landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
 };
 
 let activeLayer;
+window.activeLayer = null;
+window.activeLayerKey = null;
+window.activeLayerTitle = '';
 
 function loadLayer(type){
   if(activeLayer) map.removeLayer(activeLayer);
 
   const layer = sampleLayers[type];
   if(!layer){
-    alert('Layer not found: ' + type);
+    toast('Layer not found: ' + type, 'error', 3500);
     return;
   }
 
+  const label = (layer && layer.getPopup && layer.getPopup()) ? (layer.getPopup().getContent() || '') : '';
+  toast('Loading layer…', 'info', 1100);
+
   activeLayer = layer;
   activeLayer.addTo(map);
+
+  // Update legend
+  const cleanTitle = (label || '').toString().replace(/<[^>]*>/g,'').trim();
+  // Track selected layer (for Export + Metadata)
+  window.activeLayerKey = type;
+  window.activeLayerTitle = cleanTitle || (typeof type === 'string' ? type : 'Selected layer');
+  window.activeLayer = activeLayer;
+  if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
+  if(window.renderMetadata) window.renderMetadata();
+  setLegend(window.activeLayerTitle || 'Selected layer');
+  toast('Layer ready', 'success', 1800);
 
   // Open popup for quick feedback
   if(activeLayer.getPopup){
     activeLayer.openPopup();
   }
 }
+
+
+// ============ About Us modal (UI only) ============
+document.addEventListener('DOMContentLoaded', () => {
+  const aboutBtn = document.getElementById('aboutBtn');
+  const modal = document.getElementById('aboutModal');
+  const closeBtn = document.getElementById('aboutClose');
+  const aboutContactBtn = document.getElementById('aboutContactBtn');
+  const contactModal = document.getElementById('contactModal');
+  const contactModalClose = document.getElementById('contactModalClose');
+
+  if(!aboutBtn || !modal || !closeBtn) return;
+
+  function openAbout(){
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    closeBtn.focus();
+  }
+  function closeAbout(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    aboutBtn.focus();
+  }
+
+  aboutBtn.addEventListener('click', openAbout);
+  closeBtn.addEventListener('click', closeAbout);
+
+  // Contact button inside About modal
+  if(aboutContactBtn && contactModal){
+    aboutContactBtn.addEventListener('click', ()=>{
+      // Ensure About stays open; open Contact modal on top
+      contactModal.style.display = 'flex';
+      try{ contactModal.setAttribute('aria-hidden','false'); }catch(e){}
+      if(contactModalClose) contactModalClose.focus();
+    });
+  }
+
+  // Click outside card closes
+  modal.addEventListener('click', (e)=>{
+    if(e.target === modal) closeAbout();
+  });
+
+  // ESC closes
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && modal.classList.contains('open')) closeAbout();
+  });
+});
 </script>
+<!-- ================= ABOUT US MODAL ================= -->
+<div aria-hidden="true" aria-labelledby="aboutTitle" aria-modal="true" class="modal" id="aboutModal" role="dialog">
+<div class="modal-card">
+<div class="modal-head">
+<div>
+<h2 id="aboutTitle">About Us</h2>
+<p>Ardhi University • Department of Geospatial Sciences and Technology • GS 334 (Project III) • February 2026</p>
+</div>
+<div class="modal-head-actions">
+<button aria-label="Close" class="modal-close" id="aboutClose" type="button">✕</button>
+</div>
+</div>
+<div class="modal-body">
+<div class="modal-grid">
+<div class="modal-panel">
+<b>Project overview</b>
+<div>
+            This web atlas is an in-semester GIS &amp; Remote Sensing production project for <b>GS 334 – Project III (Geospatial Analytics for Societal Challenges)</b>.
+            The project area is <b>Ubungo District (Dar es Salaam City)</b>. The aim is to apply GIS &amp; RS skills in a realistic, multi-task production workflow
+            from planning and data acquisition to analysis, quality control, and final presentation.
+          </div>
+<b style="margin-top:10px">Core workflow</b>
+<ul>
+<li>Study Terms of Reference (deliverables, datasets, methods, software)</li>
+<li>Reconnaissance (satellite imagery / Google Earth + stakeholder introduction)</li>
+<li>Data acquisition (field + online sources)</li>
+<li>Data exploration, processing &amp; analysis</li>
+<li>Quality control (validation, verification, accuracy assessment)</li>
+<li>Data presentation (maps, web atlas, reporting)</li>
+</ul>
+</div>
+<div class="modal-panel">
+<b>Deliverables</b>
+<ul>
+<li>Production flow diagram + work plan / time schedule</li>
+<li>Web-based GIS Ubungo District Atlas (general &amp; thematic maps)</li>
+<li>Technical report + oral group presentation</li>
+</ul>
+<b style="margin-top:10px">Project supervision</b>
+<ul>
+<li>Dr. Anastazia Msusa</li>
+<li>Mr. Michael Mavura</li>
+<li>Mr. Iriael Mlay</li>
+<li>Ms. Christina Mshana</li>
+</ul>
+<b style="margin-top:10px">Assessment &amp; schedule</b>
+<ul>
+<li>Three assessed oral presentations (after fieldwork, after office work, after draft report)</li>
+<li>Final submission deadline: <b>06 March 2026</b></li>
+</ul>
+</div>
+</div>
+<div style="display:flex; justify-content:center; margin-top:18px;">
+  <button class="modal-action-btn" id="aboutContactBtn" type="button" title="Contact the team">✉️ Contact Us</button>
+</div>
+
+</div>
+</div>
+</div>
+<button id="contactBtn" style="position:fixed; right:20px; bottom:90px; z-index:9999;
+background:#1f4e79; color:white; border:none; padding:12px 16px;
+border-radius:8px; font-weight:600; cursor:pointer;; display:none;">
+Contact Us
+</button>
+<div id="contactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+<div id="contactModalCard" style="background:#ffffff; border-radius:16px; width:480px; max-width:95vw;
+     box-shadow:0 20px 60px rgba(0,0,0,0.25); overflow:hidden; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+<div class="contact-header" style="padding:16px 18px; background:linear-gradient(135deg,#123a63,#1f4e79); color:#fff; display:flex; align-items:center; justify-content:space-between;">
+<div style="display:flex; align-items:center; gap:10px;">
+<div aria-hidden="true" style="width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.18);
+           display:grid; place-items:center; font-size:18px;">✉️</div>
+<div>
+<div style="font-weight:700; font-size:16px; line-height:1.1;">Contact</div>
+<div style="opacity:0.92; font-size:12.5px; margin-top:2px;">Ubungo District Web Atlas</div>
+</div>
+</div>
+<button aria-label="Close" id="contactModalClose" style="border:none; background:rgba(255,255,255,0.18); color:#fff; width:36px; height:36px; border-radius:10px;
+             cursor:pointer; font-size:18px; line-height:1;" type="button">✕</button>
+</div>
+<div id="contactModalBody" style="padding:16px 18px 18px 18px; color:#0f172a;">
+<div style="font-size:13.5px; margin:0 0 12px 0; color:#334155;">
+      For enquiries contact
+    </div>
+<!-- Scroll container for contacts -->
+<div id="contactScroll" style="max-height:50vh; overflow:auto; padding-right:6px;">
+<div class="contact-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255622521594" title="Call +255 622 521 594">+255 622 521 594</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255616788034" title="Call +255 616 788 034">+255 616 788 034</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255686764197" title="Call +255 686 764 197">+255 686 764 197</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255625838344" title="Call +255 625 838 344">+255 625 838 344</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255685158302" title="Call +255 685 158 302">+255 685 158 302</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255687295510" title="Call +255 687 295510">+255 687 295510</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255678484554" title="Call +255 678 484 554">+255 678 484 554</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255769520172" title="Call +255 769 520 172">+255 769 520 172</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255744968968" title="Call +255 744 968 968">+255 744 968 968</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255672296161" title="Call +255 672 296 161">+255 672 296 161</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255761854633" title="Call +255 761 854 633">+255 761 854 633</a>
+</div>
+</div>
+</div>
+<!-- Email LAST -->
+<div class="contact-item" style="margin-top:12px;">
+<div aria-hidden="true" class="contact-icon" style="background:#fef9c3;">📧</div>
+<a class="contact-link" href="mailto:info.atlasproject0@gmail.com" title="Email info.atlasproject0@gmail.com">info.atlasproject0@gmail.com</a>
+</div>
+</div>
+</div>
+<style>/* Align with About modal: clean cards + subtle borders */
+  #contactModal .contact-item {
+    display:flex; gap:8px; align-items:center;
+    padding:8px 10px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    background:#fff;
+  }
+  #contactModal .contact-icon {
+    width:28px; height:28px;
+    border-radius:10px;
+    background:#eef2ff;
+    display:grid; place-items:center;
+    flex: 0 0 auto;
+    font-size:14px;
+  }
+  /* Increase visibility: stronger color, full opacity, slightly heavier weight */
+  #contactModal .contact-link {
+    font-size:12.5px;
+    color:#0f172a;
+    opacity:1;
+    font-weight:650;
+    text-decoration:none;
+    line-height:1.15;
+    display:block;
+  }
+  #contactModal .contact-link:hover {
+    text-decoration:underline;
+  }
+  /* Scrollbar styling (subtle) */
+  #contactScroll::-webkit-scrollbar {
+    width:10px;
+  }
+  #contactScroll::-webkit-scrollbar-thumb {
+    background:rgba(31,78,121,0.25);
+    border-radius:999px;
+    border:3px solid transparent;
+    background-clip:content-box;
+  }
+  #contactScroll::-webkit-scrollbar-track {
+    background:transparent;
+  }
+
+
+
+/* =========================
+   RESPONSIVE / FLEX UI ONLY
+   (Views + logic untouched)
+   ========================= */
+
+/* Ensure predictable sizing */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; width: 100%; }
+body { margin: 0; overflow-x: hidden; }
+
+/* Make app containers fluid */
+#app, .app, .container, .layout, .shell { width: 100%; max-width: 100%; }
+
+/* Prevent fixed panels from causing horizontal scroll on small screens */
+.hero-card, .heroCard, .card, .panel, .sidebar, .toolbar, .topbar, .header-bar, .headerBar {
+  max-width: 100%;
+}
+
+/* Make common grids flexible without changing structure */
+.grid, .row, .columns, .cards, .options, .controls {
+  max-width: 100%;
+}
+
+/* If a sidebar exists, allow wrapping on small screens */
+@media (max-width: 980px) {
+  .layout, .shell, .container, .row, .columns {
+    flex-wrap: wrap !important;
+  }
+  .sidebar, .left-panel, .leftPanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    order: 2;
+  }
+  .main, .content, .map-area, .mapArea, .viewer, .viewer-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    order: 1;
+  }
+}
+
+/* Make top actions wrap nicely */
+@media (max-width: 680px) {
+  .topbar, .header-bar, .headerBar {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  .topbar .actions, .header-bar .actions, .headerBar .actions,
+  .topbar-actions, .header-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Responsive modal sizing (About + Contact) */
+#aboutModalCard, #contactModalCard {
+  width: min(520px, 92vw) !important;
+  max-width: 92vw !important;
+}
+#contactModalBody, #aboutModalCard {
+  max-height: 78vh;
+}
+#contactScroll {
+  max-height: 52vh !important;
+}
+
+/* Make two-column contact grid collapse to one column on small screens */
+@media (max-width: 520px) {
+  #contactModal .contact-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Map / canvas / viewers fill available space without overflowing */
+#map, #map2d, #leafletMap, .leaflet-container,
+#cesiumContainer, .cesium-container,
+.canvas, .viewer, .viewer-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Keep buttons readable on small screens */
+button, .btn {
+  max-width: 100%;
+}
+
+/* Make any fixed-width card content wrap safely */
+p, li, a, span, div {
+  overflow-wrap: anywhere;
+}
+
+
+/* ==== Leaflet scale bar visibility fix ==== */
+.leaflet-control-container { position: relative; z-index: 1400; }
+.leaflet-control-scale { margin-left: 12px; margin-bottom: 12px; }
+.leaflet-control-scale-line{
+  background: rgba(10, 20, 28, 0.70) !important;
+  color: rgba(232,242,255,0.92) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-top: none !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px;
+}
+
+
+/* ==== Resizable sidebar + Layers accordion (UI only) ==== */
+:root{ --sidebar-w: 320px; }
+
+.sidebar{
+  position: relative;
+  width: var(--sidebar-w);
+  min-width: 220px;
+  max-width: 560px;
+}
+
+.sidebar-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin: 10px 0 8px 0;
+}
+
+.layers-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  flex: 1 1 auto;
+  padding: 10px 12px;
+}
+
+.layers-toggle .chev{
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.sidebar-size-buttons{
+  display:flex;
+  gap:8px;
+  flex: 0 0 auto;
+}
+
+.sidebar-size-buttons button{
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display:grid;
+  place-items:center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.layers-group{
+  display:block;
+  overflow:auto;
+  max-height: calc(100vh - 210px); /* allows scrolling if many layers */
+  padding-right: 4px;
+}
+
+.layers-group:not(.open){
+  display:none;
+}
+
+.sidebar-resizer{
+  position:absolute;
+  top:0;
+  right:-3px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2000;
+  background: transparent;
+}
+
+.sidebar-resizer::after{
+  content:"";
+  position:absolute;
+  top:12px;
+  bottom:12px;
+  left:50%;
+  width:2px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background: rgba(255,255,255,0.16);
+}
+
+@media (hover: none) and (pointer: coarse){
+  .sidebar-resizer{ width: 14px; right:-6px; }
+}
+
+@media (max-width: 980px){
+  .sidebar{ width: 100% !important; min-width: 0; max-width: 100% !important; }
+  .sidebar-resizer{ display:none; }
+  .layers-group{ max-height: 45vh; }
+}
+/* Show home-only controls (labels, borders, contact, search) only on HOME */
+#explore #globeControls,
+#explore .topbar-actions,
+#explore #contactBtn,
+#explore #labelsToggle,
+#explore #bordersToggle {
+  display: none !important;
+}
+
+
+  /* ================= HOME CONTROLS FADE (during transition) ================= */
+  #home .topbar,
+  #home .hero,
+  #home #globeControls{
+    transition: opacity 320ms ease, transform 320ms ease;
+    opacity: 1;
+  }
+  #home .topbar{ transform: translateY(0); }
+  #home .hero{ transform: translateY(0); }
+  #home #globeControls{ transform: translateY(0); }
+
+  /* When HOME section is not active, fade controls out smoothly */
+  #home:not(.active) .topbar{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  #home:not(.active) .hero{
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  #home:not(.active) #globeControls{
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+
+  /* ================= ATLAS FLOATING SETTINGS ================= */
+  .atlas-settings-btn{
+    position:absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1400;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.72);
+    color: rgba(232,242,255,0.92);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    cursor:pointer;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .atlas-settings-btn:hover{ background: rgba(10, 20, 28, 0.80); }
+
+  .atlas-settings{
+    position:absolute;
+    top: 64px;
+    right: 16px;
+    z-index: 1400;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.78);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+    overflow:hidden;
+    pointer-events:auto;
+    transform-origin: top right;
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  }
+  .atlas-settings.open{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  .atlas-settings .head{
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
+  .atlas-settings .body{
+    padding: 10px 12px 12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color: rgba(232,242,255,0.86);
+    font-size: 12px;
+  }
+  .atlas-settings label{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+  }
+  .atlas-settings select, .atlas-settings input[type="checkbox"]{
+    pointer-events:auto;
+  }
+  .atlas-settings select{
+    width: 120px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .xbtn{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .atlas-settings .xbtn:hover{ background: rgba(255,255,255,0.10); }
+
+
+  /* Settings search row */
+  .atlas-settings .search-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .atlas-settings .search-row input{
+    flex: 1 1 auto;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .search-row button{
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(52,152,219,0.80);
+    color: #fff;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .atlas-settings .search-row button:hover{ filter: brightness(1.06); }
+
+</style>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const modal = document.getElementById("contactModal");
+  const btn = document.getElementById("contactBtn");
+  const closeX = document.getElementById("contactModalClose");
+
+  function openModal(){ if(modal) modal.style.display = "flex"; }
+  function closeModal(){ if(modal) modal.style.display = "none"; }
+
+  if(btn) btn.addEventListener("click", openModal);
+  if(closeX) closeX.addEventListener("click", closeModal);
+
+  // click outside card closes
+  window.addEventListener("click", function(ev){
+    if(ev.target === modal) closeModal();
+  });
+
+  // ESC closes
+  window.addEventListener("keydown", function(ev){
+    if(ev.key === "Escape") closeModal();
+  });
+});
+</script><script>
+// Resizable sidebar + Layers accordion JS
+document.addEventListener("DOMContentLoaded", () => {
+  // Layers accordion
+  const toggle = document.getElementById("layersToggle");
+  const group = document.getElementById("layersGroup");
+  if (toggle && group) {
+    toggle.addEventListener("click", () => {
+      const isOpen = group.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      const chev = toggle.querySelector(".chev");
+      if (chev) chev.textContent = isOpen ? "▾" : "▸";
+    });
+  }
+
+  // Sidebar resize (drag)
+  const resizer = document.getElementById("sidebarResizer");
+  const root = document.documentElement;
+  const minW = 220, maxW = 560;
+
+  function setW(px){
+    const clamped = Math.max(minW, Math.min(maxW, px));
+    root.style.setProperty("--sidebar-w", clamped + "px");
+  }
+
+  // +/- buttons
+  const btnSmaller = document.getElementById("sidebarSmaller");
+  const btnLarger = document.getElementById("sidebarLarger");
+  if (btnSmaller) btnSmaller.addEventListener("click", () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    setW(cur - 24);
+  });
+  if (btnLarger) btnLarger.addEventListener("click", () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    setW(cur + 24);
+  });
+
+  if (!resizer) return;
+
+  let startX = 0, startW = 0, dragging = false;
+
+  function onDown(clientX){
+    dragging = true;
+    startX = clientX;
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    startW = cur;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+  }
+
+  function onMove(clientX){
+    if (!dragging) return;
+    const dx = clientX - startX;
+    setW(startW + dx);
+  }
+
+  function onUp(){
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+  }
+
+  resizer.addEventListener("mousedown", (e) => onDown(e.clientX));
+  window.addEventListener("mousemove", (e) => onMove(e.clientX));
+  window.addEventListener("mouseup", onUp);
+
+  // Touch support
+  resizer.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    onDown(t.clientX);
+  }, {passive:true});
+  window.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    onMove(t.clientX);
+  }, {passive:true});
+  window.addEventListener("touchend", onUp);
+});
+</script><script>
+// Dashboard KPIs from Trend Summary
+(function() {
+  const els = {
+    ndvi: document.getElementById("kpiNdvi"),
+    rain: document.getElementById("kpiRain"),
+    at:   document.getElementById("kpiAT"),
+    lst:  document.getElementById("kpiLST"),
+  };
+
+  function fmt(val, kind) {
+    if (val === null || val === undefined || val === "" || Number.isNaN(Number(val))) return "--";
+    const num = Number(val);
+    if (kind === "ndvi") return num.toFixed(2);
+    if (kind === "rain") return Math.round(num).toString();
+    // temps
+    return num.toFixed(1);
+  }
+
+  function applySummary(s) {
+    if (!s || typeof s !== "object") return false;
+
+    // accept multiple key spellings
+    const ndvi = s.mean_ndvi ?? s.meanNDVI ?? s.ndvi_mean ?? s.ndvi ?? s.MeanNDVI;
+    const rain = s.mean_rainfall ?? s.meanRainfall ?? s.rain_mean ?? s.rainfall ?? s.Rainfall;
+    const at   = s.mean_air_temperature ?? s.meanAirTemperature ?? s.mean_at ?? s.air_temperature ?? s.airTemperature ?? s.AT ?? s.AirTemperature;
+    const lst  = s.mean_lst ?? s.meanLST ?? s.lst_mean ?? s.lst ?? s.LST;
+
+    let updated = false;
+    if (els.ndvi && ndvi !== undefined) { els.ndvi.textContent = fmt(ndvi, "ndvi"); updated = true; }
+    if (els.rain && rain !== undefined) { els.rain.textContent = fmt(rain, "rain"); updated = true; }
+    if (els.at   && at   !== undefined) { els.at.textContent   = fmt(at, "temp"); updated = true; }
+    if (els.lst  && lst  !== undefined) { els.lst.textContent  = fmt(lst, "temp"); updated = true; }
+    return updated;
+  }
+
+  function tryLocalStorage() {
+    try {
+      const raw = localStorage.getItem("atlasTrendSummary");
+      if (!raw) return false;
+      const obj = JSON.parse(raw);
+      return applySummary(obj);
+    } catch(e) {
+      return false;
+    }
+  }
+
+  async function tryFetch(paths) {
+    for (const p of paths) {
+      try {
+        const res = await fetch(p, { cache: "no-store" });
+        if (!res.ok) continue;
+        const obj = await res.json();
+        if (applySummary(obj)) return true;
+      } catch(e) {}
+    }
+    return false;
+  }
+
+  async function init() {
+    // 1) localStorage from Trend page (best)
+    if (tryLocalStorage()) return;
+
+    // 2) optional JSON file exported by Trend page
+    await tryFetch(["trend_summary.json", "data/trend_summary.json"]);
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+
+  // Live update when Trend page writes to localStorage
+  window.addEventListener("storage", (ev) => {
+    if (ev.key === "atlasTrendSummary") {
+      try {
+        const obj = JSON.parse(ev.newValue || "{}");
+        applySummary(obj);
+      } catch(e) {}
+    }
+  });
+})();
+</script>
+<div>🟥 LST</div>
+<div>🟦 Rainfall</div>
+<div>⬛ Roads</div>
+</div>
+
+
+
+
+<!-- ================= LAYER METADATA MODAL ================= -->
+<div id="layerMetaModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div id="layerMetaCard">
+    <div class="head">
+      <b id="layerMetaTitle">Metadata</b>
+      <button id="layerMetaClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="body" id="layerMetaBody">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
