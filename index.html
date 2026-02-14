@@ -343,7 +343,7 @@
     position: relative;
   }
   #map{
-    position:absolute;
+    position: relative;
     inset:0;
     width: 100%;
     height: 100%;
@@ -833,18 +833,13 @@
   /* ===== Atlas Map Search panel (toggle in Atlas settings) ===== */
   #mapSearchPanel{
     position:absolute;
-    top: 58px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1200;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(420px, calc(100% - 28px));
+    z-index:2500;
+    pointer-events:auto;
     display:none;
-    width: min(340px, calc(100vw - 28px));
-    background: rgba(10, 20, 28, 0.75);
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 16px;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.45);
-    backdrop-filter: blur(10px);
-    padding: 10px;
   }
   #mapSearchPanel .row{
     display:flex;
@@ -877,77 +872,79 @@
   }
 
   /* ===== Metadata modal (layer-aware) ===== */
-  #layerMetaModal{
-    display:none;
-    position: fixed;
-    inset:0;
-    background: rgba(0,0,0,0.55);
-    z-index: 10050;
-    align-items:center;
-    justify-content:center;
-    padding: 20px;
-  }
-  #layerMetaCard{
-    width: min(720px, 96vw);
-    max-height: 85vh;
-    overflow:hidden;
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.10);
-    background: rgba(10, 20, 28, 0.92);
-    box-shadow: 0 22px 70px rgba(0,0,0,0.55);
-    backdrop-filter: blur(12px);
-    color: rgba(232,242,255,0.95);
-  }
-  #layerMetaCard .head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    padding: 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-  }
-  #layerMetaCard .head b{
-    font-size: 15px;
-    letter-spacing: 0.2px;
-  }
-  #layerMetaClose{
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-    border:1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.08);
-    color: rgba(232,242,255,0.95);
-    cursor:pointer;
-    font-size: 18px;
-    line-height: 1;
-  }
-  #layerMetaCard .body{
-    padding: 14px 16px 16px 16px;
-    overflow:auto;
-    max-height: calc(85vh - 62px);
-  }
-  .meta-grid{
-    display:grid;
-    grid-template-columns: 170px 1fr;
-    gap: 10px 12px;
-    font-size: 13px;
-    line-height: 1.35;
-  }
-  .meta-k{
-    color: rgba(232,242,255,0.70);
-  }
-  .meta-v{
-    color: rgba(232,242,255,0.95);
-  }
-  .meta-pill{
-    display:inline-block;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border:1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.06);
-    font-size: 12px;
-    margin-right: 6px;
-  }
+#layerMetaModal{
+  display:none;
+  position: fixed;
+  inset:0;
+  background: rgba(0,0,0,0.55);
+  z-index: 10050;
+  align-items:center;
+  justify-content:center;
+  padding: 14px;
+}
+#layerMetaCard{
+  display:inline-block;                 /* shrink-wrap */
+  width: fit-content;                   /* size to content */
+  max-width: min(600px, calc(100vw - 28px));
+  min-width: min(360px, calc(100vw - 28px));
+  background: rgba(10, 20, 28, 0.92);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+}
+#layerMetaCard .head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+#layerMetaCard .head b{
+  color: rgba(232,242,255,0.96);
+  font-size: 14px;
+  letter-spacing: .2px;
+}
+#layerMetaClose{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(232,242,255,0.92);
+  cursor: pointer;
+  font-weight: 900;
+}
+#layerMetaClose:hover{ filter: brightness(1.08); }
+
+#layerMetaCard .body{
+  padding: 12px 14px 14px 14px;
+  max-height: min(70vh, calc(100vh - 180px));
+  overflow:auto;                        /* scroll only if too tall */
+}
+
+/* neat key/value layout that adapts to content width */
+.meta-grid{
+  display:grid;
+  grid-template-columns: max-content minmax(180px, 1fr);
+  gap: 10px 14px;
+  align-items:start;
+}
+.meta-k{
+  color: rgba(232,242,255,0.78);
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.meta-v{
+  color: rgba(232,242,255,0.92);
+  font-size: 12.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script></head>
@@ -1005,7 +1002,7 @@
 </div>
 </div>
 </div>
-<input id="placeSearch" placeholder="Search place…" type="text"/>
+<input id="placeSearch" type="text"/>
 <button id="searchBtn">Go</button>
 </div>
 <!-- ================= ATLAS ================= -->
@@ -1029,10 +1026,7 @@
 </div><div class="layers-group" id="layersGroup"><button onclick="showMap(); loadLayer('landcover')">Landcover Map</button><button onclick="showMap(); loadLayer('police')">Police Stations Map</button><button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button><button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button><button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button><button onclick="showMap(); loadLayer('roads')">Road Network Map</button><button onclick="showMap(); loadLayer('transport')">Transport Network Map</button><button onclick="showMap(); loadLayer('water')">Water Supply Network</button><button onclick="showMap(); loadLayer('boreholes')">Borehole Map &amp; Service Areas</button><button onclick="showMap(); loadLayer('popdist')">Population Distribution</button><button onclick="showMap(); loadLayer('popdens')">Population Density Map</button><button onclick="showMap(); loadLayer('slope')">Slope Map</button><button onclick="showMap(); loadLayer('aspect')">Aspect Map</button><button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button><button onclick="showMap(); loadLayer('contours')">Contours Map</button><button onclick="showMap(); loadLayer('topo')">Topographic Map</button><button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button><button onclick="showMap(); loadLayer('landuse')">Land Use Map</button><button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button><button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button><button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button><button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button></div>
 <div style="height:10px"></div>
 <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
-<div style="margin-top:12px;color:rgba(255,255,255,0.75);font-size:12px;line-height:1.5">
-      Tip: If tiles don’t load on GitHub Pages, it’s usually your network or mixed-content rules.
-      This demo uses HTTPS for all basemaps.
-    </div>
+
 <div aria-label="Resize sidebar" class="sidebar-resizer" id="sidebarResizer" role="separator"></div></div>
 <div class="content">
 <div id="map">
@@ -1067,10 +1061,13 @@
 
 <label>
         <span>Basemap</span>
-        <select id="atlasBasemap">
-          <option value="imagery" selected>Imagery</option>
-          <option value="streets">Streets</option>
-        </select>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+          <select id="atlasBasemap" style="flex:1;">
+            <option value="imagery" selected>Imagery</option>
+            <option value="streets">Streets</option>
+          </select>
+          <button id="atlasBasemapToggleBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
+        </div>
       </label>
       <label>
         <span>Show legend</span>
@@ -1090,10 +1087,10 @@
   <!-- Map Search (toggle in Atlas settings) -->
   <div id="mapSearchPanel" aria-label="Place search panel">
     <div class="row">
-      <input id="atlasSearchInput" type="text" placeholder="Search place…" />
+      <input id="atlasSearchInput" type="text" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)">
       <button id="atlasSearchGo" type="button">Search</button>
     </div>
-    <div class="hint">Tip: You can type a place name, ward, or POI. Press Enter to search.</div>
+    
   </div>
 
 </div>
@@ -1115,10 +1112,10 @@
 <div id="dashboard">
 <h1 style="margin:0 0 6px 0">Dashboard Overview</h1>
 <div class="dash-grid">
-<div class="dash-card">🌿 <b id="kpiNdvi">0.55</b><span>Mean NDVI</span></div>
-<div class="dash-card">🌧 <b id="kpiRain">83</b><span>Rainfall (mm/month)</span></div>
-<div class="dash-card">🌡 <b id="kpiAT">30.8</b><span>Air Temperature (°C)</span></div>
-<div class="dash-card">🔥 <b id="kpiLST">32.2</b><span>LST (°C)</span></div>
+<div class="dash-card">🌿 <b id="kpiNdvi">--</b><span>Mean NDVI</span></div>
+<div class="dash-card">🌧 <b id="kpiRain">--</b><span>Rainfall (mm/month)</span></div>
+<div class="dash-card">🌡 <b id="kpiAT">--</b><span>Air Temperature (°C)</span></div>
+<div class="dash-card">🔥 <b id="kpiLST">--</b><span>LST (°C)</span></div>
 </div>
 <div class="dash-section">
 <h2>Climate</h2>
@@ -1407,13 +1404,17 @@ const atlasCurrentLayerName = document.getElementById('atlasCurrentLayerName');
 
 // Map search panel + geocoding (Leaflet)
 const mapSearchPanel = document.getElementById('mapSearchPanel');
+const mapEl = document.getElementById('map');
+if(mapEl && mapSearchPanel && mapSearchPanel.parentElement !== mapEl){
+  mapEl.appendChild(mapSearchPanel);
+}
 const atlasSearchInput = document.getElementById('atlasSearchInput');
 const atlasSearchGo = document.getElementById('atlasSearchGo');
 let atlasSearchMarker = null;
 
 function setSearchPanelVisible(on){
   if(!mapSearchPanel) return;
-  mapSearchPanel.style.display = on ? '' : 'none';
+  mapSearchPanel.style.display = on ? 'block' : 'none';
 }
 
 async function runAtlasGeocode(){
@@ -1422,7 +1423,9 @@ async function runAtlasGeocode(){
 
   toast('Searching…', 'info', 1200);
   try{
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+    // Add a small context to improve results for local places
+    const query = q;
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=' + encodeURIComponent(query);
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if(!res.ok) throw new Error('Search failed');
     const arr = await res.json();
@@ -1430,15 +1433,33 @@ async function runAtlasGeocode(){
       toast('No results found', 'error', 2200);
       return;
     }
+
     const hit = arr[0];
     const lat = parseFloat(hit.lat), lon = parseFloat(hit.lon);
     if(!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Bad result');
-    map.setView([lat, lon], Math.max(map.getZoom(), 14));
 
+    // Smooth zoom to the place (prefer bounding box when available)
+    const bb = hit.boundingbox;
+    if(bb && bb.length === 4){
+      const south = parseFloat(bb[0]), north = parseFloat(bb[1]);
+      const west  = parseFloat(bb[2]), east  = parseFloat(bb[3]);
+      if([south,north,west,east].every(Number.isFinite)){
+        const bounds = L.latLngBounds([south, west], [north, east]);
+        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 16, duration: 1.1 });
+      }else{
+        map.flyTo([lat, lon], Math.max(map.getZoom(), 15), { duration: 1.1 });
+      }
+    }else{
+      map.flyTo([lat, lon], Math.max(map.getZoom(), 15), { duration: 1.1 });
+    }
+
+    // Drop a marker (replace previous)
     if(atlasSearchMarker){ try{ map.removeLayer(atlasSearchMarker); }catch(e){} }
     atlasSearchMarker = L.marker([lat, lon]).addTo(map);
-    atlasSearchMarker.bindPopup('<b>' + (hit.display_name || q) + '</b>').openPopup();
-    toast('Location found', 'success', 1800);
+
+    const name = (hit.display_name || q);
+    atlasSearchMarker.bindPopup('<b>' + name + '</b>').openPopup();
+    toast('Zoomed to: ' + q, 'success', 1800);
   }catch(e){
     console.error(e);
     toast('Search error', 'error', 2600);
@@ -1477,35 +1498,284 @@ if(atlasToggleScale){
 }
 
 // ===== Layer-aware metadata =====
-const layerMetaModal = document.getElementById('layerMetaModal');
-const layerMetaClose = document.getElementById('layerMetaClose');
-const layerMetaBody  = document.getElementById('layerMetaBody');
-const layerMetaTitle = document.getElementById('layerMetaTitle');
+let layerMetaModal = document.getElementById('layerMetaModal');
+let layerMetaClose = document.getElementById('layerMetaClose');
+let layerMetaBody = document.getElementById('layerMetaBody');
+let layerMetaTitle = document.getElementById('layerMetaTitle');
 
 const layerMetadata = {
-  landcover: { Theme:'Landcover', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector / Raster', Notes:'Replace demo placeholder with your real landcover layer.' },
-  police:    { Theme:'Public safety', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your police stations layer.' },
-  health:    { Theme:'Health services', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your health facilities layer.' },
-  primary:   { Theme:'Education', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your primary schools layer.' },
-  secondary: { Theme:'Education', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector points', Notes:'Replace demo placeholder with your secondary schools layer.' },
-  roads:     { Theme:'Transport', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your road network layer.' },
-  transport: { Theme:'Transport', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your transport network layer.' },
-  water:     { Theme:'Water supply', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your water network layer.' },
-  boreholes: { Theme:'Water points', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector', Notes:'Replace demo placeholder with your boreholes/service areas layer.' },
-  popdist:   { Theme:'Population', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your population distribution layer.' },
-  popdens:   { Theme:'Population', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your population density layer.' },
-  slope:     { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your slope layer.' },
-  aspect:    { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your aspect layer.' },
-  hillshade: { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your hillshade layer.' },
-  contours:  { Theme:'Topography', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Vector lines', Notes:'Replace demo placeholder with your contour layer.' },
-  topo:      { Theme:'Topographic', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster / Vector', Notes:'Replace demo placeholder with your topographic map layer.' },
-  lcchange:  { Theme:'Landcover change', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your change detection layer.' },
-  landuse:   { Theme:'Land use', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster / Vector', Notes:'Replace demo placeholder with your land use layer.' },
-  rainfall:  { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your rainfall layer.' },
-  airtemp:   { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your air temperature layer.' },
-  lst:       { Theme:'Climate', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your LST layer.' },
-  ndvi:      { Theme:'Vegetation', Source:'To be provided', Date:'To be provided', CRS:'WGS 84', Format:'Raster', Notes:'Replace demo placeholder with your NDVI layer.' }
+  // =========================
+  // Landcover / Landuse
+  // =========================
+  landcover_map: {
+    Theme: "Landcover",
+    Source: "Sentinel-2",
+    Date: "2020, 2025",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Landcover classification for Ubungo District.",
+    spatial_resolution: "10 m"
+  },
+  landcover_change_map: {
+    Theme: "Landcover change",
+    Source: "Sentinel-2",
+    Date: "2020–2025",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Shows changes between 2020 and 2025.",
+    spatial_resolution: "10 m",
+    temporal_resolution: "Event-based (multi-year comparison)"
+  },
+
+  // =========================
+  // Transport / Roads
+  // =========================
+  road_network_map: {
+    Theme: "Transport infrastructure",
+    Source: "OpenStreetMap (OSM)",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines",
+    Notes: "Road network including hierarchy (primary/secondary/tertiary)."
+  },
+  transport_network_map: {
+    Theme: "Transport network",
+    Source: "OpenStreetMap (OSM)",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines / routes",
+    Notes: "Transport routes/network (e.g., bus routes)."
+  },
+
+  // =========================
+  // Water supply / Boreholes
+  // =========================
+  water_supply_network: {
+    Theme: "Water supply",
+    Source: "DAWASA",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines",
+    Notes: "Pipe network and related infrastructure."
+  },
+  boreholes_map_service_areas: {
+    Theme: "Water resources",
+    Source: "Utility records",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points + polygons",
+    Notes: "Borehole locations and derived service areas."
+  },
+
+  // =========================
+  // Climate: Rainfall / Temperature / LST
+  // =========================
+  rainfall_map: {
+    Theme: "Climate (Rainfall)",
+    Source: "TerraClimate",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    spatial_resolution: "4638.3 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "1958-01-01–2024-12-01"
+  },
+
+  air_temperature_map: {
+    Theme: "Climate (Air temperature)",
+    Source: "TerraClimate",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Air temperature distribution.",
+    spatial_resolution: "4638.3 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "1958-01-01–2024-12-01"
+  },
+
+  lst_map: {
+    Theme: "Climate (Land Surface Temperature)",
+    Source: "MODIS",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "LST spatial distribution.",
+    spatial_resolution: "1000 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "2000-02-24–2026-01-01"
+  },
+
+  ndvi_3yrs: {
+    Theme: "Vegetation (NDVI)",
+    Source: "MODIS",
+    Date: "2022, 2023, 2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "NDVI for three consecutive years.",
+    spatial_resolution: "1000 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "2000-02-24–2026-01-01"
+  },
+
+  // =========================
+  // Topography / Terrain
+  // =========================
+  topographic_map: {
+    Theme: "Topography",
+    Source: "To be provided (e.g., SRTM/ALOS DEM + contours)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster + contours (vector)",
+    Notes: "Elevation/contours/hillshade. Mention DEM source and vertical units.",
+    spatial_resolution: "To be provided (e.g., 30 m)"
+  },
+  terrain_surface_analysis: {
+    Theme: "Terrain analysis",
+    Source: "To be provided (derived from DEM)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Derived surfaces (slope, aspect, curvature, hillshade, flow accumulation, etc.). List included outputs.",
+    spatial_resolution: "Same as DEM"
+  },
+
+  // =========================
+  // Public services
+  // =========================
+  police_stations_map: {
+    Theme: "Public safety",
+    Source: "To be provided (government/field survey/OSM)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Police station locations. Include attribute info (name/level/contact) if available."
+  },
+  public_health_centres_map: {
+    Theme: "Health services",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public health centres/clinics/hospitals. Define what counts as a health centre."
+  },
+  public_primary_schools_map: {
+    Theme: "Education",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public primary schools. Add data completeness notes if needed."
+  },
+  public_secondary_schools_map: {
+    Theme: "Education",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public secondary schools. Add data completeness notes if needed."
+  },
+
+  // =========================
+  // Population
+  // =========================
+  population_distribution: {
+    Theme: "Population",
+    Source: "To be provided (e.g., census / WorldPop)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster / polygons",
+    Notes: "Population distribution for a stated year/period. State population measure and year.",
+    spatial_resolution: "To be provided"
+  },
+  population_density: {
+    Theme: "Population",
+    Source: "To be provided (derived from population + area)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster / polygons",
+    Notes: "Population density (people/km²). State computation method and year.",
+    spatial_resolution: "To be provided"
+  }
 };
+
+// Map UI layer keys -> metadata keys (fixes mismatch like "rainfall" vs "rainfall_map")
+const layerMetaAliases = {
+  // climate
+  rainfall: "rainfall_map",
+  pr: "rainfall_map",
+  rainfall_map: "rainfall_map",
+  air_temperature: "air_temperature_map",
+  airtemperature: "air_temperature_map",
+  at: "air_temperature_map",
+  temperature: "air_temperature_map",
+  lst: "lst_map",
+  lst_map: "lst_map",
+  ndvi: "ndvi_3yrs",
+  ndvi_3yrs: "ndvi_3yrs",
+
+  // land
+  landcover: "landcover_map",
+  landcover_map: "landcover_map",
+  landcover_change: "landcover_change_map",
+  landcover_change_map: "landcover_change_map",
+
+  // networks
+  road: "road_network_map",
+  roads: "road_network_map",
+  road_network: "road_network_map",
+  road_network_map: "road_network_map",
+  transport: "transport_network_map",
+  transport_network: "transport_network_map",
+  transport_network_map: "transport_network_map",
+  water_supply: "water_supply_network",
+  water_supply_network: "water_supply_network",
+  boreholes: "boreholes_map_service_areas",
+  borehole: "boreholes_map_service_areas",
+  boreholes_map_service_areas: "boreholes_map_service_areas",
+
+  // terrain/topo
+  topo: "topographic_map",
+  topographic: "topographic_map",
+  topographic_map: "topographic_map",
+  terrain: "terrain_surface_analysis",
+  terrain_surface_analysis: "terrain_surface_analysis",
+
+  // services
+  police: "police_stations_map",
+  police_stations: "police_stations_map",
+  police_stations_map: "police_stations_map",
+  health: "public_health_centres_map",
+  public_health_centres: "public_health_centres_map",
+  public_health_centres_map: "public_health_centres_map",
+  primary_schools: "public_primary_schools_map",
+  public_primary_schools_map: "public_primary_schools_map",
+  secondary_schools: "public_secondary_schools_map",
+  public_secondary_schools_map: "public_secondary_schools_map",
+
+  // population
+  population: "population_distribution",
+  population_distribution: "population_distribution",
+  population_density: "population_density"
+};
+
+function resolveMetaKey(k){
+  if(!k) return "";
+  const key = String(k).trim();
+  if(layerMetadata[key]) return key;
+
+  // alias table
+  const a = layerMetaAliases[key];
+  if(a && layerMetadata[a]) return a;
+
+  // common suffixes
+  const candidates = [
+    key + "_map",
+    key + "_layer",
+    key.replace(/\s+/g, "_"),
+    key.replace(/\s+/g, "_") + "_map"
+  ];
+  for(const c of candidates){
+    if(layerMetadata[c]) return c;
+  }
+  return key; // fallback (no metadata found)
+}
+
 
 function currentLayerTitle(){
   return (window.activeLayerTitle || '').trim() || 'None';
@@ -1517,35 +1787,78 @@ function currentLayerKey(){
 function renderMetadata(){
   if(!layerMetaBody || !layerMetaTitle) return;
 
-  const k = currentLayerKey();
-  const title = currentLayerTitle();
-  layerMetaTitle.textContent = 'Metadata — ' + title;
+  const rawKey = currentLayerKey();
+  const uiTitle = currentLayerTitle();
 
-  if(!k){
+  if(!rawKey){
+    layerMetaTitle.textContent = 'Metadata';
     layerMetaBody.innerHTML = '<div style="color:rgba(232,242,255,0.8); font-size:13px;">No layer selected. Choose a layer from <b>Layers</b> then open Metadata.</div>';
     return;
   }
 
-  const meta = layerMetadata[k] || {};
+  const metaKey = resolveMetaKey(rawKey);
+  const meta = layerMetadata[metaKey];
+
+  // Prefer clean title from metadata if available, otherwise UI title
+  const displayTitle = (meta && (meta.Title || meta.Layer || meta.LayerName)) ? (meta.Title || meta.Layer || meta.LayerName) : uiTitle;
+  layerMetaTitle.textContent = 'Metadata — ' + displayTitle;
+
   const rows = [
-    ['Layer name', title],
-    ['Key', k],
-    ['Theme', meta.Theme || '—'],
-    ['Source', meta.Source || '—'],
-    ['Date', meta.Date || '—'],
-    ['CRS', meta.CRS || '—'],
-    ['Format', meta.Format || '—'],
-    ['Notes', meta.Notes || '—']
+    ['Layer name', displayTitle || '—'],
+    ['Key', metaKey || rawKey || '—']
   ];
 
-  layerMetaBody.innerHTML = '<div class="meta-grid">' + rows.map(([a,b]) =>
-    '<div class="meta-k">' + a + '</div><div class="meta-v">' + (b||'—') + '</div>'
-  ).join('') + '</div>';
+  if(meta){
+    if(meta.Theme) rows.push(['Theme', meta.Theme]);
+    if(meta.Source) rows.push(['Source', meta.Source]);
+    if(meta.Date) rows.push(['Date', meta.Date]);
+    if(meta.Data_Availability) rows.push(['Data availability', meta.Data_Availability]);
+    if(meta.CRS) rows.push(['CRS', meta.CRS]);
+    if(meta.Format) rows.push(['Format', meta.Format]);
+
+    // Only show resolution fields when they exist
+    if(meta.spatial_resolution) rows.push(['Spatial resolution', meta.spatial_resolution]);
+    if(meta.temporal_resolution) rows.push(['Temporal resolution', meta.temporal_resolution]);
+
+    if(meta.Notes) rows.push(['Notes', meta.Notes]);
+  } else {
+    rows.push(['Theme', '—'], ['Source', '—'], ['Date', '—'], ['CRS', '—'], ['Format', '—'], ['Notes', '—']);
+  }
+
+  layerMetaBody.innerHTML =
+    '<div class="meta-grid">' +
+      rows.map(([a,b]) =>
+        '<div class="meta-k">' + a + '</div><div class="meta-v">' + (b ?? '—') + '</div>'
+      ).join('') +
+    '</div>';
 }
 
 function openMetadata(){
+  // Re-query in case DOM was loaded after script variables were initialized
+  if(!layerMetaModal) layerMetaModal = document.getElementById('layerMetaModal');
+  if(!layerMetaTitle) layerMetaTitle = document.getElementById('layerMetaTitle');
+  if(!layerMetaBody)  layerMetaBody  = document.getElementById('layerMetaBody');
+  if(!layerMetaClose) layerMetaClose = document.getElementById('layerMetaClose');
+
   if(!layerMetaModal) return;
-  renderMetadata();
+
+  // Bind close handlers (only once) - fixes close button not working
+  if(layerMetaClose && !layerMetaClose.__bound){
+    layerMetaClose.addEventListener('click', closeMetadata);
+    layerMetaClose.__bound = true;
+  }
+  if(layerMetaModal && !layerMetaModal.__bound){
+    layerMetaModal.addEventListener('click', (e)=>{ if(e.target === layerMetaModal) closeMetadata(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && layerMetaModal && layerMetaModal.style.display === 'flex') closeMetadata(); });
+    layerMetaModal.__bound = true;
+  }
+
+  try{ renderMetadata(); }catch(err){
+    console.error(err);
+    if(layerMetaBody){
+      layerMetaBody.innerHTML = '<div style="color:rgba(232,242,255,0.86); font-size:13px;">Metadata failed to render. Open the browser console for details.</div>';
+    }
+  }
   layerMetaModal.style.display = 'flex';
   try{ layerMetaModal.setAttribute('aria-hidden','false'); }catch(e){}
   if(layerMetaClose) layerMetaClose.focus();
@@ -1554,6 +1867,17 @@ function closeMetadata(){
   if(!layerMetaModal) return;
   layerMetaModal.style.display = 'none';
   try{ layerMetaModal.setAttribute('aria-hidden','true'); }catch(e){}
+
+
+// Ensure Metadata button always opens the modal (robust for GitHub Pages load order)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('atlasMetaBtn');
+  if(btn && !btn.__metaBound){
+    btn.addEventListener('click', ()=>{ openMetadata(); try{ closeSettings(); }catch(e){} });
+    btn.__metaBound = true;
+  }
+});
+
 }
 
 if(layerMetaClose) layerMetaClose.addEventListener('click', closeMetadata);
@@ -1644,6 +1968,8 @@ const settingsBtn = document.getElementById('atlasSettingsBtn');
 const settingsPanel = document.getElementById('atlasSettings');
 const settingsClose = document.getElementById('atlasSettingsClose');
 const basemapSel = document.getElementById('atlasBasemap');
+const atlasBasemapToggleBtn = document.getElementById('atlasBasemapToggleBtn');
+let basemapEnabled = true;
 const showLegendChk = document.getElementById('atlasShowLegend');
 const showCoordsChk = document.getElementById('atlasShowCoords');
 
@@ -1674,13 +2000,40 @@ document.addEventListener('keydown', (e)=>{
 function setBasemap(which){
   const next = (which === 'streets') ? baseStreets : baseImagery;
   if(next === activeBasemap) return;
+
+  // remove current basemap if present
   try{ map.removeLayer(activeBasemap); }catch(e){}
+
   activeBasemap = next;
   window.activeBasemap = activeBasemap;
-  activeBasemap.addTo(map);
+
+  // only add if enabled
+  if(basemapEnabled){
+    try{ activeBasemap.addTo(map); }catch(e){}
+  }
 }
 if(basemapSel){
   basemapSel.addEventListener('change', ()=> setBasemap(basemapSel.value));
+}
+
+
+// Basemap ON/OFF button
+function syncBasemapToggleUI(){
+  if(!atlasBasemapToggleBtn) return;
+  atlasBasemapToggleBtn.setAttribute('aria-pressed', basemapEnabled ? 'true' : 'false');
+  atlasBasemapToggleBtn.textContent = basemapEnabled ? 'ON' : 'OFF';
+  atlasBasemapToggleBtn.classList.toggle('is-off', !basemapEnabled);
+}
+if(atlasBasemapToggleBtn){
+  atlasBasemapToggleBtn.addEventListener('click', ()=>{
+    basemapEnabled = !basemapEnabled;
+    try{
+      if(basemapEnabled) activeBasemap.addTo(map);
+      else map.removeLayer(activeBasemap);
+    }catch(e){}
+    syncBasemapToggleUI();
+  });
+  syncBasemapToggleUI();
 }
 
 // Legend show/hide
@@ -2128,11 +2481,30 @@ p, li, a, span, div {
 
 
 /* ==== Leaflet scale bar visibility fix ==== */
-.leaflet-control-container { position: relative; z-index: 1400; }
-.leaflet-control-scale { margin-left: 12px; margin-bottom: 12px; }
+.leaflet-control-container{
+  position: absolute !important;   /* restore Leaflet default */
+  inset: 0;                         /* allow top/bottom control anchors */
+  z-index: 3000 !important;         /* above custom overlays */
+  pointer-events: none;             /* Leaflet controls enable their own events */
+}
+.leaflet-top,
+.leaflet-bottom{
+  z-index: 3001 !important;
+  pointer-events: none;
+}
+.leaflet-control{
+  pointer-events: auto;             /* clickable controls */
+}
+
+/* Scale bar styling + spacing */
+.leaflet-control-scale{
+  margin-left: 12px;
+  margin-bottom: 12px;
+  display: block !important;
+}
 .leaflet-control-scale-line{
-  background: rgba(10, 20, 28, 0.70) !important;
-  color: rgba(232,242,255,0.92) !important;
+  background: rgba(10, 20, 28, 0.72) !important;
+  color: rgba(232,242,255,0.94) !important;
   border: 1px solid rgba(255,255,255,0.22) !important;
   border-top: none !important;
   font-weight: 700 !important;
