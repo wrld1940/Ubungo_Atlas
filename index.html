@@ -1001,9 +1001,20 @@
 </div>
 </div>
 </div>
+
+<!-- Home globe controls -->
+<div id="globeControls" aria-label="Globe controls">
+  <label style="display:flex; align-items:center; gap:8px;">
+    <input id="toggleLabels" type="checkbox" checked />
+    <span>Labels</span>
+  </label>
+  <label style="display:flex; align-items:center; gap:8px;">
+    <input id="toggleBorders" type="checkbox" checked />
+    <span>Borders</span>
+  </label>
+  <input id="placeSearch" type="text" placeholder="Search a place (e.g., Ubungo, Kimara)"/>
+  <button id="searchBtn" type="button">Go</button>
 </div>
-<input id="placeSearch" type="text"/>
-<button id="searchBtn">Go</button>
 </div>
 <!-- ================= ATLAS ================= -->
 <div aria-label="Atlas" class="section" id="explore">
@@ -1211,10 +1222,7 @@ const labelsLayer = viewer.imageryLayers.addImageryProvider(
 );
 labelsLayer.alpha = 0.95;
 
-// Initial view (Africa)
-viewer.camera.setView({
-  destination: Cesium.Cartesian3.fromDegrees(0, 15, 25000000)
-});
+// Initial view is handled by initUbungoBoundary() fly-to.
 
 // Toggles
 const toggleLabelsEl = document.getElementById('toggleLabels');
@@ -1228,11 +1236,36 @@ if(toggleLabelsEl) toggleLabelsEl.addEventListener('change', applyToggles);
 if(toggleBordersEl) toggleBordersEl.addEventListener('change', applyToggles);
 applyToggles();
 // Ubungo boundary (sample)
-const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
+let ubungoGeoJSON = null;
+
+// Load Ubungo boundary GeoJSON from your GitHub Pages files
+async function loadUbungoGeoJSON(){
+  if(ubungoGeoJSON) return ubungoGeoJSON;
+
+  const candidates = [
+    "data/ubungo.geojson",   // if you keep it inside /data
+    "ubungo.geojson"         // if you keep it in repo root
+  ];
+
+  let lastErr = null;
+  for(const url of candidates){
+    try{
+      const res = await fetch(url, { cache: "no-store" });
+      if(!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+      ubungoGeoJSON = await res.json();
+      return ubungoGeoJSON;
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("Unable to load ubungo.geojson");
+}
+
 
 Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
-  stroke: Cesium.Color.YELLOW,
-  fill: Cesium.Color.YELLOW.withAlpha(0.25),
+  clampToGround: true,
+  stroke: Cesium.Color.RED,
+  fill: Cesium.Color.RED.withAlpha(0.08),
   strokeWidth: 3
 }).then(ds=>{
   viewer.dataSources.add(ds);
@@ -1252,7 +1285,9 @@ Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
     });
   });
 
-  setTimeout(()=>viewer.flyTo(ds,{duration:3.2}), 1200);
+  setTimeout(()=>viewer.flyTo(ds,{duration:2.2}), 200);
+  // Ensure the landing page starts focused on Ubungo
+  viewer.zoomTo(ds);
 });
 
 // Place search (Nominatim)
@@ -1313,7 +1348,7 @@ let activeBasemap = baseImagery;
 window.activeBasemap = activeBasemap;
 activeBasemap.addTo(map);
 
-const ubungoLayer = L.geoJSON(ubungoGeoJSON,{color:'orange', weight:2, fillOpacity:0}).addTo(map);
+// Ubungo boundary layer is loaded dynamically from ubungo.geojson (see initUbungoBoundary)
 
 // Scale bar (metric only)
 
@@ -1867,17 +1902,6 @@ function closeMetadata(){
   if(!layerMetaModal) return;
   layerMetaModal.style.display = 'none';
   try{ layerMetaModal.setAttribute('aria-hidden','true'); }catch(e){}
-
-
-// Ensure Metadata button always opens the modal (robust for GitHub Pages load order)
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.getElementById('atlasMetaBtn');
-  if(btn && !btn.__metaBound){
-    btn.addEventListener('click', ()=>{ openMetadata(); try{ closeSettings(); }catch(e){} });
-    btn.__metaBound = true;
-  }
-});
-
 }
 
 if(layerMetaClose) layerMetaClose.addEventListener('click', closeMetadata);
@@ -2619,45 +2643,66 @@ p, li, a, span, div {
   #home .hero,
   #home #globeControls{
     transition: opacity 320ms ease, transform 320ms ease;
-    opacity: 1;
-  }
-  #home .topbar{ transform: translateY(0); }
-  #home .hero{ transform: translateY(0); }
-  #home #globeControls{ transform: translateY(0); }
+  // =========================
+// UBUNGO BOUNDARY (REAL GEOJSON)
+// =========================
+let ubungoLayer = null; // Leaflet boundary (2D)
 
-  /* When HOME section is not active, fade controls out smoothly */
-  #home:not(.active) .topbar{
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  #home:not(.active) .hero{
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  #home:not(.active) #globeControls{
-    opacity: 0;
-    transform: translateY(10px);
-  }
+async function initUbungoBoundary(){
+  try{
+    const gj = await loadUbungoGeoJSON();
 
+    // Cesium boundary (3D)
+    const ds = await Cesium.GeoJsonDataSource.load(gj, {
+      clampToGround: true,
+      stroke: Cesium.Color.RED,
+      fill: Cesium.Color.RED.withAlpha(0.0), // transparent fill
+      strokeWidth: 3
+    });
 
-  /* ================= ATLAS FLOATING SETTINGS ================= */
-  .atlas-settings-btn{
-    position:absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 1400;
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(10, 20, 28, 0.72);
-    color: rgba(232,242,255,0.92);
-    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
-    backdrop-filter: blur(12px);
-    cursor:pointer;
-    pointer-events:auto;
-    display:flex;
-    align-items:center;
+    viewer.dataSources.add(ds);
+
+    // Add a clean label on first entity
+    const ents = ds.entities.values || [];
+    if(ents.length){
+      const ent = ents[0];
+      ent.name = "Ubungo Municipal";
+      ent.description = "<b>Ubungo Municipal</b><br/>Study-area boundary.";
+      ent.label = new Cesium.LabelGraphics({
+        text: "Ubungo",
+        font: "18px sans-serif",
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -10),
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
+      });
+    }
+
+    // Fly to Ubungo
+    await viewer.flyTo(ds, { duration: 2.8 });
+
+    // Leaflet boundary (2D)
+    try{
+      if(ubungoLayer){ map.removeLayer(ubungoLayer); }
+    }catch(e){}
+    try{
+      ubungoLayer = L.geoJSON(gj, { style: { color:"red", weight:2, fillOpacity:0 } });
+      ubungoLayer.addTo(map);
+      window.ubungoLayer = ubungoLayer;
+    }catch(e){}
+  }catch(e){
+    console.error(e);
+    setStatus("Ubungo load error");
+  }
+}
+
+// Start boundary init
+initUbungoBoundary();
+
+-items:center;
     justify-content:center;
     font-size: 18px;
     line-height: 1;
@@ -2951,14 +2996,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 })();
 </script>
-<div>🟥 LST</div>
-<div>🟦 Rainfall</div>
-<div>⬛ Roads</div>
-</div>
-
-
-
-
 <!-- ================= LAYER METADATA MODAL ================= -->
 <div id="layerMetaModal" role="dialog" aria-modal="true" aria-hidden="true">
   <div id="layerMetaCard">
