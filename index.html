@@ -1228,26 +1228,29 @@ if(toggleLabelsEl) toggleLabelsEl.addEventListener('change', applyToggles);
 if(toggleBordersEl) toggleBordersEl.addEventListener('change', applyToggles);
 applyToggles();
 // Ubungo boundary 
-// =========================
-// UBUNGO REAL BOUNDARY (GeoJSON file)
-// =========================
-async function initUbungoBoundary() {
-  try {
-    // 1) Load your real GeoJSON from GitHub Pages
-    const res = await fetch("data/ubungo.geojson", { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to load data/ubungo.geojson");
-    const ubungoGeoJSON = await res.json();
+const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
 
-    // 2) Add boundary to Cesium (red outline, transparent fill)
-    const ds = await Cesium.GeoJsonDataSource.load(ubungoGeoJSON, {
-      stroke: Cesium.Color.RED,
-      fill: Cesium.Color.RED.withAlpha(0.0),   // no fill
-      strokeWidth: 3,
-      clampToGround: true
+Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
+  stroke: Cesium.Color.YELLOW,
+  fill: Cesium.Color.YELLOW.withAlpha(0.25),
+  strokeWidth: 3
+}).then(ds=>{
+  viewer.dataSources.add(ds);
+  ds.entities.values.forEach(ent=>{
+    ent.name = 'Ubungo Municipal';
+    ent.description = '<b>Ubungo Municipal</b><br/>Sample study-area boundary.<br/><i>Replace with your real boundary later.</i>';
+    ent.label = new Cesium.LabelGraphics({
+      text: 'Ubungo',
+      font: '18px sans-serif',
+      fillColor: Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -10),
+      distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
     });
-
-    viewer.dataSources.add(ds);
-
+  });
     // Optional: label Ubungo
     const ents = ds.entities.values;
     if (ents && ents.length) {
