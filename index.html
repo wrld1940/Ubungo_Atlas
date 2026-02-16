@@ -1001,20 +1001,9 @@
 </div>
 </div>
 </div>
-
-<!-- Home globe controls -->
-<div id="globeControls" aria-label="Globe controls">
-  <label style="display:flex; align-items:center; gap:8px;">
-    <input id="toggleLabels" type="checkbox" checked />
-    <span>Labels</span>
-  </label>
-  <label style="display:flex; align-items:center; gap:8px;">
-    <input id="toggleBorders" type="checkbox" checked />
-    <span>Borders</span>
-  </label>
-  <input id="placeSearch" type="text" placeholder="Search a place (e.g., Ubungo, Kimara)"/>
-  <button id="searchBtn" type="button">Go</button>
 </div>
+<input id="placeSearch" type="text"/>
+<button id="searchBtn">Go</button>
 </div>
 <!-- ================= ATLAS ================= -->
 <div aria-label="Atlas" class="section" id="explore">
@@ -1222,8 +1211,7 @@ const labelsLayer = viewer.imageryLayers.addImageryProvider(
 );
 labelsLayer.alpha = 0.95;
 
-// Initial view is handled by initUbungoBoundary() fly-to.
-
+// Initial view is handled by Ubungo zoom
 // Toggles
 const toggleLabelsEl = document.getElementById('toggleLabels');
 const toggleBordersEl = document.getElementById('toggleBorders');
@@ -1235,61 +1223,125 @@ function applyToggles(){
 if(toggleLabelsEl) toggleLabelsEl.addEventListener('change', applyToggles);
 if(toggleBordersEl) toggleBordersEl.addEventListener('change', applyToggles);
 applyToggles();
-// Ubungo boundary (sample)
+// =========================
+// Ubungo boundary (REAL) loaded from your repo: data/ubungo.geojson
+// =========================
 let ubungoGeoJSON = null;
+let ubungoDataSource = null;
 
-// Load Ubungo boundary GeoJSON from your GitHub Pages files
-async function loadUbungoGeoJSON(){
-  if(ubungoGeoJSON) return ubungoGeoJSON;
+// Leaflet boundary holder (2D)
+let ubungoLayer = null;
+window.ubungoLayer = null;
 
-  const candidates = [
-    "data/ubungo.geojson",   // if you keep it inside /data
-    "ubungo.geojson"         // if you keep it in repo root
-  ];
-
-  let lastErr = null;
-  for(const url of candidates){
-    try{
-      const res = await fetch(url, { cache: "no-store" });
-      if(!res.ok) throw new Error("HTTP " + res.status + " for " + url);
-      ubungoGeoJSON = await res.json();
-      return ubungoGeoJSON;
-    }catch(e){
-      lastErr = e;
+function ensureLeafletUbungoBoundary(geo){
+  try{
+    if(typeof map === 'undefined' || !map) return;
+    if(ubungoLayer){
+      try{ map.removeLayer(ubungoLayer); }catch(e){}
     }
-  }
-  throw lastErr || new Error("Unable to load ubungo.geojson");
+    ubungoLayer = L.geoJSON(geo, { color:'red', weight:2, fillOpacity:0 });
+    ubungoLayer.addTo(map);
+    window.ubungoLayer = ubungoLayer;
+  }catch(e){}
 }
 
+function computeBoundingSphereFromDataSource(ds){
+  try{
+    const entities = (ds && ds.entities && ds.entities.values) ? ds.entities.values : [];
+    const points = [];
+    const now = Cesium.JulianDate.now();
 
-Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
-  clampToGround: true,
-  stroke: Cesium.Color.RED,
-  fill: Cesium.Color.RED.withAlpha(0.08),
-  strokeWidth: 3
-}).then(ds=>{
-  viewer.dataSources.add(ds);
-  ds.entities.values.forEach(ent=>{
-    ent.name = 'Ubungo Municipal';
-    ent.description = '<b>Ubungo Municipal</b><br/>Sample study-area boundary.<br/><i>Replace with your real boundary later.</i>';
-    ent.label = new Cesium.LabelGraphics({
-      text: 'Ubungo',
-      font: '18px sans-serif',
-      fillColor: Cesium.Color.WHITE,
-      outlineColor: Cesium.Color.BLACK,
-      outlineWidth: 3,
-      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-      pixelOffset: new Cesium.Cartesian2(0, -10),
-      distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
+    for(const ent of entities){
+      try{
+        // polygons
+        if(ent.polygon && ent.polygon.hierarchy){
+          const h = ent.polygon.hierarchy.getValue(now);
+          const pos = h && h.positions;
+          if(pos && pos.length) points.push(...pos);
+        }
+        // polylines
+        else if(ent.polyline && ent.polyline.positions){
+          const pos = ent.polyline.positions.getValue(now);
+          if(pos && pos.length) points.push(...pos);
+        }
+        // points
+        else if(ent.position){
+          const p = ent.position.getValue(now);
+          if(p) points.push(p);
+        }
+      }catch(e){}
+    }
+    if(points.length < 2) return null;
+    return Cesium.BoundingSphere.fromPoints(points);
+  }catch(e){
+    return null;
+  }
+}
+
+async function loadUbungoBoundary(){
+  try{
+    // Fetch your GeoJSON from GitHub Pages path
+    const res = await fetch('data/ubungo.geojson', { cache: 'no-store' });
+    if(!res.ok) throw new Error('Failed to load data/ubungo.geojson (' + res.status + ')');
+    ubungoGeoJSON = await res.json();
+
+    // Add to Cesium (red outline only)
+    ubungoDataSource = await Cesium.GeoJsonDataSource.load(ubungoGeoJSON, {
+      stroke: Cesium.Color.RED,
+      fill: Cesium.Color.RED.withAlpha(0.0),
+      strokeWidth: 3,
+      clampToGround: true
     });
-  });
+    viewer.dataSources.add(ubungoDataSource);
 
-  setTimeout(()=>viewer.flyTo(ds,{duration:2.2}), 200);
-  // Ensure the landing page starts focused on Ubungo
-  viewer.zoomTo(ds);
-});
+    // Add label + description (optional)
+    try{
+      const ents = ubungoDataSource.entities.values || [];
+      if(ents.length){
+        const e = ents[0];
+        e.name = 'Ubungo Municipal';
+        e.description = '<b>Ubungo Municipal</b><br/>Study area boundary.';
+        e.label = new Cesium.LabelGraphics({
+          text: 'Ubungo',
+          font: '18px sans-serif',
+          fillColor: Cesium.Color.WHITE,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 3,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -10),
+          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
+        });
+      }
+    }catch(e){}
 
+    // Robust zoom (bounding sphere from geometry)
+    await new Promise(r => setTimeout(r, 450)); // let Cesium build primitives
+    const bs = computeBoundingSphereFromDataSource(ubungoDataSource);
+
+    if(bs){
+      const offset = new Cesium.HeadingPitchRange(
+        0.0,
+        Cesium.Math.toRadians(-35),
+        Math.max(bs.radius * 2.6, 45000)
+      );
+      viewer.camera.flyToBoundingSphere(bs, { duration: 2.8, offset });
+    }else{
+      // Fallback to Cesium flyTo
+      try{ viewer.flyTo(ubungoDataSource, { duration: 2.8 }); }catch(e){}
+    }
+
+    // Also draw in Leaflet (if map already exists)
+    ensureLeafletUbungoBoundary(ubungoGeoJSON);
+
+  }catch(err){
+    console.error(err);
+    try{ setStatus('Ubungo load error'); }catch(e){}
+  }
+}
+
+// Start loading Ubungo immediately (globe)
+loadUbungoBoundary();
 // Place search (Nominatim)
 async function geocodePlace(q){
   const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
@@ -1348,8 +1400,8 @@ let activeBasemap = baseImagery;
 window.activeBasemap = activeBasemap;
 activeBasemap.addTo(map);
 
-// Ubungo boundary layer is loaded dynamically from ubungo.geojson (see initUbungoBoundary)
-
+// Ubungo boundary on 2D map is added after GeoJSON loads (see loadUbungoBoundary())
+if(ubungoGeoJSON){ ensureLeafletUbungoBoundary(ubungoGeoJSON); }
 // Scale bar (metric only)
 
 // Legend (bottom-right) + toggle
@@ -1902,6 +1954,17 @@ function closeMetadata(){
   if(!layerMetaModal) return;
   layerMetaModal.style.display = 'none';
   try{ layerMetaModal.setAttribute('aria-hidden','true'); }catch(e){}
+
+
+// Ensure Metadata button always opens the modal (robust for GitHub Pages load order)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('atlasMetaBtn');
+  if(btn && !btn.__metaBound){
+    btn.addEventListener('click', ()=>{ openMetadata(); try{ closeSettings(); }catch(e){} });
+    btn.__metaBound = true;
+  }
+});
+
 }
 
 if(layerMetaClose) layerMetaClose.addEventListener('click', closeMetadata);
@@ -2643,66 +2706,45 @@ p, li, a, span, div {
   #home .hero,
   #home #globeControls{
     transition: opacity 320ms ease, transform 320ms ease;
-  // =========================
-// UBUNGO BOUNDARY (REAL GEOJSON)
-// =========================
-let ubungoLayer = null; // Leaflet boundary (2D)
-
-async function initUbungoBoundary(){
-  try{
-    const gj = await loadUbungoGeoJSON();
-
-    // Cesium boundary (3D)
-    const ds = await Cesium.GeoJsonDataSource.load(gj, {
-      clampToGround: true,
-      stroke: Cesium.Color.RED,
-      fill: Cesium.Color.RED.withAlpha(0.0), // transparent fill
-      strokeWidth: 3
-    });
-
-    viewer.dataSources.add(ds);
-
-    // Add a clean label on first entity
-    const ents = ds.entities.values || [];
-    if(ents.length){
-      const ent = ents[0];
-      ent.name = "Ubungo Municipal";
-      ent.description = "<b>Ubungo Municipal</b><br/>Study-area boundary.";
-      ent.label = new Cesium.LabelGraphics({
-        text: "Ubungo",
-        font: "18px sans-serif",
-        fillColor: Cesium.Color.WHITE,
-        outlineColor: Cesium.Color.BLACK,
-        outlineWidth: 3,
-        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-        pixelOffset: new Cesium.Cartesian2(0, -10),
-        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
-      });
-    }
-
-    // Fly to Ubungo
-    await viewer.flyTo(ds, { duration: 2.8 });
-
-    // Leaflet boundary (2D)
-    try{
-      if(ubungoLayer){ map.removeLayer(ubungoLayer); }
-    }catch(e){}
-    try{
-      ubungoLayer = L.geoJSON(gj, { style: { color:"red", weight:2, fillOpacity:0 } });
-      ubungoLayer.addTo(map);
-      window.ubungoLayer = ubungoLayer;
-    }catch(e){}
-  }catch(e){
-    console.error(e);
-    setStatus("Ubungo load error");
+    opacity: 1;
   }
-}
+  #home .topbar{ transform: translateY(0); }
+  #home .hero{ transform: translateY(0); }
+  #home #globeControls{ transform: translateY(0); }
 
-// Start boundary init
-initUbungoBoundary();
+  /* When HOME section is not active, fade controls out smoothly */
+  #home:not(.active) .topbar{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  #home:not(.active) .hero{
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  #home:not(.active) #globeControls{
+    opacity: 0;
+    transform: translateY(10px);
+  }
 
--items:center;
+
+  /* ================= ATLAS FLOATING SETTINGS ================= */
+  .atlas-settings-btn{
+    position:absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1400;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.72);
+    color: rgba(232,242,255,0.92);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    cursor:pointer;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
     justify-content:center;
     font-size: 18px;
     line-height: 1;
@@ -2996,6 +3038,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 })();
 </script>
+<div>🟥 LST</div>
+<div>🟦 Rainfall</div>
+<div>⬛ Roads</div>
+</div>
+
+
+
+
 <!-- ================= LAYER METADATA MODAL ================= -->
 <div id="layerMetaModal" role="dialog" aria-modal="true" aria-hidden="true">
   <div id="layerMetaCard">
