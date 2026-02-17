@@ -1232,8 +1232,8 @@ applyToggles();
 const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
 
 Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
-  stroke: Cesium.Color.YELLOW,
-  fill: Cesium.Color.YELLOW.withAlpha(0.25),
+  stroke: Cesium.Color.BLACK,
+  fill: Cesium.Color.BLACK.withAlpha(0.10),
   strokeWidth: 3
 }).then(ds=>{
   viewer.dataSources.add(ds);
@@ -1315,7 +1315,7 @@ let activeBasemap = baseImagery;
 window.activeBasemap = activeBasemap;
 activeBasemap.addTo(map);
 
-const ubungoLayer = L.geoJSON(ubungoGeoJSON,{color:'orange', weight:2, fillOpacity:0}).addTo(map);
+const ubungoLayer = L.geoJSON(ubungoGeoJSON,{color:'black', weight:2.5, fillOpacity:0}).addTo(map);
 
 // Scale bar (metric only)
 
@@ -2055,14 +2055,71 @@ if(showCoordsChk){
   });
 }
 
-function setLegend(layerTitle){
+// Layer legends (simple, auto-built). Add/adjust labels here if needed.
+const LEGEND_CONFIG = {
+  ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
+  // Roads
+  trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
+  primary_rd: [{ type:'line', label:'Primary road', color:'#ff0000', weight:3 }],
+  secondary_rd: [{ type:'line', label:'Secondary road', color:'#ff0000', weight:3 }],
+  tertiary_rd: [{ type:'line', label:'Tertiary road', color:'#ff0000', weight:3 }],
+  unclassified_rd: [{ type:'line', label:'Unclassified road', color:'#ff0000', weight:3 }],
+  railway: [{ type:'line', label:'Railway', color:'#ff0000', weight:3, dash:'6,4' }],
+
+  // Points (icons)
+  police: [{ type:'icon', label:'Police station', iconKey:'police' }],
+  clinic: [{ type:'icon', label:'Clinic / Dispensary', iconKey:'clinic' }],
+  hospital: [{ type:'icon', label:'Hospital', iconKey:'hospital' }],
+  pharmacy: [{ type:'icon', label:'Pharmacy', iconKey:'pharmacy' }],
+  petrol_station: [{ type:'icon', label:'Petrol station', iconKey:'petrol_station' }],
+  bus_stop: [{ type:'icon', label:'Bus stop', iconKey:'bus_stop' }],
+  primary_schools: [{ type:'icon', label:'Primary school', iconKey:'primary_schools' }],
+  secondary_school: [{ type:'icon', label:'Secondary school', iconKey:'secondary_school' }],
+};
+
+function legendItemHTML(item){
+  const safeLabel = item.label || 'Item';
+  if(item.type === 'icon'){
+    const icon = (SVG_ICONS && SVG_ICONS[item.iconKey]) ? SVG_ICONS[item.iconKey] : null;
+    const svg = icon ? icon.options.html : '';
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="border:none;background:transparent;width:28px;height:28px;display:grid;place-items:center;">${svg}</span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+  // line/polygon swatch
+  const c = item.color || '#ff0000';
+  const w = item.weight || 3;
+  const dash = item.dash ? `border-style:dashed; border-width:${Math.max(2, w)}px;` : `border-width:${Math.max(2, w)}px;`;
+  return `
+    <div class="legend-row">
+      <span class="legend-swatch" style="background:transparent;border-color:${c};${dash}"></span>
+      <span class="legend-text">${safeLabel}</span>
+    </div>`;
+}
+
+function setLegend(layerKey, layerTitle){
   if(!legendBody) return;
-  legendBody.innerHTML = `
+
+  const key = (layerKey || '').trim();
+  const items = LEGEND_CONFIG[key] || null;
+
+  if(!items){
+    // fallback: show title only
+    legendBody.innerHTML = `
+      <div class="legend-row">
+        <span class="legend-swatch"></span>
+        <span class="legend-text">${layerTitle || 'No layer selected'}</span>
+      </div>`;
+    return;
+  }
+
+  legendBody.innerHTML = items.map(legendItemHTML).join('') || `
     <div class="legend-row">
       <span class="legend-swatch"></span>
       <span class="legend-text">${layerTitle || 'No layer selected'}</span>
-    </div>
-  `;
+    </div>`;
 }
 
 // Toast notifications (top-center)
@@ -2096,7 +2153,57 @@ function demoCircle(label, lat, lon, radius){
 }
 
 // Styles parsed (best-effort) from your QGIS .qml files
-const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"style":{"color":"red","weight":2.0}},"hospital":{"style":{"color":"red","weight":2.0}},"pharmacy":{"style":{"color":"red","weight":2.0}},"bus_stop":{"style":{"color":"red","weight":2.0}},"railway":{"style":{"color":"red","weight":2.0}},"petrol_station":{"style":{"color":"red","weight":2.0}},"trunk_rd":{"style":{"color":"red","weight":2.0}},"primary_rd":{"style":{"color":"red","weight":2.0}},"secondary_rd":{"style":{"color":"red","weight":2.0}},"tertiary_rd":{"style":{"color":"red","weight":2.0}},"unclassified_rd":{"style":{"color":"red","weight":2.0}},"primary_schools":{"style":{"color":"red","weight":2.0}},"secondary_school":{"style":{"color":"red","weight":2.0}},"ubungo":{"style":{"color":"red","weight":2.0}}};
+const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"style":{"color":"red","weight":2.0}},"hospital":{"style":{"color":"red","weight":2.0}},"pharmacy":{"style":{"color":"red","weight":2.0}},"bus_stop":{"style":{"color":"red","weight":2.0}},"railway":{"style":{"color":"red","weight":2.0}},"petrol_station":{"style":{"color":"red","weight":2.0}},"trunk_rd":{"style":{"color":"red","weight":2.0}},"primary_rd":{"style":{"color":"red","weight":2.0}},"secondary_rd":{"style":{"color":"red","weight":2.0}},"tertiary_rd":{"style":{"color":"red","weight":2.0}},"unclassified_rd":{"style":{"color":"red","weight":2.0}},"primary_schools":{"style":{"color":"red","weight":2.0}},"secondary_school":{"style":{"color":"red","weight":2.0}},"ubungo":{"style":{"color":"black","weight":2.5}}};
+
+// Simple SVG icons for point layers (Leaflet). UI unchanged.
+function makeSvgIcon(svg, size=28){
+  return L.divIcon({
+    className: '',
+    html: svg,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size],   // bottom center
+    popupAnchor: [0, -size]
+  });
+}
+
+// Minimal, clean pin icons (inline SVG so it works on GitHub Pages)
+const SVG_ICONS = {
+  police: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#2563eb" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">P</text>
+  </svg>`),
+  clinic: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#10b981" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">C</text>
+  </svg>`),
+  hospital: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#ef4444" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">H</text>
+  </svg>`),
+  pharmacy: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#a855f7" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">Rx</text>
+  </svg>` , 30),
+  bus_stop: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#f59e0b" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#0b1020" opacity="0.15"/>
+    <text x="16" y="16" text-anchor="middle" font-size="8" font-weight="900" fill="#0b1020">B</text>
+  </svg>`),
+  primary_schools: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#06b6d4" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">PS</text>
+  </svg>`, 30),
+  secondary_school: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#22c55e" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">SS</text>
+  </svg>`, 30),
+};
 
 // Which GeoJSON file(s) power each UI layer key
 const LAYER_SOURCES = {
@@ -2142,10 +2249,15 @@ async function fetchGeoJSON(url){
   return await res.json();
 }
 
-function makeLeafletGeoJSONLayer(geojson, style, pointStyle){
+function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
   return L.geoJSON(geojson, {
     style: style || undefined,
     pointToLayer: (feature, latlng) => {
+      // Prefer SVG icons for known point layers
+      if(styleKey && SVG_ICONS && SVG_ICONS[styleKey]){
+        return L.marker(latlng, { icon: SVG_ICONS[styleKey] });
+      }
+      // Otherwise, use circle marker styled from QML if available
       if(pointStyle) return L.circleMarker(latlng, pointStyle);
       return L.marker(latlng);
     }
@@ -2170,7 +2282,7 @@ async function buildLayer(def){
   // If qml didn't contain a style, apply a safe default
   const fallbackStyle = style || { color: "#ff0000", weight: 2 };
   const fallbackPoint = pointStyle || { radius: 6, color: "#111", weight: 1, fillColor: "#1abc9c", fillOpacity: 1 };
-  return makeLeafletGeoJSONLayer(gj, style ? style : fallbackStyle, pointStyle ? pointStyle : fallbackPoint);
+  return makeLeafletGeoJSONLayer(gj, style ? style : fallbackStyle, pointStyle ? pointStyle : fallbackPoint, def.styleKey || '');
 }
 
 // Title map for legend/meta
@@ -2219,6 +2331,37 @@ const sampleLayers = {
   ndvi:       demoCircle('Normalized Difference Vegetation Index (NDVI)', -6.79, 39.25, 2600),
 };
 
+
+// Compute bounds for any Leaflet layer / group (for auto-zoom)
+function layerBounds(lyr){
+  try{
+    if(!lyr) return null;
+    if(typeof lyr.getBounds === 'function'){
+      const b = lyr.getBounds();
+      if(b && b.isValid && b.isValid()) return b;
+    }
+    // LayerGroup: combine child bounds
+    if(typeof lyr.eachLayer === 'function'){
+      let bb = null;
+      lyr.eachLayer(l=>{
+        const b = layerBounds(l);
+        if(!b) return;
+        bb = bb ? bb.extend(b) : b;
+      });
+      if(bb && bb.isValid && bb.isValid()) return bb;
+    }
+  }catch(e){}
+  return null;
+}
+
+function autoZoomToLayer(lyr){
+  const b = layerBounds(lyr);
+  if(!b) return;
+  try{
+    map.fitBounds(b.pad(0.10), { maxZoom: 16, animate:true, duration:0.9 });
+  }catch(e){}
+}
+
 // Make loadLayer async-safe (UI unchanged)
 async function loadLayer(type){
   try{
@@ -2244,6 +2387,9 @@ async function loadLayer(type){
 
     activeLayer.addTo(map);
 
+    // Auto-zoom to the selected layer
+    autoZoomToLayer(activeLayer);
+
     // track selected layer for Export + Metadata
     window.activeLayerKey = type;
     window.activeLayerTitle = LAYER_TITLES[type] || (typeof type === 'string' ? type : 'Selected layer');
@@ -2251,7 +2397,7 @@ async function loadLayer(type){
 
     if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
     if(window.renderMetadata) window.renderMetadata();
-    setLegend(window.activeLayerTitle || 'Selected layer');
+    setLegend(window.activeLayerKey, window.activeLayerTitle || 'Selected layer');
 
     // zoom to layer bounds if possible
     try{
