@@ -154,7 +154,9 @@
     position: relative;
     background: 
       linear-gradient(rgba(6,16,24,0.78), rgba(6,16,24,0.88)),
-      url('./ardhi_university_1280x640.jpg');
+url('ardhi_university_1280x640.jpg'),
+url('assets/ardhi_university_1280x640.jpg'),
+url('images/ardhi_university_1280x640.jpg');
     background-size: cover;
     background-position: center;
     border: 1px solid var(--border);
@@ -1521,31 +1523,46 @@ function zoomOutDefault(){
   }catch(e){}
 }
 
-fetch('data/ubungo.geojson')
-  .then(r => r.json())
-  .then(gj => {
-    const ub = L.geoJSON(gj, {
-      style: {
-        color: '#000000',
-        weight: 2,
-        fillOpacity: 0
-      }
-    }).addTo(map);
+(function(){
+  const boundaryCandidates = [
+    "data/ubung.json",
+    "data/ubungo.json",
+    "data/ubungo.geojson"
+  ];
 
-    window.ubungoBoundaryLayer = ub;
+  function loadBoundary(url){
+    return fetch(url, { cache: "no-store" })
+      .then(r => { if(!r.ok) throw new Error("Not found"); return r.json(); })
+      .then(gj => {
+        // Remove any previous boundary
+        if(window.ubungoBoundaryLayer){ try{ map.removeLayer(window.ubungoBoundaryLayer); }catch(e){} }
 
-    try{
-      const b = ub.getBounds();
-      if(b && b.isValid && b.isValid()){
-        window.defaultBounds = b;
-        // keep as default view
-        map.fitBounds(b.pad(0.15), { animate:false });
-      }
-    }catch(e){}
-  })
-  .catch(()=>{ /* ignore missing file */ });
+        const ub = L.geoJSON(gj, {
+          style: { color:'#000000', weight:2, fillOpacity:0 }
+        }).addTo(map);
 
+        window.ubungoBoundaryLayer = ub;
 
+        try{
+          const b = ub.getBounds();
+          if(b && b.isValid && b.isValid()){
+            window.defaultBounds = b;
+            map.fitBounds(b.pad(0.15), { animate:false });
+          }
+        }catch(e){}
+        return true;
+      });
+  }
+
+  (async ()=>{
+    for(const url of boundaryCandidates){
+      try{
+        const ok = await loadBoundary(url);
+        if(ok) break;
+      }catch(e){}
+    }
+  })();
+})();
 // Basemaps (switchable)
 const baseImagery = L.tileLayer(
   'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -1560,8 +1577,6 @@ const baseStreets = L.tileLayer(
 let activeBasemap = baseImagery;
 window.activeBasemap = activeBasemap;
 activeBasemap.addTo(map);
-
-const ubungoLayer = L.geoJSON(ubungoGeoJSON,{color:'black', weight:2.5, fillOpacity:0}).addTo(map);
 
 // Scale bar (metric only)
 
@@ -1592,12 +1607,15 @@ function atlasApplyOverlays(){
     if(typeof bordersLayer !== 'undefined' && bordersLayer) bordersLayer.show = showBorders;
 
     // Leaflet borders (Ubungo boundary on 2D map)
-    if(typeof ubungoLayer !== 'undefined' && ubungoLayer && typeof map !== 'undefined'){
-      const hasUbungo = map.hasLayer(ubungoLayer);
-      if(showBorders && !hasUbungo){
-        ubungoLayer.addTo(map);
-      }else if(!showBorders && hasUbungo){
-        map.removeLayer(ubungoLayer);
+    if(typeof map !== 'undefined'){
+      const layer = window.ubungoBoundaryLayer;
+      if(layer){
+        const has = map.hasLayer(layer);
+        if(showBorders && !has){
+          layer.addTo(map);
+        }else if(!showBorders && has){
+          map.removeLayer(layer);
+        }
       }
     }
 
