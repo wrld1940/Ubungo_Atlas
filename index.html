@@ -759,6 +759,9 @@
     gap:10px;
     color: rgba(232,242,255,0.86);
     font-size: 12px;
+      max-height: min(70vh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .atlas-settings label{
     display:flex;
@@ -946,8 +949,194 @@
 }
 
 
+
+  /* ===== Settings panel vertical scroll ===== */
+  .atlas-settings{
+    max-height: 82vh;
+  }
+  .atlas-settings .body{
+    max-height: calc(82vh - 52px);
+    overflow-y: auto;
+    padding-right: 6px; /* keep scrollbar off text */
+  }
+
+  /* ===== Sidebar collapse / expand (hamburger) ===== */
+  .sidebar-collapse-btn{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    margin-bottom: 10px;
+  }
+  .sidebar-collapse-btn .bars{
+    width: 18px;
+    height: 12px;
+    position: relative;
+  }
+  .sidebar-collapse-btn .bars::before,
+  .sidebar-collapse-btn .bars::after,
+  .sidebar-collapse-btn .bars span{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    height:2px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.85);
+  }
+  .sidebar-collapse-btn .bars::before{ top:0; }
+  .sidebar-collapse-btn .bars span{ top:5px; }
+  .sidebar-collapse-btn .bars::after{ bottom:0; }
+
+  .sidebar.collapsed{
+    width: 62px !important;
+    padding: 10px 8px !important;
+    overflow: hidden !important;
+  }
+  .sidebar.collapsed > :not(.sidebar-collapse-btn){
+    display: none !important;
+  }
+
+
+  /* ================= PATCH: FULL-WIDTH MAP + OFFCANVAS SIDEBAR DRAWER ================= */
+  /* Make atlas content fill screen */
+  #explore{ display:block !important; }
+  #explore.active{ display:block !important; }
+
+  #explore .content{
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 900 !important;
+  }
+  #explore #map{ width:100% !important; height:100% !important; }
+
+  /* Sidebar becomes an overlay drawer (does NOT reserve space) */
+  #explore .sidebar{
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 320px !important;
+    max-width: min(88vw, 360px) !important;
+    z-index: 4500 !important;
+    transform: translateX(-110%) !important; /* hidden by default */
+    transition: transform 360ms cubic-bezier(.22,.61,.36,1) !important;
+    will-change: transform;
+    box-shadow: 0 18px 55px rgba(0,0,0,0.55) !important;
+  }
+  #explore .sidebar:not(.collapsed){
+    transform: translateX(0) !important;
+  }
+  #explore .sidebar.collapsed{
+    transform: translateX(-110%) !important;
+  }
+
+  /* Scrim behind drawer */
+  #drawerScrim{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    z-index: 4400;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 220ms ease;
+  }
+  #drawerScrim.open{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= PATCH: FLOATING CIRCLE HAMBURGER (BOTTOM-LEFT) ================= */
+  #sidebarCollapseBtn{
+    position: fixed !important;
+    bottom: 18px !important;
+    left: 18px !important;
+    top: auto !important;
+    right: auto !important;
+
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 999px !important;
+    background: rgba(20,30,38,0.90) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
+    transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
+    z-index: 99999 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #sidebarCollapseBtn:hover{
+    transform: translateY(-1px) scale(1.06) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.55) !important;
+  }
+  #sidebarCollapseBtn:active{
+    transform: scale(0.98) !important;
+  }
+
+  /* Make bars slightly larger for circle */
+  #sidebarCollapseBtn .bars{
+    width: 18px !important;
+    height: 12px !important;
+  }
+
+  /* Hamburger -> X when open */
+  #sidebarCollapseBtn.is-open .bars::before{
+    top: 5px !important;
+    transform: rotate(45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars::after{
+    bottom: auto !important;
+    top: 5px !important;
+    transform: rotate(-45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars span{
+    opacity: 0 !important;
+  }
+
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script></head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ===== Patch: reduce map size when sidebar (drawer) is open ===== */
+:root{ --drawerWidth: 320px; }
+
+/* Default: map full screen */
+#explore .content{ left: 0 !important; width: 100vw !important; }
+
+/* When drawer open, shrink map (desktop/tablet) */
+body.drawer-open #explore .content{
+  left: var(--drawerWidth) !important;
+  width: calc(100vw - var(--drawerWidth)) !important;
+}
+
+/* On small screens keep overlay (map stays full width) */
+@media (max-width: 760px){
+  body.drawer-open #explore .content{
+    left: 0 !important;
+    width: 100vw !important;
+  }
+}
+</style>
+
+</head>
 <body>
 <!-- ================= HOME ================= -->
 <div aria-label="Home" class="section active" id="home">
@@ -1007,7 +1196,12 @@
 </div>
 <!-- ================= ATLAS ================= -->
 <div aria-label="Atlas" class="section" id="explore">
-<div class="sidebar">
+  <div id="drawerScrim" aria-hidden="true"></div>
+<div class="sidebar collapsed">
+
+<button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse / expand sidebar">
+  <div class="bars"><span></span></div>
+</button>
 <button class="secondary" onclick="showHome()">← Home</button>
 <div class="title">
 <div style="width:34px;height:34px;border-radius:12px;background:rgba(26,188,156,0.85);display:grid;place-items:center;font-weight:900">🗺</div>
@@ -1073,6 +1267,15 @@
         <span>Show legend</span>
         <input id="atlasShowLegend" type="checkbox" checked>
       </label>
+
+      <label>
+        <span>Zoom to layer</span>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+          <div style="flex:1; font-size:12px; color: rgba(232,237,245,0.65);">Auto-zoom to selected layer</div>
+          <button id="atlasZoomToLayerBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
+        </div>
+      </label>
+
 <div style="margin-top:8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:rgba(232,242,255,0.82); font-size:12.5px;">
   <b style="color:rgba(232,242,255,0.95)">Selected layer:</b>
   <span id="atlasCurrentLayerName" class="meta-pill">None</span>
@@ -1300,6 +1503,49 @@ if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'E
 const map = L.map('map').setView([-6.79,39.25],12);
 
 window.map = map;
+
+// =========================
+// UBUNGO BOUNDARY (DEFAULT)
+// =========================
+const DEFAULT_VIEW = { center: [-6.79, 39.25], zoom: 12 };
+window.defaultBounds = null;
+window.ubungoBoundaryLayer = null;
+
+function zoomOutDefault(){
+  try{
+    if(window.defaultBounds){
+      map.fitBounds(window.defaultBounds.pad(0.18), { animate:true, duration:0.9, maxZoom: 13 });
+    }else{
+      map.setView(DEFAULT_VIEW.center, DEFAULT_VIEW.zoom, { animate:true });
+    }
+  }catch(e){}
+}
+
+fetch('data/ubungo.geojson')
+  .then(r => r.json())
+  .then(gj => {
+    const ub = L.geoJSON(gj, {
+      style: {
+        color: '#000000',
+        weight: 2,
+        fillOpacity: 0
+      }
+    }).addTo(map);
+
+    window.ubungoBoundaryLayer = ub;
+
+    try{
+      const b = ub.getBounds();
+      if(b && b.isValid && b.isValid()){
+        window.defaultBounds = b;
+        // keep as default view
+        map.fitBounds(b.pad(0.15), { animate:false });
+      }
+    }catch(e){}
+  })
+  .catch(()=>{ /* ignore missing file */ });
+
+
 // Basemaps (switchable)
 const baseImagery = L.tileLayer(
   'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -1402,7 +1648,43 @@ const atlasMetaBtn = document.getElementById('atlasMetaBtn');
 const atlasExportBtn = document.getElementById('atlasExportBtn');
 const atlasToggleSearch = document.getElementById('atlasToggleSearch');
 const atlasToggleScale  = document.getElementById('atlasToggleScale');
+const atlasZoomToLayerBtn = document.getElementById('atlasZoomToLayerBtn');
 const atlasCurrentLayerName = document.getElementById('atlasCurrentLayerName');
+
+// Zoom-to-layer (toggle in Atlas settings) — behaves like Metadata-style toggle button
+window.zoomToLayerEnabled = true;
+
+function setZoomToLayerUI(on){
+  window.zoomToLayerEnabled = !!on;
+  if(atlasZoomToLayerBtn){
+    atlasZoomToLayerBtn.textContent = on ? 'ON' : 'OFF';
+    atlasZoomToLayerBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
+
+if(atlasZoomToLayerBtn){
+  // default ON
+  setZoomToLayerUI(true);
+
+  atlasZoomToLayerBtn.addEventListener('click', ()=>{
+    const next = !window.zoomToLayerEnabled;
+    setZoomToLayerUI(next);
+
+    // ON  -> zoom IN to current selected layer
+    // OFF -> zoom OUT to default view (Ubungo bounds if available)
+    try{
+      if(next){
+        if(window.activeLayer && typeof autoZoomToLayer === 'function'){
+          autoZoomToLayer(window.activeLayer);
+        }else if(window.ubungoBoundaryLayer && typeof autoZoomToLayer === 'function'){
+          autoZoomToLayer(window.ubungoBoundaryLayer);
+        }
+      }else{
+        zoomOutDefault();
+      }
+    }catch(e){}
+  });
+}
 
 // Map search panel + geocoding (Leaflet)
 const mapSearchPanel = document.getElementById('mapSearchPanel');
@@ -1968,6 +2250,12 @@ window.renderMetadata = renderMetadata;
 
 const settingsBtn = document.getElementById('atlasSettingsBtn');
 const settingsPanel = document.getElementById('atlasSettings');
+// Prevent settings panel scrolling from zooming the map underneath
+if (settingsPanel){
+  settingsPanel.addEventListener('wheel', (e)=>{ e.stopPropagation(); }, { passive: true });
+  settingsPanel.addEventListener('touchmove', (e)=>{ e.stopPropagation(); }, { passive: true });
+}
+
 const settingsClose = document.getElementById('atlasSettingsClose');
 const basemapSel = document.getElementById('atlasBasemap');
 const atlasBasemapToggleBtn = document.getElementById('atlasBasemapToggleBtn');
@@ -2387,8 +2675,12 @@ async function loadLayer(type){
 
     activeLayer.addTo(map);
 
-    // Auto-zoom to the selected layer
-    autoZoomToLayer(activeLayer);
+    // Zoom behavior (Atlas settings)
+    if(window.zoomToLayerEnabled !== false){
+      autoZoomToLayer(activeLayer);   // zoom IN to selected layer
+    }else{
+      zoomOutDefault();               // zoom OUT to default view
+    }
 
     // track selected layer for Export + Metadata
     window.activeLayerKey = type;
@@ -2398,12 +2690,6 @@ async function loadLayer(type){
     if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
     if(window.renderMetadata) window.renderMetadata();
     setLegend(window.activeLayerKey, window.activeLayerTitle || 'Selected layer');
-
-    // zoom to layer bounds if possible
-    try{
-      const b = activeLayer.getBounds ? activeLayer.getBounds() : null;
-      if(b && b.isValid && b.isValid()) map.fitBounds(b.pad(0.08));
-    }catch(e){}
 
     toast('Layer ready', 'success', 1600);
   }catch(err){
@@ -3021,6 +3307,116 @@ p, li, a, span, div {
   }
   .atlas-settings .search-row button:hover{ filter: brightness(1.06); }
 
+
+  /* ================= PATCH: FULL-WIDTH MAP + OFFCANVAS SIDEBAR DRAWER ================= */
+  /* Make atlas content fill screen */
+  #explore{ display:block !important; }
+  #explore.active{ display:block !important; }
+
+  #explore .content{
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 900 !important;
+  }
+  #explore #map{ width:100% !important; height:100% !important; }
+
+  /* Sidebar becomes an overlay drawer (does NOT reserve space) */
+  #explore .sidebar{
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 320px !important;
+    max-width: min(88vw, 360px) !important;
+    z-index: 4500 !important;
+    transform: translateX(-110%) !important; /* hidden by default */
+    transition: transform 360ms cubic-bezier(.22,.61,.36,1) !important;
+    will-change: transform;
+    box-shadow: 0 18px 55px rgba(0,0,0,0.55) !important;
+  }
+  #explore .sidebar:not(.collapsed){
+    transform: translateX(0) !important;
+  }
+  #explore .sidebar.collapsed{
+    transform: translateX(-110%) !important;
+  }
+
+  /* Scrim behind drawer */
+  #drawerScrim{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    z-index: 4400;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 220ms ease;
+  }
+  #drawerScrim.open{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= PATCH: FLOATING CIRCLE HAMBURGER (BOTTOM-LEFT) ================= */
+  #sidebarCollapseBtn{
+    position: fixed !important;
+    bottom: 18px !important;
+    left: 18px !important;
+    top: auto !important;
+    right: auto !important;
+
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 999px !important;
+    background: rgba(20,30,38,0.90) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
+    transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
+    z-index: 99999 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #sidebarCollapseBtn:hover{
+    transform: translateY(-1px) scale(1.06) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.55) !important;
+  }
+  #sidebarCollapseBtn:active{
+    transform: scale(0.98) !important;
+  }
+
+  /* Make bars slightly larger for circle */
+  #sidebarCollapseBtn .bars{
+    width: 18px !important;
+    height: 12px !important;
+  }
+
+  /* Hamburger -> X when open */
+  #sidebarCollapseBtn.is-open .bars::before{
+    top: 5px !important;
+    transform: rotate(45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars::after{
+    bottom: auto !important;
+    top: 5px !important;
+    transform: rotate(-45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars span{
+    opacity: 0 !important;
+  }
+
 </style>
 </div>
 <script>
@@ -3204,6 +3600,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 })();
+
+// =========================
+// Sidebar collapse / expand
+// =========================
+(function(){
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.getElementById('sidebarCollapseBtn');
+  if(!sidebar || !btn) return;
+
+  function setCollapsed(collapsed){
+    sidebar.classList.toggle('collapsed', !!collapsed);
+    // Leaflet needs resize after layout change
+    try{ setTimeout(()=>{ map.invalidateSize(); }, 50); }catch(e){}
+  }
+
+  // collapsed by default
+  setCollapsed(true);
+
+  btn.addEventListener('click', ()=>{
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    setCollapsed(!isCollapsed);
+  });
+})();
+
 </script>
 <div>🟥 LST</div>
 <div>🟦 Rainfall</div>
@@ -3225,6 +3645,143 @@ document.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 </div>
+
+
+<script>
+// ================= PATCH: Drawer toggle + scrim + move hamburger to body + map resize =================
+(function(){
+  function ready(fn){
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', fn); }
+    else { fn(); }
+  }
+
+  ready(function(){
+    const sidebar = document.querySelector('#explore .sidebar');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const scrim = document.getElementById('drawerScrim');
+
+    // Ensure sidebar hidden by default
+    if(sidebar){ sidebar.classList.add('collapsed'); }
+
+    // Move button out of transformed sidebar so it's always visible
+    if(btn && btn.parentElement !== document.body){
+      document.body.appendChild(btn);
+    }
+
+    function setOpenState(open){
+      if(!sidebar || !btn) return;
+      sidebar.classList.toggle('collapsed', !open);
+      btn.classList.toggle('is-open', open);
+      if(scrim){
+        scrim.classList.toggle('open', open);
+        scrim.setAttribute('aria-hidden', open ? 'false' : 'true');
+      }
+      // Leaflet needs resize after UI transition
+      try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 380); }catch(e){}
+    }
+
+    if(btn && sidebar){
+      btn.addEventListener('click', ()=>{
+        const open = sidebar.classList.contains('collapsed'); // if collapsed -> open
+        setOpenState(open);
+      });
+    }
+
+    if(scrim){
+      scrim.addEventListener('click', ()=> setOpenState(false));
+    }
+
+    // When entering explore, keep sidebar closed and map full
+    const _showExplore = window.showExplore;
+    if(typeof _showExplore === 'function'){
+      window.showExplore = function(){
+        _showExplore();
+        setOpenState(false);
+        try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 520); }catch(e){}
+      }
+    } else {
+      // fallback sync once
+      setOpenState(false);
+    }
+  });
+})();
+</script>
+
+
+<script>
+// ===== Patch: robust hamburger click (capture) to always toggle drawer =====
+(function(){
+  function $(sel){ return document.querySelector(sel); }
+
+  function getSidebar(){
+    return $('#explore .sidebar') || document.getElementById('sidebar') || $('.sidebar') || $('#leftPanel') || $('#atlasSidebar');
+  }
+
+  function setOpen(open){
+    const sidebar = getSidebar();
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const scrim = document.getElementById('drawerScrim');
+    if(!sidebar || !btn) return;
+
+    sidebar.classList.toggle('collapsed', !open);
+    btn.classList.toggle('is-open', open);
+
+    if(scrim){
+      scrim.classList.toggle('open', open);
+      scrim.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    document.body.classList.toggle('drawer-open', open);
+
+    // Resize Leaflet after animation
+    try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 380); }catch(e){}
+  }
+
+  function toggle(){
+    const sidebar = getSidebar();
+    if(!sidebar) return;
+    const open = sidebar.classList.contains('collapsed'); // if collapsed, open it
+    setOpen(open);
+  }
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  ready(function(){
+    const btn = document.getElementById('sidebarCollapseBtn');
+    if(!btn) return;
+
+    // Ensure button can receive clicks
+    btn.style.pointerEvents = 'auto';
+
+    // Capture-phase handler to beat any stopPropagation in bubble phase
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    }, true);
+
+    // Also allow keyboard activation
+    btn.setAttribute('tabindex','0');
+    btn.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggle();
+      }
+    });
+
+    // Clicking scrim closes
+    const scrim = document.getElementById('drawerScrim');
+    if(scrim){
+      scrim.addEventListener('click', ()=> setOpen(false), true);
+    }
+
+    // Start closed
+    setOpen(false);
+  });
+})();
+</script>
 
 </body>
 </html>
