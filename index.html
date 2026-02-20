@@ -2458,8 +2458,273 @@ function demoCircle(label, lat, lon, radius){
   return c;
 }
 
-// Styles parsed (best-effort) from your QGIS .qml files
-const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"style":{"color":"red","weight":2.0}},"hospital":{"style":{"color":"red","weight":2.0}},"pharmacy":{"style":{"color":"red","weight":2.0}},"bus_stop":{"style":{"color":"red","weight":2.0}},"railway":{"style":{"color":"red","weight":2.0}},"petrol_station":{"style":{"color":"red","weight":2.0}},"trunk_rd":{"style":{"color":"red","weight":2.0}},"primary_rd":{"style":{"color":"red","weight":2.0}},"secondary_rd":{"style":{"color":"red","weight":2.0}},"tertiary_rd":{"style":{"color":"red","weight":2.0}},"unclassified_rd":{"style":{"color":"red","weight":2.0}},"primary_schools":{"style":{"color":"red","weight":2.0}},"secondary_school":{"style":{"color":"red","weight":2.0}},"ubungo":{"style":{"color":"black","weight":2.5}}};
+// =========================
+// QML -> Leaflet Style Loader (generated)
+// =========================
+// NOTE: Browsers can't read .qml directly. We use a JSON style registry derived from your QML.
+const STYLE_DEFS = {
+  "primary_school": {
+    "type": "text",
+    "textIcon": {
+      "text": "SCH",
+      "fontFamily": "Arial",
+      "fontStyle": "Regular",
+      "fontSize": 2.0,
+      "color": "#174f75",
+      "opacity": 1,
+      "outlineColor": "#ffffff",
+      "outlineOpacity": 1,
+      "outlineWidth": 0.01
+    }
+  },
+  "police": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "backgrounds/background_security_02.svg",
+      "iconSize": 5.0,
+      "color": "#0d1c72",
+      "opacity": 1,
+      "stroke": "#f7a758",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.6
+    }
+  },
+  "unclassified_road": {
+    "type": "line",
+    "style": {
+      "color": "#a1a195",
+      "weight": 0.46,
+      "opacity": 1
+    }
+  },
+  "tertiary_road": {
+    "type": "line",
+    "style": {
+      "color": "#f9b703",
+      "weight": 0.66,
+      "opacity": 1
+    }
+  },
+  "railway": {
+    "type": "line",
+    "style": {
+      "color": "#000000",
+      "weight": 0.6,
+      "opacity": 1,
+      "dashArray": "1,6"
+    }
+  },
+  "secondary_road": {
+    "type": "line",
+    "style": {
+      "color": "#a96f0b",
+      "weight": 0.86,
+      "opacity": 1
+    }
+  },
+  "petrol_station": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "gpsicons/gas.svg",
+      "iconSize": 3.8,
+      "color": "#000000",
+      "opacity": 1,
+      "stroke": "#ffffff",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  },
+  "hospital": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "health/health_hospital.svg",
+      "iconSize": 3.4,
+      "color": "#ffffff",
+      "opacity": 1,
+      "stroke": "#232323",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  },
+  "trunk_road": {
+    "type": "line",
+    "style": {
+      "color": "#8f1317",
+      "weight": 1.06,
+      "opacity": 1
+    }
+  },
+  "secondary_school": {
+    "type": "text",
+    "textIcon": {
+      "text": "SCH",
+      "fontFamily": "Arial",
+      "fontStyle": "Regular",
+      "fontSize": 2.0,
+      "color": "#174f75",
+      "opacity": 1,
+      "outlineColor": "#ffffff",
+      "outlineOpacity": 1,
+      "outlineWidth": 0.01
+    }
+  },
+  "primary_road": {
+    "type": "line",
+    "style": {
+      "color": "#e31a1c",
+      "weight": 0.86,
+      "opacity": 1
+    }
+  },
+  "bus_station": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "transport/transport_bus_stop.svg",
+      "iconSize": 2.8,
+      "color": "#0d4477",
+      "opacity": 1,
+      "stroke": "#ffffff",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  }
+};
+
+function mmToPx(mm) {
+  const n = Number(mm);
+  if(!Number.isFinite(n)) return 0;
+  return n * 3.7795275591; // ~px per mm at 96dpi
+}
+
+function svgBasename(p) {
+  if(!p) return '';
+  const s = String(p).replace(/\/g,'/');
+  return s.split('/').pop();
+}
+
+function makeSvgDivIcon(url, sizePx) {
+  const s = Math.max(18, Math.round(sizePx || 28));
+  const html = `<img src="${url}" style="width:${s}px;height:${s}px;display:block" />`;
+  return L.divIcon({
+    className: 'atlas-svg-icon',
+    html,
+    iconSize: [s, s],
+    iconAnchor: [Math.round(s/2), s],
+    popupAnchor: [0, -Math.round(s*0.6)]
+  });
+}
+
+function makeTextDivIcon(text, fontPx, color, outlineColor, outlineWidthPx) {
+  const fs = Math.max(10, Math.round(fontPx || 12));
+  const ow = Math.max(0, Math.round(outlineWidthPx || 0));
+  const html = `
+    <div class="atlas-text-icon" style="
+      font-family: Arial, sans-serif;
+      font-weight: 800;
+      font-size: ${fs}px;
+      color: ${color || '#0b1020'};
+      -webkit-text-stroke: ${ow}px ${outlineColor || '#ffffff'};
+      text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      line-height: 1;
+      transform: translate(-50%, -100%);
+      position: relative;
+      left: 50%;
+      top: 0;
+      white-space: nowrap;
+    ">${text || ''}</div>
+  `;
+  return L.divIcon({
+    className: 'atlas-text-icon',
+    html,
+    iconSize: [1,1],
+    iconAnchor: [0,0],
+    popupAnchor: [0, -10]
+  });
+}
+
+function getVectorStyle(layerKey) {
+  const def = STYLE_DEFS[layerKey];
+  if(!def) return null;
+  if(def.type === 'line') {
+    const l = def.line || {};
+    return {
+      color: l.color || '#1abc9c',
+      weight: mmToPx(l.weight ?? 0.6),
+      opacity: (l.opacity ?? 1)
+    };
+  }
+  if(def.type === 'polygon') {
+    const p = def.polygon || {};
+    return {
+      color: p.stroke || '#111',
+      weight: mmToPx(p.strokeWidth ?? 0.4),
+      opacity: (p.strokeOpacity ?? 1),
+      fillColor: p.fill || '#1abc9c',
+      fillOpacity: (p.fillOpacity ?? 0.25)
+    };
+  }
+  // points (circle fallback)
+  if(def.type === 'circle') {
+    const c = def.circle || {};
+    return {
+      color: c.stroke || '#111',
+      weight: mmToPx(c.strokeWidth ?? c.weight ?? 0.4),
+      opacity: (c.strokeOpacity ?? 1),
+      fillColor: c.fill || c.fillColor || '#1abc9c',
+      fillOpacity: (c.fillOpacity ?? 1)
+    };
+  }
+  return null;
+}
+
+function getPointToLayer(layerKey) {
+  const def = STYLE_DEFS[layerKey];
+  if(!def) return null;
+
+  if(def.type === 'svg') {
+    const icon = def.icon || {};
+    // We only need the filename; store svg files in /icons
+    const url = 'icons/' + svgBasename(icon.svgPath);
+    const size = mmToPx(icon.iconSize ?? 5.0);
+    const leafletIcon = makeSvgDivIcon(url, size);
+    return (feature, latlng) => L.marker(latlng, { icon: leafletIcon });
+  }
+
+  if(def.type === 'text') {
+    const t = def.textIcon || {};
+    const fontPx = mmToPx(t.fontSize ?? 2.0) * 2.2; // boost small QGIS sizes
+    const outlinePx = Math.max(1, Math.round(mmToPx(t.outlineWidth ?? 0.01) * 6));
+    const leafletIcon = makeTextDivIcon(t.text, fontPx, t.color, t.outlineColor, outlinePx);
+    return (feature, latlng) => L.marker(latlng, { icon: leafletIcon });
+  }
+
+  if(def.type === 'circle') {
+    const c = def.circle || {};
+    return (feature, latlng) => L.circleMarker(latlng, {
+      radius: mmToPx(c.radius ?? 2.0) * 0.8 + 3,
+      color: c.stroke || c.color || '#111',
+      weight: mmToPx(c.strokeWidth ?? c.weight ?? 0.4),
+      opacity: (c.strokeOpacity ?? 1),
+      fillColor: c.fill || c.fillColor || '#1abc9c',
+      fillOpacity: (c.fillOpacity ?? 1)
+    });
+  }
+
+  return null;
+}
+
+function getGeoJsonOptions(layerKey) {
+  const style = getVectorStyle(layerKey);
+  const p2l = getPointToLayer(layerKey);
+
+  return {
+    style: style ? (() => style) : undefined,
+    pointToLayer: p2l ? p2l : undefined
+  };
+}
+
+// expose globally (so the rest of index.html can call it)
+window.getGeoJsonOptions = getGeoJsonOptions;
 
 // Simple SVG icons for point layers (Leaflet). UI unchanged.
 function makeSvgIcon(svg, size=28){
@@ -2512,28 +2777,35 @@ const SVG_ICONS = {
 };
 
 // Which GeoJSON file(s) power each UI layer key
+// Which GeoJSON file(s) power each UI layer key
+// NOTE: `sources` supports multiple candidate filenames; we try them in order until one exists.
 const LAYER_SOURCES = {
   // Public services
-  police: { type: "geojson", sources: ["data/police.geojson"], styleKey: "police" },
+  police: { type: "geojson", sources: ["data/police.geojson","data/police.json"], styleKey: "police" },
+
   health: { type: "group", children: [
-    { type:"geojson", sources:["data/clinic.geojson"], styleKey:"clinic" },
-    { type:"geojson", sources:["data/hospital.geojson"], styleKey:"hospital" },
-    { type:"geojson", sources:["data/pharmacy.geojson"], styleKey:"pharmacy" },
+    { type:"geojson", sources:["data/hospital.geojson","data/hospital.json"], styleKey:"hospital" },
+    { type:"geojson", sources:["data/clinic.geojson","data/clinic.json"], styleKey:"clinic" },
   ]},
-  primary: { type: "geojson", sources: ["data/primary_schools.geojson"], styleKey: "primary_schools" },
-  secondary: { type: "geojson", sources: ["data/secondary_school.geojson"], styleKey: "secondary_school" },
+
+  primary:  { type:"geojson", sources:["data/primary_school.geojson","data/primary_schools.geojson","data/primary_school.json"], styleKey:"primary_school" },
+  secondary:{ type:"geojson", sources:["data/secondary_school.geojson","data/secondary_schools.geojson","data/secondary_school.json"], styleKey:"secondary_school" },
+
+  petrol_station:{ type:"geojson", sources:["data/petrol_station.geojson","data/petrol_station.json","data/petrol.geojson"], styleKey:"petrol_station" },
+  bus_station:{ type:"geojson", sources:["data/bus_station.geojson","data/bus_stop.geojson","data/bus_station.json"], styleKey:"bus_station" },
 
   // Networks
   roads: { type: "group", children: [
-    { type:"geojson", sources:["data/trunk_rd.geojson"], styleKey:"trunk_rd" },
-    { type:"geojson", sources:["data/primary_rd.geojson"], styleKey:"primary_rd" },
-    { type:"geojson", sources:["data/secondary_rd.geojson"], styleKey:"secondary_rd" },
-    { type:"geojson", sources:["data/tertiary_rd.geojson"], styleKey:"tertiary_rd" },
-    { type:"geojson", sources:["data/unclassified_rd.geojson"], styleKey:"unclassified_rd" },
+    { type:"geojson", sources:["data/trunk_road.geojson","data/trunk_rd.geojson","data/trunk_road.json"], styleKey:"trunk_road" },
+    { type:"geojson", sources:["data/primary_road.geojson","data/primary_rd.geojson","data/primary_road.json"], styleKey:"primary_road" },
+    { type:"geojson", sources:["data/secondary_road.geojson","data/secondary_rd.geojson","data/secondary_road.json"], styleKey:"secondary_road" },
+    { type:"geojson", sources:["data/tertiary_road.geojson","data/tertiary_rd.geojson","data/tertiary_road.json"], styleKey:"tertiary_road" },
+    { type:"geojson", sources:["data/unclassified_road.geojson","data/unclassified_rd.geojson","data/unclassified_road.json"], styleKey:"unclassified_road" },
   ]},
+
   transport: { type: "group", children: [
-    { type:"geojson", sources:["data/railway.geojson"], styleKey:"railway" },
-    { type:"geojson", sources:["data/bus_stop.geojson"], styleKey:"bus_stop" },
+    { type:"geojson", sources:["data/railway.geojson","data/railway.json"], styleKey:"railway" },
+    { type:"geojson", sources:["data/bus_station.geojson","data/bus_stop.geojson","data/bus_station.json"], styleKey:"bus_station" },
   ]},
 };
 
@@ -2545,14 +2817,24 @@ window.activeLayerKey = null;
 window.activeLayerTitle = '';
 
 function applyStyleFromQml(styleKey){
-  const s = QML_STYLES[styleKey] || {};
-  return { style: s.style || null, pointStyle: s.pointStyle || null };
+  // Backwards-compat: kept for older code paths
+  return { style: getVectorStyle(styleKey), pointStyle: null };
 }
 
-async function fetchGeoJSON(url){
-  const res = await fetch(url, { cache: 'no-store' });
-  if(!res.ok) throw new Error('Failed to load ' + url + ' (' + res.status + ')');
-  return await res.json();
+async function fetchGeoJSONFromSources(sources){
+  const arr = Array.isArray(sources) ? sources : [sources];
+  let lastErr = null;
+  for(const url of arr){
+    if(!url) continue;
+    try{
+      const res = await fetch(url, { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw new Error('Failed to load any source: ' + arr.join(', ') + (lastErr ? (' | ' + lastErr.message) : ''));
 }
 
 function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
@@ -2572,23 +2854,37 @@ function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
 
 async function buildLayer(def){
   if(!def) throw new Error('Missing layer definition');
+
   if(def.type === "group"){
     const group = L.layerGroup();
-    for(const child of (def.children || [])){
-      const lyr = await buildLayer(child);
-      group.addLayer(lyr);
+    const children = (def.children || []);
+    let added = 0;
+    for(const child of children){
+      try{
+        const lyr = await buildLayer(child);
+        if(lyr){
+          group.addLayer(lyr);
+          added++;
+        }
+      }catch(e){
+        // Skip missing child layers silently (common when some geojson files are not uploaded yet)
+        console.warn('Skipping child layer (missing file?)', child, e);
+      }
     }
+    if(added === 0) throw new Error('No child layers loaded for this group');
     return group;
   }
-  // geojson
-  const url = def.sources && def.sources[0];
-  const { style, pointStyle } = applyStyleFromQml(def.styleKey || "");
-  const gj = await fetchGeoJSON(url);
 
-  // If qml didn't contain a style, apply a safe default
-  const fallbackStyle = style || { color: "#ff0000", weight: 2 };
-  const fallbackPoint = pointStyle || { radius: 6, color: "#111", weight: 1, fillColor: "#1abc9c", fillOpacity: 1 };
-  return makeLeafletGeoJSONLayer(gj, style ? style : fallbackStyle, pointStyle ? pointStyle : fallbackPoint, def.styleKey || '');
+  // geojson
+  const sources = def.sources && def.sources.length ? def.sources : [];
+  const gj = await fetchGeoJSONFromSources(sources);
+
+  const opts = (window.getGeoJsonOptions ? window.getGeoJsonOptions(def.styleKey || '') : {});
+  // Safe fallbacks if style loader doesn't have this key
+  if(!opts.style && def.type === 'geojson'){
+    opts.style = () => ({ color: "#ff0000", weight: 2 });
+  }
+  return L.geoJSON(gj, opts);
 }
 
 // Title map for legend/meta
