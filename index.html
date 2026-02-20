@@ -1,0 +1,4101 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Ubungo Municipal Web Atlas</title>
+<!-- Cesium -->
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Widgets/widgets.css" rel="stylesheet"/>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.114/Build/Cesium/Cesium.js"></script>
+<!-- Leaflet -->
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --bg: #061018;
+    --panel: rgba(10, 20, 28, 0.72);
+    --panel2: rgba(10, 20, 28, 0.55);
+    --text: #e8f2ff;
+    --muted: rgba(232,242,255,0.72);
+    --accent: #1abc9c;
+    --accent2:#3498db;
+    --border: rgba(255,255,255,0.12);
+    --shadow: 0 18px 45px rgba(0,0,0,0.45);
+    --radius: 18px;
+  }
+
+  html, body{
+    margin:0;
+    padding:0;
+    width:100%;
+    height:100%;
+    overflow:hidden; /* key: no scrolling */
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Poppins", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* App screens (Home + Atlas) */
+  .section{
+    position: fixed; /* keep out of document flow */
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+
+    /* Fade animation */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 450ms ease, visibility 450ms ease;
+  }
+  .section.active{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= HOME ================= */
+  #home{ background: var(--bg); }
+
+  #globe{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+  }
+
+  /* Dark overlay gradient to make text readable */
+  .hero-scrim{
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(1200px 700px at 18% 20%, rgba(26,188,156,0.22), transparent 55%),
+      radial-gradient(1000px 600px at 78% 75%, rgba(52,152,219,0.18), transparent 60%),
+      linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+    pointer-events:none;
+  }
+
+  /* Top bar */
+  .topbar{
+    position:absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    display:flex;
+    gap:14px;
+    align-items:center;
+    justify-content:space-between;
+    z-index: 5;
+  }
+
+  .brand{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    padding: 10px 14px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow);
+  }
+  .brand-badge{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(26,188,156,0.95), rgba(52,152,219,0.85));
+    display:grid;
+    place-items:center;
+    font-weight:800;
+  }
+  .brand-title{
+    display:flex;
+    flex-direction:column;
+    line-height:1.05;
+  }
+  .brand-title b{ font-size: 13px; letter-spacing:0.2px; }
+  .brand-title span{ font-size: 12px; color: var(--muted); }
+
+  .topbar-actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+
+  .chip{
+    padding: 10px 12px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    color: var(--muted);
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  #basemapStatus{
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Main hero card */
+  .hero{
+    position:absolute;
+    left: 6%;
+    top: 18%;
+    width: min(680px, 88vw);
+    z-index: 5;
+  }
+
+  .hero-card{
+    position: relative;
+    background: 
+      linear-gradient(rgba(6,16,24,0.78), rgba(6,16,24,0.88)),
+url('ardhi_university_1280x640.jpg'),
+url('assets/ardhi_university_1280x640.jpg'),
+url('images/ardhi_university_1280x640.jpg');
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 26px 26px 18px 26px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+  }
+
+  .kicker{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+
+  .hero-card h1{
+    margin: 10px 0 10px 0;
+    font-size: clamp(28px, 4.2vw, 40px);
+    letter-spacing: -0.4px;
+  }
+
+  .hero-card p{
+    margin: 0 0 14px 0;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .cta-row{
+    display:flex;
+    gap:12px;
+    flex-wrap: wrap;
+    align-items:center;
+    margin-top: 10px;
+  }
+
+  .btn{
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 14px;
+    padding: 12px 14px;
+    cursor:pointer;
+    font-weight: 700;
+    font-size: 14px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    user-select:none;
+    transition: transform 140ms ease, filter 140ms ease;
+  }
+  .btn:active{ transform: translateY(1px); }
+
+  .btn-primary{
+    background: rgba(26,188,156,0.95);
+    color: #04221c;
+  }
+  .btn-secondary{
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .btn:hover{ filter: brightness(1.06); }
+
+  .divider{
+    height: 1px;
+    background: rgba(255,255,255,0.10);
+    margin: 16px 0 14px 0;
+  }
+
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .stat{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 12px 12px;
+  }
+  .stat b{ font-size: 16px; }
+  .stat span{ display:block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .features{
+    display:flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .pill{
+    font-size: 12px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.10);
+    padding: 8px 10px;
+    border-radius: 999px;
+  }
+
+  /* Home controls (labels/borders/search) */
+  #globeControls{
+    position:absolute;
+    bottom:16px;
+    right:16px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background: rgba(0,0,0,0.50);
+    color:#fff;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    z-index: 6;
+  }
+  #globeControls input[type="text"]{
+    width: 190px;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(255,255,255,0.10);
+    color:#fff;
+    outline:none;
+  }
+  #globeControls button{
+    padding: 7px 11px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(26,188,156,0.90);
+    color:#fff;
+    cursor:pointer;
+  }
+
+  /* ================= ATLAS ================= */
+  /* IMPORTANT: do NOT set #explore display:flex here (it caused your “extra page”). */
+  #explore{
+    background: #0b141c;
+  }
+  /* Only when active, Atlas becomes flex */
+  #explore.active{
+    display:flex;
+  }
+
+  .sidebar{
+    width: 320px;
+    background: rgba(255,255,255,0.06);
+    border-right: 1px solid rgba(255,255,255,0.10);
+    padding: 14px;
+    overflow-y: auto;
+  }
+
+  .sidebar .title{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding: 10px 10px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.10);
+    margin-bottom: 12px;
+  }
+  .sidebar .title b{ font-size: 13px; }
+  .sidebar .title span{ font-size: 12px; color: var(--muted); display:block; margin-top:2px; }
+
+  .sidebar button{
+    width: 100%;
+    padding: 11px 12px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(52,152,219,0.80);
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .sidebar button.secondary{
+    background: rgba(255,255,255,0.06);
+  }
+
+  .content{
+    flex: 1;
+    position: relative;
+  }
+  #map{
+    position: relative;
+    inset:0;
+    width: 100%;
+    height: 100%;
+  }
+
+  #dashboard{
+    position:absolute;
+    inset:0;
+    display:none;
+    padding: 26px;
+    overflow:auto;
+  }
+  .dash-grid{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .dash-card{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 14px;
+  }
+  .dash-card b{ font-size: 18px; }
+  .dash-card span{ display:block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+
+  .dash-section{
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .dash-section h2{
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    letter-spacing: .2px;
+  }
+  .dash-actions{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .dash-action{
+    text-align: left;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 14px;
+    color: var(--text);
+    cursor: pointer;
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  }
+  .dash-action:hover{
+    transform: translateY(-1px);
+    background: rgba(255,255,255,0.09);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .dash-action b{ display:block; font-size: 16px; margin-bottom: 4px; }
+  .dash-action span{ display:block; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* Small screens */
+  @media (max-width: 920px){
+    .hero{ left: 4%; top: 14%; }
+    .stats{ grid-template-columns: 1fr; }
+    .sidebar{ width: 280px; }
+    #globeControls input[type="text"]{ width: 150px; }
+  }
+
+  /* ================= MAP UX OVERLAYS (Legend / Coords / Toast) ================= */
+  #map-ui{
+    position:absolute;
+    inset:0;
+    z-index: 1200; /* above map */
+    pointer-events:none; /* allow map interaction */
+  }
+
+  .map-chip{
+    position:absolute;
+    left: 16px;
+    bottom: 60px; /* keep above scale bar */
+    padding: 8px 10px;
+    background: rgba(10, 20, 28, 0.65);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 999px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+    font-size: 12px;
+    color: rgba(232,242,255,0.78);
+    letter-spacing: 0.2px;
+    pointer-events:none;
+  }
+
+  .map-legend{
+    position:absolute;
+    right: 16px;
+    bottom: 16px;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.72);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    overflow:hidden;
+    pointer-events:auto; /* clickable */
+  }
+
+  .legend-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: rgba(232,242,255,0.9);
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+
+  .legend-toggle{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.85);
+    cursor:pointer;
+  }
+  .legend-toggle:hover{ background: rgba(255,255,255,0.10); }
+
+  .legend-body{
+    padding: 10px 12px;
+    max-height: 220px;
+    overflow:auto;
+  }
+  .map-legend.collapsed .legend-body{ display:none; }
+  .map-legend.collapsed .legend-toggle{ transform: rotate(-90deg); }
+
+  .legend-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 6px 0;
+    font-size: 12px;
+    color: rgba(232,242,255,0.78);
+  }
+  .legend-swatch{
+    width: 14px;
+    height: 14px;
+    border-radius: 6px;
+    border: 2px solid rgba(26,188,156,0.95);
+    background: rgba(26,188,156,0.16);
+    flex: 0 0 auto;
+  }
+  .legend-text{ line-height: 1.25; }
+
+  /* Toasts */
+  #toastHost{
+    position:absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    width: min(520px, calc(100vw - 32px));
+    pointer-events:none;
+  }
+  .toast{
+    pointer-events:none;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.78);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 200ms ease, transform 200ms ease;
+  }
+  .toast.show{
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .toast .tag{
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.8);
+  }
+  .toast.info .tag{ border-color: rgba(52,152,219,0.55); }
+  .toast.success .tag{ border-color: rgba(26,188,156,0.60); }
+  .toast.error .tag{ border-color: rgba(231,76,60,0.60); }
+
+
+  /* ================= ABOUT MODAL (UI ONLY) ================= */
+  .chip-btn{
+    cursor: pointer;
+    color: var(--text);
+  }
+  .chip-btn:hover{
+    filter: brightness(1.06);
+  }
+
+  .modal{
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: rgba(0,0,0,0.58);
+    z-index: 9999;
+  }
+  .modal.open{ display: flex; }
+
+  .modal-card{
+    width: min(860px, 92vw);
+    max-height: min(76vh, 720px);
+    overflow: auto;
+    background: rgba(10, 20, 28, 0.86);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 18px;
+    box-shadow: 0 22px 60px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+  }
+
+  .modal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 16px 16px 10px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  
+  .modal-head-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-shrink:0;
+  }
+  .modal-action-btn{
+    padding:8px 12px;
+    border-radius:12px;
+    border:1px solid rgba(255,255,255,0.14);
+    background:rgba(255,255,255,0.08);
+    color:rgba(232,242,255,0.92);
+    cursor:pointer;
+    font-weight:800;
+  }
+  .modal-action-btn:hover{ filter: brightness(1.06); }
+.modal-head h2{
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: .2px;
+  }
+  .modal-head p{
+    margin: 6px 0 0 0;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .modal-close{
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .modal-close:hover{ background: rgba(255,255,255,0.10); }
+
+  .modal-body{
+    padding: 14px 16px 18px 16px;
+    color: rgba(232,242,255,0.88);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .modal-grid{
+    display:grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 14px;
+  }
+  .modal-panel{
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 16px;
+    padding: 12px 12px;
+  }
+  .modal-panel b{
+    display:block;
+    margin-bottom: 6px;
+  }
+  .modal-body ul{
+    margin: 8px 0 0 18px;
+    padding: 0;
+    color: rgba(232,242,255,0.80);
+  }
+  .modal-body li{ margin: 4px 0; }
+  @media (max-width: 860px){
+    .modal-grid{ grid-template-columns: 1fr; }
+  }
+
+
+/* Show home-only controls (labels, borders, contact, search) only on HOME */
+#explore #globeControls,
+#explore .topbar-actions,
+#explore #contactBtn,
+#explore #labelsToggle,
+#explore #bordersToggle {
+  display: none !important;
+}
+
+
+  /* ================= HOME CONTROLS FADE (during transition) ================= */
+  #home .topbar,
+  #home .hero,
+  #home #globeControls{
+    transition: opacity 320ms ease, transform 320ms ease;
+    opacity: 1;
+  }
+  #home .topbar{ transform: translateY(0); }
+  #home .hero{ transform: translateY(0); }
+  #home #globeControls{ transform: translateY(0); }
+
+  /* When HOME section is not active, fade controls out smoothly */
+  #home:not(.active) .topbar{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  #home:not(.active) .hero{
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  #home:not(.active) #globeControls{
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+
+  /* ================= ATLAS FLOATING SETTINGS ================= */
+  .atlas-settings-btn{
+    position:absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1400;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.72);
+    color: rgba(232,242,255,0.92);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    cursor:pointer;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .atlas-settings-btn:hover{ background: rgba(10, 20, 28, 0.80); }
+
+  .atlas-settings{
+    position:absolute;
+    top: 64px;
+    right: 16px;
+    z-index: 1400;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.78);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+    overflow:hidden;
+    pointer-events:auto;
+    transform-origin: top right;
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  }
+  .atlas-settings.open{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  .atlas-settings .head{
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
+  .atlas-settings .body{
+    padding: 10px 12px 12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color: rgba(232,242,255,0.86);
+    font-size: 12px;
+      max-height: min(70vh, 520px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .atlas-settings label{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+  }
+  .atlas-settings select, .atlas-settings input[type="checkbox"]{
+    pointer-events:auto;
+  }
+  .atlas-settings select{
+    width: 120px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .xbtn{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .atlas-settings .xbtn:hover{ background: rgba(255,255,255,0.10); }
+
+
+  /* Settings search row */
+  .atlas-settings .search-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .atlas-settings .search-row input{
+    flex: 1 1 auto;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .search-row button{
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(52,152,219,0.80);
+    color: #fff;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .atlas-settings .search-row button:hover{ filter: brightness(1.06); }
+
+
+
+      /* ================= Optional UI visibility defaults ================= */
+  /* Floating Contact button stays hidden (Contact is inside About Us modal) */
+  #contactBtn{ display:none !important; }
+
+  /* North arrow removed */
+  img[src*="North_arrow.svg"]{ display:none !important; }
+
+  /* ===== Atlas Map Search panel (toggle in Atlas settings) ===== */
+  #mapSearchPanel{
+    position:absolute;
+    top:12px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(420px, calc(100% - 28px));
+    z-index:2500;
+    pointer-events:auto;
+    display:none;
+  }
+  #mapSearchPanel .row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  #mapSearchPanel input{
+    flex:1;
+    padding:10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: rgba(232,242,255,0.95);
+    outline:none;
+  }
+  #mapSearchPanel button{
+    padding:10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(52,152,219,0.72);
+    color:#fff;
+    font-weight: 900;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  #mapSearchPanel .hint{
+    margin-top:8px;
+    font-size: 12px;
+    color: rgba(232,242,255,0.70);
+  }
+
+  /* ===== Metadata modal (layer-aware) ===== */
+#layerMetaModal{
+  display:none;
+  position: fixed;
+  inset:0;
+  background: rgba(0,0,0,0.55);
+  z-index: 10050;
+  align-items:center;
+  justify-content:center;
+  padding: 14px;
+}
+#layerMetaCard{
+  display:inline-block;                 /* shrink-wrap */
+  width: fit-content;                   /* size to content */
+  max-width: min(600px, calc(100vw - 28px));
+  min-width: min(360px, calc(100vw - 28px));
+  background: rgba(10, 20, 28, 0.92);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+}
+#layerMetaCard .head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+#layerMetaCard .head b{
+  color: rgba(232,242,255,0.96);
+  font-size: 14px;
+  letter-spacing: .2px;
+}
+#layerMetaClose{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: rgba(232,242,255,0.92);
+  cursor: pointer;
+  font-weight: 900;
+}
+#layerMetaClose:hover{ filter: brightness(1.08); }
+
+#layerMetaCard .body{
+  padding: 12px 14px 14px 14px;
+  max-height: min(70vh, calc(100vh - 180px));
+  overflow:auto;                        /* scroll only if too tall */
+}
+
+/* neat key/value layout that adapts to content width */
+.meta-grid{
+  display:grid;
+  grid-template-columns: max-content minmax(180px, 1fr);
+  gap: 10px 14px;
+  align-items:start;
+}
+.meta-k{
+  color: rgba(232,242,255,0.78);
+  font-size: 12.5px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.meta-v{
+  color: rgba(232,242,255,0.92);
+  font-size: 12.5px;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+
+
+  /* ===== Settings panel vertical scroll ===== */
+  .atlas-settings{
+    max-height: 82vh;
+  }
+  .atlas-settings .body{
+    max-height: calc(82vh - 52px);
+    overflow-y: auto;
+    padding-right: 6px; /* keep scrollbar off text */
+  }
+
+  /* ===== Sidebar collapse / expand (hamburger) ===== */
+  .sidebar-collapse-btn{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    margin-bottom: 10px;
+  }
+  .sidebar-collapse-btn .bars{
+    width: 18px;
+    height: 12px;
+    position: relative;
+  }
+  .sidebar-collapse-btn .bars::before,
+  .sidebar-collapse-btn .bars::after,
+  .sidebar-collapse-btn .bars span{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    height:2px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.85);
+  }
+  .sidebar-collapse-btn .bars::before{ top:0; }
+  .sidebar-collapse-btn .bars span{ top:5px; }
+  .sidebar-collapse-btn .bars::after{ bottom:0; }
+
+  .sidebar.collapsed{
+    width: 62px !important;
+    padding: 10px 8px !important;
+    overflow: hidden !important;
+  }
+  .sidebar.collapsed > :not(.sidebar-collapse-btn){
+    display: none !important;
+  }
+
+
+  /* ================= PATCH: FULL-WIDTH MAP + OFFCANVAS SIDEBAR DRAWER ================= */
+  /* Make atlas content fill screen */
+  #explore{ display:block !important; }
+  #explore.active{ display:block !important; }
+
+  #explore .content{
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 900 !important;
+  }
+  #explore #map{ width:100% !important; height:100% !important; }
+
+  /* Sidebar becomes an overlay drawer (does NOT reserve space) */
+  #explore .sidebar{
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 320px !important;
+    max-width: min(88vw, 360px) !important;
+    z-index: 4500 !important;
+    transform: translateX(-110%) !important; /* hidden by default */
+    transition: transform 360ms cubic-bezier(.22,.61,.36,1) !important;
+    will-change: transform;
+    box-shadow: 0 18px 55px rgba(0,0,0,0.55) !important;
+  }
+  #explore .sidebar:not(.collapsed){
+    transform: translateX(0) !important;
+  }
+  #explore .sidebar.collapsed{
+    transform: translateX(-110%) !important;
+  }
+
+  /* Scrim behind drawer */
+  #drawerScrim{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    z-index: 4400;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 220ms ease;
+  }
+  #drawerScrim.open{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= PATCH: FLOATING CIRCLE HAMBURGER (BOTTOM-LEFT) ================= */
+  #sidebarCollapseBtn{
+    position: fixed !important;
+    bottom: 18px !important;
+    left: 18px !important;
+    top: auto !important;
+    right: auto !important;
+
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 999px !important;
+    background: rgba(20,30,38,0.90) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
+    transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
+    z-index: 99999 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #sidebarCollapseBtn:hover{
+    transform: translateY(-1px) scale(1.06) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.55) !important;
+  }
+  #sidebarCollapseBtn:active{
+    transform: scale(0.98) !important;
+  }
+
+  /* Make bars slightly larger for circle */
+  #sidebarCollapseBtn .bars{
+    width: 18px !important;
+    height: 12px !important;
+  }
+
+  /* Hamburger -> X when open */
+  #sidebarCollapseBtn.is-open .bars::before{
+    top: 5px !important;
+    transform: rotate(45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars::after{
+    bottom: auto !important;
+    top: 5px !important;
+    transform: rotate(-45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars span{
+    opacity: 0 !important;
+  }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ===== Patch: reduce map size when sidebar (drawer) is open ===== */
+:root{ --drawerWidth: 320px; }
+
+/* Default: map full screen */
+#explore .content{ left: 0 !important; width: 100vw !important; }
+
+/* When drawer open, shrink map (desktop/tablet) */
+body.drawer-open #explore .content{
+  left: var(--drawerWidth) !important;
+  width: calc(100vw - var(--drawerWidth)) !important;
+}
+
+/* On small screens keep overlay (map stays full width) */
+@media (max-width: 760px){
+  body.drawer-open #explore .content{
+    left: 0 !important;
+    width: 100vw !important;
+  }
+}
+</style>
+
+</head>
+<body>
+<!-- ================= HOME ================= -->
+<div aria-label="Home" class="section active" id="home">
+<div id="globe"></div>
+<div class="hero-scrim"></div>
+<div class="topbar">
+<div class="brand" title="Ubungo Municipal Web Atlas">
+<div class="brand-badge">UM</div>
+<div class="brand-title">
+<b>UBUNGO MUNICIPAL ATLAS</b>
+<span>3D Globe • 2D Maps </span>
+</div>
+</div>
+<div class="topbar-actions">
+<div class="chip">
+<span style="opacity:.9">Basemap:</span>
+<span id="basemapStatus">Loading…</span>
+</div>
+<div class="chip" title="Data source">
+        🛰️ Esri World Imagery
+      </div>
+<button aria-controls="aboutModal" aria-haspopup="dialog" class="chip chip-btn" id="aboutBtn" title="About this project" type="button">
+        ℹ️ About Us
+      </button>
+</div>
+</div>
+<div class="hero">
+<div class="hero-card">
+<div class="kicker">📍 Ubungo Municipal • Dar es Salaam • Tanzania</div>
+<h1><b>WELCOME</b></h1>
+<p>
+        Explore Ubungo in <b>3D</b> and <b>2D</b>, visualize environmental layers, Road network map, Topographic map, Social services maps
+        and a detailed dashboard.
+
+
+        This Atlas was prepared by <b>Group No:05</b>
+</p>
+<div class="cta-row">
+<div class="btn btn-primary" onclick="showExplore()">
+          🗺 Enter Atlas
+          <span style="opacity:.9;font-weight:800">→</span>
+</div>
+<div class="btn btn-secondary" onclick="viewer.camera.flyHome(1.8)">
+          🌍 Reset Globe View
+        </div>
+</div>
+<div class="divider"></div>
+<div class="stats">
+<div class="stat"><b>3D Globe</b><span>Cesium + imagery overlays</span></div>
+<div class="stat"><b>2D Map</b><span>Leaflet sample layers</span></div>
+</div>
+</div>
+</div>
+</div>
+<input id="placeSearch" type="text"/>
+<button id="searchBtn">Go</button>
+</div>
+<!-- ================= ATLAS ================= -->
+<div aria-label="Atlas" class="section" id="explore">
+  <div id="drawerScrim" aria-hidden="true"></div>
+<div class="sidebar collapsed">
+
+<button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse / expand sidebar">
+  <div class="bars"><span></span></div>
+</button>
+<button class="secondary" onclick="showHome()">← Home</button>
+<div class="title">
+<div style="width:34px;height:34px;border-radius:12px;background:rgba(26,188,156,0.85);display:grid;place-items:center;font-weight:900">🗺</div>
+<div>
+<b>Explore Ubungo</b>
+<span>2D layers &amp; dashboard</span>
+</div>
+</div><div class="sidebar-controls">
+<button aria-expanded="false" class="secondary layers-toggle" id="layersToggle" type="button">
+    Layers <span class="chev">▸</span>
+</button>
+<div aria-label="Resize sidebar" class="sidebar-size-buttons">
+<button class="secondary" id="sidebarSmaller" title="Make sidebar smaller" type="button">−</button>
+<button class="secondary" id="sidebarLarger" title="Make sidebar larger" type="button">+</button>
+</div>
+</div><div class="layers-group" id="layersGroup"><button onclick="showMap(); loadLayer('landcover')">Landcover Map</button><button onclick="showMap(); loadLayer('police')">Police Stations Map</button><button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button><button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button><button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button><button onclick="showMap(); loadLayer('roads')">Road Network Map</button><button onclick="showMap(); loadLayer('transport')">Transport Network Map</button><button onclick="showMap(); loadLayer('water')">Water Supply Network</button><button onclick="showMap(); loadLayer('boreholes')">Borehole Map &amp; Service Areas</button><button onclick="showMap(); loadLayer('popdist')">Population Distribution</button><button onclick="showMap(); loadLayer('popdens')">Population Density Map</button><button onclick="showMap(); loadLayer('slope')">Slope Map</button><button onclick="showMap(); loadLayer('aspect')">Aspect Map</button><button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button><button onclick="showMap(); loadLayer('contours')">Contours Map</button><button onclick="showMap(); loadLayer('topo')">Topographic Map</button><button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button><button onclick="showMap(); loadLayer('landuse')">Land Use Map</button><button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button><button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button><button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button><button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button></div>
+<div style="height:10px"></div>
+<button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
+
+<div aria-label="Resize sidebar" class="sidebar-resizer" id="sidebarResizer" role="separator"></div></div>
+<div class="content">
+<div id="map">
+<!-- Map UI overlays (professional UX) -->
+<div id="map-ui">
+  <!-- Atlas settings (floating) -->
+  <button id="atlasSettingsBtn" class="atlas-settings-btn" type="button" aria-label="Atlas settings">⚙</button>
+  <div id="atlasSettings" class="atlas-settings" role="dialog" aria-label="Atlas settings panel" aria-hidden="true">
+    <div class="head">
+      <b>Atlas settings</b>
+      <button id="atlasSettingsClose" class="xbtn" type="button" aria-label="Close settings">✕</button>
+    </div>
+    <div class="body">
+<label>
+        <span>Labels</span>
+        <input id="atlasToggleLabels" type="checkbox" checked>
+      </label>
+
+      <label>
+        <span>Borders</span>
+        <input id="atlasToggleBorders" type="checkbox" checked>
+      </label>
+      <label>
+        <span>Search panel</span>
+        <input id="atlasToggleSearch" type="checkbox">
+      </label>
+
+      <label>
+        <span>Scale bar</span>
+        <input id="atlasToggleScale" type="checkbox">
+      </label>
+
+<label>
+        <span>Basemap</span>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+          <select id="atlasBasemap" style="flex:1;">
+            <option value="imagery" selected>Imagery</option>
+            <option value="streets">Streets</option>
+          </select>
+          <button id="atlasBasemapToggleBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
+        </div>
+      </label>
+      <label>
+        <span>Show legend</span>
+        <input id="atlasShowLegend" type="checkbox" checked>
+      </label>
+
+      <label>
+        <span>Zoom to layer</span>
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+          <div style="flex:1; font-size:12px; color: rgba(232,237,245,0.65);">Auto-zoom to selected layer</div>
+          <button id="atlasZoomToLayerBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
+        </div>
+      </label>
+
+<div style="margin-top:8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:rgba(232,242,255,0.82); font-size:12.5px;">
+  <b style="color:rgba(232,242,255,0.95)">Selected layer:</b>
+  <span id="atlasCurrentLayerName" class="meta-pill">None</span>
+</div>
+<div style="display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px;">
+  <button id="atlasMetaBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(52,152,219,0.72); color:#fff; cursor:pointer; font-weight:800;">Metadata</button>
+  <button id="atlasExportBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(26,188,156,0.78); color:#04221c; cursor:pointer; font-weight:900;">Export layer</button>
+</div>
+
+</div>
+  
+  <!-- Map Search (toggle in Atlas settings) -->
+  <div id="mapSearchPanel" aria-label="Place search panel">
+    <div class="row">
+      <input id="atlasSearchInput" type="text" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)">
+      <button id="atlasSearchGo" type="button">Search</button>
+    </div>
+    
+  </div>
+
+</div>
+<div aria-label="Map legend" class="map-legend collapsed" id="mapLegend">
+<div class="legend-header">
+<span>Legend</span>
+<button aria-label="Toggle legend" class="legend-toggle" id="legendToggle" type="button">▾</button>
+</div>
+<div class="legend-body" id="legendBody">
+<div class="legend-row">
+<span class="legend-swatch"></span>
+<span class="legend-text">No layer selected</span>
+</div>
+</div>
+</div>
+<div aria-atomic="true" aria-live="polite" id="toastHost"></div>
+</div>
+</div>
+<div id="dashboard">
+<h1 style="margin:0 0 6px 0">Dashboard Overview</h1>
+<div class="dash-grid">
+<div class="dash-card">🌿 <b id="kpiNdvi">--</b><span>Mean NDVI</span></div>
+<div class="dash-card">🌧 <b id="kpiRain">--</b><span>Rainfall (mm/month)</span></div>
+<div class="dash-card">🌡 <b id="kpiAT">--</b><span>Air Temperature (°C)</span></div>
+<div class="dash-card">🔥 <b id="kpiLST">--</b><span>LST (°C)</span></div>
+</div>
+<div class="dash-section">
+<h2>Climate</h2>
+<div style="color:rgba(255,255,255,0.75);font-size:13px;margin-bottom:8px">
+          Analytical layers for climate relationships and patterns.
+        </div>
+<div class="dash-actions">
+<button class="dash-action" onclick="window.location.href='Correlation.html'">
+<b>Correlation</b>
+<span>Explore relationships between climate variables (demo placeholder).</span>
+</button>
+<button class="dash-action" onclick="window.location.href='Trend.html'">
+<b>Trend</b>
+<span>View time-based climate trends (demo placeholder).</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+/* ============ Screen switching (with fade) ============ */
+function showHome(){
+  document.getElementById('explore').classList.remove('active');
+  document.getElementById('home').classList.add('active');
+}
+
+function showExplore(){
+  document.getElementById('home').classList.remove('active');
+  document.getElementById('explore').classList.add('active');
+  setTimeout(()=>map.invalidateSize(), 500); // after fade
+}
+
+function showDashboard(){
+  document.getElementById('map').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+}
+
+function showMap(){
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('map').style.display = 'block';
+  map.invalidateSize();
+}
+
+function setStatus(text){
+  const el = document.getElementById('basemapStatus');
+  if(el) el.textContent = text;
+}
+
+/* ============ Cesium Globe ============ */
+function makeEsriWorldImageryProvider(){
+  return new Cesium.UrlTemplateImageryProvider({
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+  });
+}
+
+const viewer = new Cesium.Viewer('globe',{
+  animation:false,
+  timeline:false,
+  baseLayerPicker:false,
+  geocoder:false,
+  sceneModePicker:false,
+  navigationHelpButton:false,
+  fullscreenButton:false,
+  homeButton:false,
+  infoBox:true,
+  selectionIndicator:true,
+  imageryProvider:false,
+  terrainProvider:new Cesium.EllipsoidTerrainProvider()
+});
+
+window.viewer = viewer;
+// Basemap
+viewer.imageryLayers.addImageryProvider(makeEsriWorldImageryProvider());
+setStatus('Esri World Imagery');
+
+// Borders overlay (Esri reference layer)
+const bordersLayer = viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: 'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    maximumLevel: 19
+  })
+);
+bordersLayer.alpha = 0.75;
+
+// Labels overlay (Carto labels-only)
+const labelsLayer = viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: 'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}.png',
+    subdomains: ['a','b','c','d'],
+    maximumLevel: 20,
+    credit: new Cesium.Credit('© CARTO')
+  })
+);
+labelsLayer.alpha = 0.95;
+
+// Initial view (Africa)
+viewer.camera.setView({
+  destination: Cesium.Cartesian3.fromDegrees(0, 15, 25000000)
+});
+
+// Toggles
+const toggleLabelsEl = document.getElementById('toggleLabels');
+const toggleBordersEl = document.getElementById('toggleBorders');
+
+function applyToggles(){
+  labelsLayer.show = toggleLabelsEl ? !!toggleLabelsEl.checked : true;
+  bordersLayer.show = toggleBordersEl ? !!toggleBordersEl.checked : true;
+}
+if(toggleLabelsEl) toggleLabelsEl.addEventListener('change', applyToggles);
+if(toggleBordersEl) toggleBordersEl.addEventListener('change', applyToggles);
+applyToggles();
+// Ubungo boundary (sample)
+const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Ubungo Municipal","info":"Study area boundary (sample)."},"geometry":{"type":"Polygon","coordinates":[[[39.18,-6.74],[39.32,-6.74],[39.32,-6.85],[39.18,-6.85],[39.18,-6.74]]]}}]};
+
+Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
+  stroke: Cesium.Color.BLACK,
+  fill: Cesium.Color.BLACK.withAlpha(0.10),
+  strokeWidth: 3
+}).then(ds=>{
+  viewer.dataSources.add(ds);
+  ds.entities.values.forEach(ent=>{
+    ent.name = 'Ubungo Municipal';
+    ent.description = '<b>Ubungo Municipal</b><br/>Sample study-area boundary.<br/><i>Replace with your real boundary later.</i>';
+    ent.label = new Cesium.LabelGraphics({
+      text: 'Ubungo',
+      font: '18px sans-serif',
+      fillColor: Cesium.Color.WHITE,
+      outlineColor: Cesium.Color.BLACK,
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      pixelOffset: new Cesium.Cartesian2(0, -10),
+      distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 2.0e6)
+    });
+  });
+
+  setTimeout(()=>viewer.flyTo(ds,{duration:3.2}), 1200);
+});
+
+// Place search (Nominatim)
+async function geocodePlace(q){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if(!res.ok) throw new Error('Geocoding failed: ' + res.status);
+  const json = await res.json();
+  return json && json.length ? json[0] : null;
+}
+
+async function runSearch(){
+  const input = document.getElementById('placeSearch');
+  const q = (input.value || '').trim();
+  if(!q) return;
+  setStatus('Searching…');
+  try{
+    const hit = await geocodePlace(q);
+    if(!hit){
+      setStatus('Not found');
+      return;
+    }
+    const lon = Number(hit.lon);
+    const lat = Number(hit.lat);
+
+    const pin = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lon, lat),
+      point: { pixelSize: 10, color: Cesium.Color.CYAN, outlineColor: Cesium.Color.BLACK, outlineWidth: 2 },
+      label: { text: hit.display_name, font: '14px sans-serif', fillColor: Cesium.Color.WHITE, outlineColor: Cesium.Color.BLACK, outlineWidth: 3, style: Cesium.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new Cesium.Cartesian2(0, -18), distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0.0, 5.0e6) }
+    });
+
+    viewer.flyTo(pin, { duration: 2.6 });
+    setStatus('Esri + Overlays');
+  }catch(e){
+    console.error(e);
+    setStatus('Search error');
+  }
+}
+const _searchBtn = document.getElementById('searchBtn');
+const _placeSearch = document.getElementById('placeSearch');
+if(_searchBtn) _searchBtn.addEventListener('click', runSearch);
+if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runSearch(); });
+/* ============ Leaflet 2D Map ============ */
+const map = L.map('map').setView([-6.79,39.25],12);
+
+window.map = map;
+
+// =========================
+// UBUNGO BOUNDARY (DEFAULT)
+// =========================
+const DEFAULT_VIEW = { center: [-6.79, 39.25], zoom: 12 };
+window.defaultBounds = null;
+window.ubungoBoundaryLayer = null;
+
+function zoomOutDefault(){
+  try{
+    if(window.defaultBounds){
+      map.fitBounds(window.defaultBounds.pad(0.18), { animate:true, duration:0.9, maxZoom: 13 });
+    }else{
+      map.setView(DEFAULT_VIEW.center, DEFAULT_VIEW.zoom, { animate:true });
+    }
+  }catch(e){}
+}
+
+(function(){
+  const boundaryCandidates = [
+    "data/ubung.json",
+    "data/ubungo.json",
+    "data/ubungo.geojson"
+  ];
+
+  function loadBoundary(url){
+    return fetch(url, { cache: "no-store" })
+      .then(r => { if(!r.ok) throw new Error("Not found"); return r.json(); })
+      .then(gj => {
+        // Remove any previous boundary
+        if(window.ubungoBoundaryLayer){ try{ map.removeLayer(window.ubungoBoundaryLayer); }catch(e){} }
+
+        const ub = L.geoJSON(gj, {
+          style: { color:'#000000', weight:2, fillOpacity:0 }
+        }).addTo(map);
+
+        window.ubungoBoundaryLayer = ub;
+
+        try{
+          const b = ub.getBounds();
+          if(b && b.isValid && b.isValid()){
+            window.defaultBounds = b;
+            map.fitBounds(b.pad(0.15), { animate:false });
+          }
+        }catch(e){}
+        return true;
+      });
+  }
+
+  (async ()=>{
+    for(const url of boundaryCandidates){
+      try{
+        const ok = await loadBoundary(url);
+        if(ok) break;
+      }catch(e){}
+    }
+  })();
+})();
+// Basemaps (switchable)
+const baseImagery = L.tileLayer(
+  'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  { attribution: 'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN' }
+);
+
+const baseStreets = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { attribution: '© OpenStreetMap contributors' }
+);
+
+let activeBasemap = baseImagery;
+window.activeBasemap = activeBasemap;
+activeBasemap.addTo(map);
+
+// Scale bar (metric only)
+
+// Legend (bottom-right) + toggle
+const legendEl = document.getElementById('mapLegend');
+const legendBody = document.getElementById('legendBody');
+const legendToggle = document.getElementById('legendToggle');
+if(legendToggle && legendEl){
+  legendToggle.addEventListener('click', ()=>{
+    legendEl.classList.toggle('collapsed');
+  });
+}
+
+// ============ Atlas Settings panel wiring ============
+
+// ============ Atlas Settings: Search + Labels/Borders ============
+const atlasToggleLabels = document.getElementById('atlasToggleLabels');
+const atlasToggleBorders = document.getElementById('atlasToggleBorders');
+
+// Wire Labels/Borders toggles to Cesium overlay layers if they exist
+function atlasApplyOverlays(){
+  try{
+    const showLabels = atlasToggleLabels ? !!atlasToggleLabels.checked : true;
+    const showBorders = atlasToggleBorders ? !!atlasToggleBorders.checked : true;
+
+    // Cesium overlays (globe)
+    if(typeof labelsLayer !== 'undefined' && labelsLayer) labelsLayer.show = showLabels;
+    if(typeof bordersLayer !== 'undefined' && bordersLayer) bordersLayer.show = showBorders;
+
+    // Leaflet borders (Ubungo boundary on 2D map)
+    if(typeof map !== 'undefined'){
+      const layer = window.ubungoBoundaryLayer;
+      if(layer){
+        const has = map.hasLayer(layer);
+        if(showBorders && !has){
+          layer.addTo(map);
+        }else if(!showBorders && has){
+          map.removeLayer(layer);
+        }
+      }
+    }
+
+    // "OSM labels" on the 2D map -> Streets basemap
+    // When labels are turned OFF, force basemap back to Imagery so OSM streets/labels disappear.
+    if(typeof setBasemap === 'function'){
+      if(!showLabels){
+        if(typeof basemapSel !== 'undefined' && basemapSel){
+          if(basemapSel.value === 'streets'){
+            basemapSel.value = 'imagery';
+            setBasemap('imagery');
+          }
+        }else if(typeof activeBasemap !== 'undefined' && typeof baseStreets !== 'undefined' && activeBasemap === baseStreets){
+          setBasemap('imagery');
+        }
+      }
+      // When labels are ON we don't force any basemap; user chooses via Basemap dropdown.
+    }
+
+  }catch(e){}
+}
+
+// Keep initial state consistent with whatever the real toggles are (if present)
+try{
+  const tL = document.getElementById('toggleLabels');
+  const tB = document.getElementById('toggleBorders');
+  if(tL && atlasToggleLabels) atlasToggleLabels.checked = !!tL.checked;
+  if(tB && atlasToggleBorders) atlasToggleBorders.checked = !!tB.checked;
+}catch(e){}
+
+if(atlasToggleLabels) atlasToggleLabels.addEventListener('change', ()=>{
+  // also sync the hidden home toggle if present
+  const tL = document.getElementById('toggleLabels');
+  if(tL) tL.checked = atlasToggleLabels.checked;
+  atlasApplyOverlays();
+});
+if(atlasToggleBorders) atlasToggleBorders.addEventListener('change', ()=>{
+  const tB = document.getElementById('toggleBorders');
+  if(tB) tB.checked = atlasToggleBorders.checked;
+  atlasApplyOverlays();
+});
+
+atlasApplyOverlays();
+
+
+// ============ Atlas Settings actions (Search / Scale / Metadata / Export) ============
+const atlasMetaBtn = document.getElementById('atlasMetaBtn');
+const atlasExportBtn = document.getElementById('atlasExportBtn');
+const atlasToggleSearch = document.getElementById('atlasToggleSearch');
+const atlasToggleScale  = document.getElementById('atlasToggleScale');
+const atlasZoomToLayerBtn = document.getElementById('atlasZoomToLayerBtn');
+const atlasCurrentLayerName = document.getElementById('atlasCurrentLayerName');
+
+// Zoom-to-layer (toggle in Atlas settings) — behaves like Metadata-style toggle button
+window.zoomToLayerEnabled = true;
+
+function setZoomToLayerUI(on){
+  window.zoomToLayerEnabled = !!on;
+  if(atlasZoomToLayerBtn){
+    atlasZoomToLayerBtn.textContent = on ? 'ON' : 'OFF';
+    atlasZoomToLayerBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
+
+if(atlasZoomToLayerBtn){
+  // default ON
+  setZoomToLayerUI(true);
+
+  atlasZoomToLayerBtn.addEventListener('click', ()=>{
+    const next = !window.zoomToLayerEnabled;
+    setZoomToLayerUI(next);
+
+    // ON  -> zoom IN to current selected layer
+    // OFF -> zoom OUT to default view (Ubungo bounds if available)
+    try{
+      if(next){
+        if(window.activeLayer && typeof autoZoomToLayer === 'function'){
+          autoZoomToLayer(window.activeLayer);
+        }else if(window.ubungoBoundaryLayer && typeof autoZoomToLayer === 'function'){
+          autoZoomToLayer(window.ubungoBoundaryLayer);
+        }
+      }else{
+        zoomOutDefault();
+      }
+    }catch(e){}
+  });
+}
+
+// Map search panel + geocoding (Leaflet)
+const mapSearchPanel = document.getElementById('mapSearchPanel');
+const mapEl = document.getElementById('map');
+if(mapEl && mapSearchPanel && mapSearchPanel.parentElement !== mapEl){
+  mapEl.appendChild(mapSearchPanel);
+}
+const atlasSearchInput = document.getElementById('atlasSearchInput');
+const atlasSearchGo = document.getElementById('atlasSearchGo');
+let atlasSearchMarker = null;
+
+function setSearchPanelVisible(on){
+  if(!mapSearchPanel) return;
+  mapSearchPanel.style.display = on ? 'block' : 'none';
+}
+
+async function runAtlasGeocode(){
+  const q = (atlasSearchInput?.value || '').trim();
+  if(!q){ toast('Type a place to search', 'info', 1800); return; }
+
+  toast('Searching…', 'info', 1200);
+  try{
+    // Add a small context to improve results for local places
+    const query = q;
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=' + encodeURIComponent(query);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if(!res.ok) throw new Error('Search failed');
+    const arr = await res.json();
+    if(!arr || !arr.length){
+      toast('No results found', 'error', 2200);
+      return;
+    }
+
+    const hit = arr[0];
+    const lat = parseFloat(hit.lat), lon = parseFloat(hit.lon);
+    if(!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error('Bad result');
+
+    // Smooth zoom to the place (prefer bounding box when available)
+    const bb = hit.boundingbox;
+    if(bb && bb.length === 4){
+      const south = parseFloat(bb[0]), north = parseFloat(bb[1]);
+      const west  = parseFloat(bb[2]), east  = parseFloat(bb[3]);
+      if([south,north,west,east].every(Number.isFinite)){
+        const bounds = L.latLngBounds([south, west], [north, east]);
+        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 16, duration: 1.1 });
+      }else{
+        map.flyTo([lat, lon], Math.max(map.getZoom(), 15), { duration: 1.1 });
+      }
+    }else{
+      map.flyTo([lat, lon], Math.max(map.getZoom(), 15), { duration: 1.1 });
+    }
+
+    // Drop a marker (replace previous)
+    if(atlasSearchMarker){ try{ map.removeLayer(atlasSearchMarker); }catch(e){} }
+    atlasSearchMarker = L.marker([lat, lon]).addTo(map);
+
+    const name = (hit.display_name || q);
+    atlasSearchMarker.bindPopup('<b>' + name + '</b>').openPopup();
+    toast('Zoomed to: ' + q, 'success', 1800);
+  }catch(e){
+    console.error(e);
+    toast('Search error', 'error', 2600);
+  }
+}
+
+if(atlasSearchGo) atlasSearchGo.addEventListener('click', runAtlasGeocode);
+if(atlasSearchInput) atlasSearchInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runAtlasGeocode(); });
+
+if(atlasToggleSearch){
+  atlasToggleSearch.addEventListener('change', ()=>{
+    setSearchPanelVisible(!!atlasToggleSearch.checked);
+  });
+  // default off
+  setSearchPanelVisible(!!atlasToggleSearch.checked);
+}
+
+// Scale bar (bottom-left) toggle
+let scaleControl = null;
+function setScaleBarVisible(on){
+  if(on){
+    if(!scaleControl){
+      scaleControl = L.control.scale({ position:'bottomleft', metric:true, imperial:false });
+    }
+    try{ scaleControl.addTo(map); }catch(e){}
+  }else{
+    if(scaleControl){
+      try{ scaleControl.remove(); }catch(e){ try{ map.removeControl(scaleControl); }catch(_){} }
+    }
+  }
+}
+if(atlasToggleScale){
+  atlasToggleScale.addEventListener('change', ()=> setScaleBarVisible(!!atlasToggleScale.checked));
+  // default off
+  setScaleBarVisible(!!atlasToggleScale.checked);
+}
+
+// ===== Layer-aware metadata =====
+let layerMetaModal = document.getElementById('layerMetaModal');
+let layerMetaClose = document.getElementById('layerMetaClose');
+let layerMetaBody = document.getElementById('layerMetaBody');
+let layerMetaTitle = document.getElementById('layerMetaTitle');
+
+const layerMetadata = {
+  // =========================
+  // Landcover / Landuse
+  // =========================
+  landcover_map: {
+    Theme: "Landcover",
+    Source: "Sentinel-2",
+    Date: "2020, 2025",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Landcover classification for Ubungo District.",
+    spatial_resolution: "10 m"
+  },
+  landcover_change_map: {
+    Theme: "Landcover change",
+    Source: "Sentinel-2",
+    Date: "2020–2025",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Shows changes between 2020 and 2025.",
+    spatial_resolution: "10 m",
+    temporal_resolution: "Event-based (multi-year comparison)"
+  },
+
+  // =========================
+  // Transport / Roads
+  // =========================
+  road_network_map: {
+    Theme: "Transport infrastructure",
+    Source: "OpenStreetMap (OSM)",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines",
+    Notes: "Road network including hierarchy (primary/secondary/tertiary)."
+  },
+  transport_network_map: {
+    Theme: "Transport network",
+    Source: "OpenStreetMap (OSM)",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines / routes",
+    Notes: "Transport routes/network (e.g., bus routes)."
+  },
+
+  // =========================
+  // Water supply / Boreholes
+  // =========================
+  water_supply_network: {
+    Theme: "Water supply",
+    Source: "DAWASA",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector lines",
+    Notes: "Pipe network and related infrastructure."
+  },
+  boreholes_map_service_areas: {
+    Theme: "Water resources",
+    Source: "Utility records",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points + polygons",
+    Notes: "Borehole locations and derived service areas."
+  },
+
+  // =========================
+  // Climate: Rainfall / Temperature / LST
+  // =========================
+  rainfall_map: {
+    Theme: "Climate (Rainfall)",
+    Source: "TerraClimate",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    spatial_resolution: "4638.3 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "1958-01-01–2024-12-01"
+  },
+
+  air_temperature_map: {
+    Theme: "Climate (Air temperature)",
+    Source: "TerraClimate",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Air temperature distribution.",
+    spatial_resolution: "4638.3 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "1958-01-01–2024-12-01"
+  },
+
+  lst_map: {
+    Theme: "Climate (Land Surface Temperature)",
+    Source: "MODIS",
+    Date: "2000–2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "LST spatial distribution.",
+    spatial_resolution: "1000 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "2000-02-24–2026-01-01"
+  },
+
+  ndvi_3yrs: {
+    Theme: "Vegetation (NDVI)",
+    Source: "MODIS",
+    Date: "2022, 2023, 2024",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "NDVI for three consecutive years.",
+    spatial_resolution: "1000 m",
+    temporal_resolution: "Monthly",
+    Data_Availability: "2000-02-24–2026-01-01"
+  },
+
+  // =========================
+  // Topography / Terrain
+  // =========================
+  topographic_map: {
+    Theme: "Topography",
+    Source: "To be provided (e.g., SRTM/ALOS DEM + contours)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster + contours (vector)",
+    Notes: "Elevation/contours/hillshade. Mention DEM source and vertical units.",
+    spatial_resolution: "To be provided (e.g., 30 m)"
+  },
+  terrain_surface_analysis: {
+    Theme: "Terrain analysis",
+    Source: "To be provided (derived from DEM)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Derived surfaces (slope, aspect, curvature, hillshade, flow accumulation, etc.). List included outputs.",
+    spatial_resolution: "Same as DEM"
+  },
+
+  // =========================
+  // Public services
+  // =========================
+  police_stations_map: {
+    Theme: "Public safety",
+    Source: "To be provided (government/field survey/OSM)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Police station locations. Include attribute info (name/level/contact) if available."
+  },
+  public_health_centres_map: {
+    Theme: "Health services",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public health centres/clinics/hospitals. Define what counts as a health centre."
+  },
+  public_primary_schools_map: {
+    Theme: "Education",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public primary schools. Add data completeness notes if needed."
+  },
+  public_secondary_schools_map: {
+    Theme: "Education",
+    Source: "To be provided",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Vector points",
+    Notes: "Public secondary schools. Add data completeness notes if needed."
+  },
+
+  // =========================
+  // Population
+  // =========================
+  population_distribution: {
+    Theme: "Population",
+    Source: "To be provided (e.g., census / WorldPop)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster / polygons",
+    Notes: "Population distribution for a stated year/period. State population measure and year.",
+    spatial_resolution: "To be provided"
+  },
+  population_density: {
+    Theme: "Population",
+    Source: "To be provided (derived from population + area)",
+    Date: "To be provided",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster / polygons",
+    Notes: "Population density (people/km²). State computation method and year.",
+    spatial_resolution: "To be provided"
+  }
+};
+
+// Map UI layer keys -> metadata keys (fixes mismatch like "rainfall" vs "rainfall_map")
+const layerMetaAliases = {
+  // climate
+  rainfall: "rainfall_map",
+  pr: "rainfall_map",
+  rainfall_map: "rainfall_map",
+  air_temperature: "air_temperature_map",
+  airtemperature: "air_temperature_map",
+  at: "air_temperature_map",
+  temperature: "air_temperature_map",
+  lst: "lst_map",
+  lst_map: "lst_map",
+  ndvi: "ndvi_3yrs",
+  ndvi_3yrs: "ndvi_3yrs",
+
+  // land
+  landcover: "landcover_map",
+  landcover_map: "landcover_map",
+  landcover_change: "landcover_change_map",
+  landcover_change_map: "landcover_change_map",
+
+  // networks
+  road: "road_network_map",
+  roads: "road_network_map",
+  road_network: "road_network_map",
+  road_network_map: "road_network_map",
+  transport: "transport_network_map",
+  transport_network: "transport_network_map",
+  transport_network_map: "transport_network_map",
+  water_supply: "water_supply_network",
+  water_supply_network: "water_supply_network",
+  boreholes: "boreholes_map_service_areas",
+  borehole: "boreholes_map_service_areas",
+  boreholes_map_service_areas: "boreholes_map_service_areas",
+
+  // terrain/topo
+  topo: "topographic_map",
+  topographic: "topographic_map",
+  topographic_map: "topographic_map",
+  terrain: "terrain_surface_analysis",
+  terrain_surface_analysis: "terrain_surface_analysis",
+
+  // services
+  police: "police_stations_map",
+  police_stations: "police_stations_map",
+  police_stations_map: "police_stations_map",
+  health: "public_health_centres_map",
+  public_health_centres: "public_health_centres_map",
+  public_health_centres_map: "public_health_centres_map",
+  primary_schools: "public_primary_schools_map",
+  public_primary_schools_map: "public_primary_schools_map",
+  secondary_schools: "public_secondary_schools_map",
+  public_secondary_schools_map: "public_secondary_schools_map",
+
+  // population
+  population: "population_distribution",
+  population_distribution: "population_distribution",
+  population_density: "population_density"
+};
+
+function resolveMetaKey(k){
+  if(!k) return "";
+  const key = String(k).trim();
+  if(layerMetadata[key]) return key;
+
+  // alias table
+  const a = layerMetaAliases[key];
+  if(a && layerMetadata[a]) return a;
+
+  // common suffixes
+  const candidates = [
+    key + "_map",
+    key + "_layer",
+    key.replace(/\s+/g, "_"),
+    key.replace(/\s+/g, "_") + "_map"
+  ];
+  for(const c of candidates){
+    if(layerMetadata[c]) return c;
+  }
+  return key; // fallback (no metadata found)
+}
+
+
+function currentLayerTitle(){
+  return (window.activeLayerTitle || '').trim() || 'None';
+}
+function currentLayerKey(){
+  return window.activeLayerKey || null;
+}
+
+function renderMetadata(){
+  if(!layerMetaBody || !layerMetaTitle) return;
+
+  const rawKey = currentLayerKey();
+  const uiTitle = currentLayerTitle();
+
+  if(!rawKey){
+    layerMetaTitle.textContent = 'Metadata';
+    layerMetaBody.innerHTML = '<div style="color:rgba(232,242,255,0.8); font-size:13px;">No layer selected. Choose a layer from <b>Layers</b> then open Metadata.</div>';
+    return;
+  }
+
+  const metaKey = resolveMetaKey(rawKey);
+  const meta = layerMetadata[metaKey];
+
+  // Prefer clean title from metadata if available, otherwise UI title
+  const displayTitle = (meta && (meta.Title || meta.Layer || meta.LayerName)) ? (meta.Title || meta.Layer || meta.LayerName) : uiTitle;
+  layerMetaTitle.textContent = 'Metadata — ' + displayTitle;
+
+  const rows = [
+    ['Layer name', displayTitle || '—'],
+    ['Key', metaKey || rawKey || '—']
+  ];
+
+  if(meta){
+    if(meta.Theme) rows.push(['Theme', meta.Theme]);
+    if(meta.Source) rows.push(['Source', meta.Source]);
+    if(meta.Date) rows.push(['Date', meta.Date]);
+    if(meta.Data_Availability) rows.push(['Data availability', meta.Data_Availability]);
+    if(meta.CRS) rows.push(['CRS', meta.CRS]);
+    if(meta.Format) rows.push(['Format', meta.Format]);
+
+    // Only show resolution fields when they exist
+    if(meta.spatial_resolution) rows.push(['Spatial resolution', meta.spatial_resolution]);
+    if(meta.temporal_resolution) rows.push(['Temporal resolution', meta.temporal_resolution]);
+
+    if(meta.Notes) rows.push(['Notes', meta.Notes]);
+  } else {
+    rows.push(['Theme', '—'], ['Source', '—'], ['Date', '—'], ['CRS', '—'], ['Format', '—'], ['Notes', '—']);
+  }
+
+  layerMetaBody.innerHTML =
+    '<div class="meta-grid">' +
+      rows.map(([a,b]) =>
+        '<div class="meta-k">' + a + '</div><div class="meta-v">' + (b ?? '—') + '</div>'
+      ).join('') +
+    '</div>';
+}
+
+function openMetadata(){
+  // Re-query in case DOM was loaded after script variables were initialized
+  if(!layerMetaModal) layerMetaModal = document.getElementById('layerMetaModal');
+  if(!layerMetaTitle) layerMetaTitle = document.getElementById('layerMetaTitle');
+  if(!layerMetaBody)  layerMetaBody  = document.getElementById('layerMetaBody');
+  if(!layerMetaClose) layerMetaClose = document.getElementById('layerMetaClose');
+
+  if(!layerMetaModal) return;
+
+  // Bind close handlers (only once) - fixes close button not working
+  if(layerMetaClose && !layerMetaClose.__bound){
+    layerMetaClose.addEventListener('click', closeMetadata);
+    layerMetaClose.__bound = true;
+  }
+  if(layerMetaModal && !layerMetaModal.__bound){
+    layerMetaModal.addEventListener('click', (e)=>{ if(e.target === layerMetaModal) closeMetadata(); });
+    document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && layerMetaModal && layerMetaModal.style.display === 'flex') closeMetadata(); });
+    layerMetaModal.__bound = true;
+  }
+
+  try{ renderMetadata(); }catch(err){
+    console.error(err);
+    if(layerMetaBody){
+      layerMetaBody.innerHTML = '<div style="color:rgba(232,242,255,0.86); font-size:13px;">Metadata failed to render. Open the browser console for details.</div>';
+    }
+  }
+  layerMetaModal.style.display = 'flex';
+  try{ layerMetaModal.setAttribute('aria-hidden','false'); }catch(e){}
+  if(layerMetaClose) layerMetaClose.focus();
+}
+function closeMetadata(){
+  if(!layerMetaModal) return;
+  layerMetaModal.style.display = 'none';
+  try{ layerMetaModal.setAttribute('aria-hidden','true'); }catch(e){}
+
+
+// Ensure Metadata button always opens the modal (robust for GitHub Pages load order)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('atlasMetaBtn');
+  if(btn && !btn.__metaBound){
+    btn.addEventListener('click', ()=>{ openMetadata(); try{ closeSettings(); }catch(e){} });
+    btn.__metaBound = true;
+  }
+});
+
+}
+
+if(layerMetaClose) layerMetaClose.addEventListener('click', closeMetadata);
+if(layerMetaModal) layerMetaModal.addEventListener('click', (e)=>{ if(e.target === layerMetaModal) closeMetadata(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && layerMetaModal && layerMetaModal.style.display === 'flex') closeMetadata(); });
+
+if(atlasMetaBtn){
+  atlasMetaBtn.addEventListener('click', ()=>{ openMetadata(); closeSettings(); });
+}
+
+// ===== Export selected layer only =====
+async function exportSelectedLayer(){
+  if(!window.activeLayerKey || !window.activeLayer){
+    toast('Select a layer first (Layers → choose a map)', 'error', 2800);
+    return;
+  }
+
+  // Hide UI overlays to export clean layer
+  const ui = document.getElementById('map-ui');
+  const legend = document.getElementById('mapLegend');
+  const controls = document.querySelector('.leaflet-control-container');
+
+  const prevUI = ui ? ui.style.display : '';
+  const prevLegend = legend ? legend.style.display : '';
+  const prevControls = controls ? controls.style.display : '';
+
+  // Remove basemap temporarily to export only the active layer
+  let basemapWasOn = false;
+  try{
+    if(window.activeBasemap && map.hasLayer(window.activeBasemap)){
+      basemapWasOn = true;
+      map.removeLayer(window.activeBasemap);
+    }
+  }catch(e){}
+
+  try{
+    if(ui) ui.style.display = 'none';
+    if(legend) legend.style.display = 'none';
+    if(controls) controls.style.display = 'none';
+
+    // Let map re-render
+    await new Promise(r => setTimeout(r, 180));
+
+    const target = map.getContainer();
+    const canvas = await html2canvas(target, { useCORS:true, backgroundColor: null, scale: 2 });
+
+    const link = document.createElement('a');
+    const safeName = (currentLayerTitle() || 'layer').replace(/[^a-z0-9\-\_]+/gi, '_');
+    link.download = safeName + '_export.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    toast('Export saved', 'success', 1800);
+  }catch(e){
+    console.error(e);
+    toast('Export failed (tile CORS may block)', 'error', 3200);
+  }finally{
+    // Restore basemap and UI
+    try{
+      if(basemapWasOn && window.activeBasemap){
+        window.activeBasemap.addTo(map);
+      }
+    }catch(e){}
+    try{ if(window.activeLayer && window.activeLayer.bringToFront) window.activeLayer.bringToFront(); }catch(e){}
+    if(ui) ui.style.display = prevUI || '';
+    if(legend) legend.style.display = prevLegend || '';
+    if(controls) controls.style.display = prevControls || '';
+  }
+}
+
+if(atlasExportBtn){
+  atlasExportBtn.addEventListener('click', ()=>{ exportSelectedLayer(); closeSettings(); });
+}
+
+// Update "Selected layer" chip whenever layer changes
+function refreshSelectedLayerChip(){
+  if(!atlasCurrentLayerName) return;
+  const title = currentLayerTitle();
+  atlasCurrentLayerName.textContent = title || 'None';
+}
+
+// Expose so loadLayer can call it
+window.refreshSelectedLayerChip = refreshSelectedLayerChip;
+window.renderMetadata = renderMetadata;
+
+
+const settingsBtn = document.getElementById('atlasSettingsBtn');
+const settingsPanel = document.getElementById('atlasSettings');
+// Prevent settings panel scrolling from zooming the map underneath
+if (settingsPanel){
+  settingsPanel.addEventListener('wheel', (e)=>{ e.stopPropagation(); }, { passive: true });
+  settingsPanel.addEventListener('touchmove', (e)=>{ e.stopPropagation(); }, { passive: true });
+}
+
+const settingsClose = document.getElementById('atlasSettingsClose');
+const basemapSel = document.getElementById('atlasBasemap');
+const atlasBasemapToggleBtn = document.getElementById('atlasBasemapToggleBtn');
+let basemapEnabled = true;
+const showLegendChk = document.getElementById('atlasShowLegend');
+const showCoordsChk = document.getElementById('atlasShowCoords');
+
+function openSettings(){
+  if(!settingsPanel) return;
+  settingsPanel.classList.add('open');
+  settingsPanel.setAttribute('aria-hidden','false');
+}
+function closeSettings(){
+  if(!settingsPanel) return;
+  settingsPanel.classList.remove('open');
+  settingsPanel.setAttribute('aria-hidden','true');
+}
+
+if(settingsBtn) settingsBtn.addEventListener('click', ()=>{
+  if(!settingsPanel) return;
+  if(settingsPanel.classList.contains('open')) closeSettings();
+  else openSettings();
+});
+if(settingsClose) settingsClose.addEventListener('click', closeSettings);
+
+// Click outside closes (only when clicking on map-ui backdrop isn't possible; so we use ESC)
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') closeSettings();
+});
+
+// Basemap switching
+function setBasemap(which){
+  const next = (which === 'streets') ? baseStreets : baseImagery;
+  if(next === activeBasemap) return;
+
+  // remove current basemap if present
+  try{ map.removeLayer(activeBasemap); }catch(e){}
+
+  activeBasemap = next;
+  window.activeBasemap = activeBasemap;
+
+  // only add if enabled
+  if(basemapEnabled){
+    try{ activeBasemap.addTo(map); }catch(e){}
+  }
+}
+if(basemapSel){
+  basemapSel.addEventListener('change', ()=> setBasemap(basemapSel.value));
+}
+
+
+// Basemap ON/OFF button
+function syncBasemapToggleUI(){
+  if(!atlasBasemapToggleBtn) return;
+  atlasBasemapToggleBtn.setAttribute('aria-pressed', basemapEnabled ? 'true' : 'false');
+  atlasBasemapToggleBtn.textContent = basemapEnabled ? 'ON' : 'OFF';
+  atlasBasemapToggleBtn.classList.toggle('is-off', !basemapEnabled);
+}
+if(atlasBasemapToggleBtn){
+  atlasBasemapToggleBtn.addEventListener('click', ()=>{
+    basemapEnabled = !basemapEnabled;
+    try{
+      if(basemapEnabled) activeBasemap.addTo(map);
+      else map.removeLayer(activeBasemap);
+    }catch(e){}
+    syncBasemapToggleUI();
+  });
+  syncBasemapToggleUI();
+}
+
+// Legend show/hide
+if(showLegendChk && legendEl){
+  showLegendChk.addEventListener('change', ()=>{
+    legendEl.style.display = showLegendChk.checked ? '' : 'none';
+  });
+}
+
+// Coords enable/disable
+if(showCoordsChk){
+  showCoordsChk.addEventListener('change', ()=>{
+    coordsEnabled = !!showCoordsChk.checked;
+    if(!coordsEnabled && coordEl){
+      coordEl.style.display = 'none';
+    }
+  });
+}
+
+// Layer legends (simple, auto-built). Add/adjust labels here if needed.
+const LEGEND_CONFIG = {
+  ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
+  // Roads
+  trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
+  primary_rd: [{ type:'line', label:'Primary road', color:'#ff0000', weight:3 }],
+  secondary_rd: [{ type:'line', label:'Secondary road', color:'#ff0000', weight:3 }],
+  tertiary_rd: [{ type:'line', label:'Tertiary road', color:'#ff0000', weight:3 }],
+  unclassified_rd: [{ type:'line', label:'Unclassified road', color:'#ff0000', weight:3 }],
+  railway: [{ type:'line', label:'Railway', color:'#ff0000', weight:3, dash:'6,4' }],
+
+  // Points (icons)
+  police: [{ type:'icon', label:'Police station', iconKey:'police' }],
+  clinic: [{ type:'icon', label:'Clinic / Dispensary', iconKey:'clinic' }],
+  hospital: [{ type:'icon', label:'Hospital', iconKey:'hospital' }],
+  pharmacy: [{ type:'icon', label:'Pharmacy', iconKey:'pharmacy' }],
+  petrol_station: [{ type:'icon', label:'Petrol station', iconKey:'petrol_station' }],
+  bus_stop: [{ type:'icon', label:'Bus stop', iconKey:'bus_stop' }],
+  primary_schools: [{ type:'icon', label:'Primary school', iconKey:'primary_schools' }],
+  secondary_school: [{ type:'icon', label:'Secondary school', iconKey:'secondary_school' }],
+};
+
+function legendItemHTML(item){
+  const safeLabel = item.label || 'Item';
+  if(item.type === 'icon'){
+    const icon = (SVG_ICONS && SVG_ICONS[item.iconKey]) ? SVG_ICONS[item.iconKey] : null;
+    const svg = icon ? icon.options.html : '';
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="border:none;background:transparent;width:28px;height:28px;display:grid;place-items:center;">${svg}</span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+  // line/polygon swatch
+  const c = item.color || '#ff0000';
+  const w = item.weight || 3;
+  const dash = item.dash ? `border-style:dashed; border-width:${Math.max(2, w)}px;` : `border-width:${Math.max(2, w)}px;`;
+  return `
+    <div class="legend-row">
+      <span class="legend-swatch" style="background:transparent;border-color:${c};${dash}"></span>
+      <span class="legend-text">${safeLabel}</span>
+    </div>`;
+}
+
+function setLegend(layerKey, layerTitle){
+  if(!legendBody) return;
+
+  const key = (layerKey || '').trim();
+  const items = LEGEND_CONFIG[key] || null;
+
+  if(!items){
+    // fallback: show title only
+    legendBody.innerHTML = `
+      <div class="legend-row">
+        <span class="legend-swatch"></span>
+        <span class="legend-text">${layerTitle || 'No layer selected'}</span>
+      </div>`;
+    return;
+  }
+
+  legendBody.innerHTML = items.map(legendItemHTML).join('') || `
+    <div class="legend-row">
+      <span class="legend-swatch"></span>
+      <span class="legend-text">${layerTitle || 'No layer selected'}</span>
+    </div>`;
+}
+
+// Toast notifications (top-center)
+const toastHost = document.getElementById('toastHost');
+function toast(message, kind='info', ms=2400){
+  if(!toastHost) return;
+  const el = document.createElement('div');
+  el.className = `toast ${kind}`;
+  const tag = kind === 'success' ? 'Loaded' : (kind === 'error' ? 'Error' : 'Info');
+  el.innerHTML = `<span>${message}</span><span class="tag">${tag}</span>`;
+  toastHost.appendChild(el);
+  // animate in
+  requestAnimationFrame(()=>el.classList.add('show'));
+  // remove
+  setTimeout(()=>{
+    el.classList.remove('show');
+    setTimeout(()=>{ try{ el.remove(); }catch(e){} }, 220);
+  }, ms);
+}
+
+
+// Sample layers (REAL GeoJSON from /data + placeholders for others)
+function demoCircle(label, lat, lon, radius){
+  const c = L.circle([lat, lon], {
+    radius: radius,
+    weight: 2,
+    fillOpacity: 0.12
+  });
+  c.bindPopup('<b>' + label + '</b><br/>Demo placeholder. Connect your real data source here.');
+  return c;
+}
+
+// =========================
+// QML -> Leaflet Style Loader (generated)
+// =========================
+// NOTE: Browsers can't read .qml directly. We use a JSON style registry derived from your QML.
+const STYLE_DEFS = {
+  "primary_school": {
+    "type": "text",
+    "textIcon": {
+      "text": "SCH",
+      "fontFamily": "Arial",
+      "fontStyle": "Regular",
+      "fontSize": 2.0,
+      "color": "#174f75",
+      "opacity": 1,
+      "outlineColor": "#ffffff",
+      "outlineOpacity": 1,
+      "outlineWidth": 0.01
+    }
+  },
+  "police": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "backgrounds/background_security_02.svg",
+      "iconSize": 5.0,
+      "color": "#0d1c72",
+      "opacity": 1,
+      "stroke": "#f7a758",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.6
+    }
+  },
+  "unclassified_road": {
+    "type": "line",
+    "style": {
+      "color": "#a1a195",
+      "weight": 0.46,
+      "opacity": 1
+    }
+  },
+  "tertiary_road": {
+    "type": "line",
+    "style": {
+      "color": "#f9b703",
+      "weight": 0.66,
+      "opacity": 1
+    }
+  },
+  "railway": {
+    "type": "line",
+    "style": {
+      "color": "#000000",
+      "weight": 0.6,
+      "opacity": 1,
+      "dashArray": "1,6"
+    }
+  },
+  "secondary_road": {
+    "type": "line",
+    "style": {
+      "color": "#a96f0b",
+      "weight": 0.86,
+      "opacity": 1
+    }
+  },
+  "petrol_station": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "gpsicons/gas.svg",
+      "iconSize": 3.8,
+      "color": "#000000",
+      "opacity": 1,
+      "stroke": "#ffffff",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  },
+  "hospital": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "health/health_hospital.svg",
+      "iconSize": 3.4,
+      "color": "#ffffff",
+      "opacity": 1,
+      "stroke": "#232323",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  },
+  "trunk_road": {
+    "type": "line",
+    "style": {
+      "color": "#8f1317",
+      "weight": 1.06,
+      "opacity": 1
+    }
+  },
+  "secondary_school": {
+    "type": "text",
+    "textIcon": {
+      "text": "SCH",
+      "fontFamily": "Arial",
+      "fontStyle": "Regular",
+      "fontSize": 2.0,
+      "color": "#174f75",
+      "opacity": 1,
+      "outlineColor": "#ffffff",
+      "outlineOpacity": 1,
+      "outlineWidth": 0.01
+    }
+  },
+  "primary_road": {
+    "type": "line",
+    "style": {
+      "color": "#e31a1c",
+      "weight": 0.86,
+      "opacity": 1
+    }
+  },
+  "bus_station": {
+    "type": "svg",
+    "icon": {
+      "svgPath": "transport/transport_bus_stop.svg",
+      "iconSize": 2.8,
+      "color": "#0d4477",
+      "opacity": 1,
+      "stroke": "#ffffff",
+      "strokeOpacity": 1,
+      "strokeWidth": 0.0
+    }
+  }
+};
+
+function mmToPx(mm) {
+  const n = Number(mm);
+  if(!Number.isFinite(n)) return 0;
+  return n * 3.7795275591; // ~px per mm at 96dpi
+}
+
+function svgBasename(p) {
+  if(!p) return '';
+  const s = String(p).replace(/\/g,'/');
+  return s.split('/').pop();
+}
+
+function makeSvgDivIcon(url, sizePx) {
+  const s = Math.max(18, Math.round(sizePx || 28));
+  const html = `<img src="${url}" style="width:${s}px;height:${s}px;display:block" />`;
+  return L.divIcon({
+    className: 'atlas-svg-icon',
+    html,
+    iconSize: [s, s],
+    iconAnchor: [Math.round(s/2), s],
+    popupAnchor: [0, -Math.round(s*0.6)]
+  });
+}
+
+function makeTextDivIcon(text, fontPx, color, outlineColor, outlineWidthPx) {
+  const fs = Math.max(10, Math.round(fontPx || 12));
+  const ow = Math.max(0, Math.round(outlineWidthPx || 0));
+  const html = `
+    <div class="atlas-text-icon" style="
+      font-family: Arial, sans-serif;
+      font-weight: 800;
+      font-size: ${fs}px;
+      color: ${color || '#0b1020'};
+      -webkit-text-stroke: ${ow}px ${outlineColor || '#ffffff'};
+      text-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      line-height: 1;
+      transform: translate(-50%, -100%);
+      position: relative;
+      left: 50%;
+      top: 0;
+      white-space: nowrap;
+    ">${text || ''}</div>
+  `;
+  return L.divIcon({
+    className: 'atlas-text-icon',
+    html,
+    iconSize: [1,1],
+    iconAnchor: [0,0],
+    popupAnchor: [0, -10]
+  });
+}
+
+function getVectorStyle(layerKey) {
+  const def = STYLE_DEFS[layerKey];
+  if(!def) return null;
+  if(def.type === 'line') {
+    const l = def.line || {};
+    return {
+      color: l.color || '#1abc9c',
+      weight: mmToPx(l.weight ?? 0.6),
+      opacity: (l.opacity ?? 1)
+    };
+  }
+  if(def.type === 'polygon') {
+    const p = def.polygon || {};
+    return {
+      color: p.stroke || '#111',
+      weight: mmToPx(p.strokeWidth ?? 0.4),
+      opacity: (p.strokeOpacity ?? 1),
+      fillColor: p.fill || '#1abc9c',
+      fillOpacity: (p.fillOpacity ?? 0.25)
+    };
+  }
+  // points (circle fallback)
+  if(def.type === 'circle') {
+    const c = def.circle || {};
+    return {
+      color: c.stroke || '#111',
+      weight: mmToPx(c.strokeWidth ?? c.weight ?? 0.4),
+      opacity: (c.strokeOpacity ?? 1),
+      fillColor: c.fill || c.fillColor || '#1abc9c',
+      fillOpacity: (c.fillOpacity ?? 1)
+    };
+  }
+  return null;
+}
+
+function getPointToLayer(layerKey) {
+  const def = STYLE_DEFS[layerKey];
+  if(!def) return null;
+
+  if(def.type === 'svg') {
+    const icon = def.icon || {};
+    // We only need the filename; store svg files in /icons
+    const url = 'icons/' + svgBasename(icon.svgPath);
+    const size = mmToPx(icon.iconSize ?? 5.0);
+    const leafletIcon = makeSvgDivIcon(url, size);
+    return (feature, latlng) => L.marker(latlng, { icon: leafletIcon });
+  }
+
+  if(def.type === 'text') {
+    const t = def.textIcon || {};
+    const fontPx = mmToPx(t.fontSize ?? 2.0) * 2.2; // boost small QGIS sizes
+    const outlinePx = Math.max(1, Math.round(mmToPx(t.outlineWidth ?? 0.01) * 6));
+    const leafletIcon = makeTextDivIcon(t.text, fontPx, t.color, t.outlineColor, outlinePx);
+    return (feature, latlng) => L.marker(latlng, { icon: leafletIcon });
+  }
+
+  if(def.type === 'circle') {
+    const c = def.circle || {};
+    return (feature, latlng) => L.circleMarker(latlng, {
+      radius: mmToPx(c.radius ?? 2.0) * 0.8 + 3,
+      color: c.stroke || c.color || '#111',
+      weight: mmToPx(c.strokeWidth ?? c.weight ?? 0.4),
+      opacity: (c.strokeOpacity ?? 1),
+      fillColor: c.fill || c.fillColor || '#1abc9c',
+      fillOpacity: (c.fillOpacity ?? 1)
+    });
+  }
+
+  return null;
+}
+
+function getGeoJsonOptions(layerKey) {
+  const style = getVectorStyle(layerKey);
+  const p2l = getPointToLayer(layerKey);
+
+  return {
+    style: style ? (() => style) : undefined,
+    pointToLayer: p2l ? p2l : undefined
+  };
+}
+
+// expose globally (so the rest of index.html can call it)
+window.getGeoJsonOptions = getGeoJsonOptions;
+
+// Simple SVG icons for point layers (Leaflet). UI unchanged.
+function makeSvgIcon(svg, size=28){
+  return L.divIcon({
+    className: '',
+    html: svg,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size],   // bottom center
+    popupAnchor: [0, -size]
+  });
+}
+
+// Minimal, clean pin icons (inline SVG so it works on GitHub Pages)
+const SVG_ICONS = {
+  police: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#2563eb" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">P</text>
+  </svg>`),
+  clinic: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#10b981" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">C</text>
+  </svg>`),
+  hospital: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#ef4444" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">H</text>
+  </svg>`),
+  pharmacy: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#a855f7" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">Rx</text>
+  </svg>` , 30),
+  bus_stop: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#f59e0b" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#0b1020" opacity="0.15"/>
+    <text x="16" y="16" text-anchor="middle" font-size="8" font-weight="900" fill="#0b1020">B</text>
+  </svg>`),
+  primary_schools: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#06b6d4" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">PS</text>
+  </svg>`, 30),
+  secondary_school: makeSvgIcon(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32">
+    <path d="M16 31s10-9.2 10-18A10 10 0 0 0 6 13c0 8.8 10 18 10 18z" fill="#22c55e" stroke="#0b1020" stroke-width="1.6"/>
+    <circle cx="16" cy="13" r="5.2" fill="#e8f2ff" opacity="0.95"/>
+    <text x="16" y="15.5" text-anchor="middle" font-size="7.2" font-weight="800" fill="#0b1020">SS</text>
+  </svg>`, 30),
+};
+
+// Which GeoJSON file(s) power each UI layer key
+// Which GeoJSON file(s) power each UI layer key
+// NOTE: `sources` supports multiple candidate filenames; we try them in order until one exists.
+const LAYER_SOURCES = {
+  // Public services
+  police: { type: "geojson", sources: ["data/police.geojson","data/police.json"], styleKey: "police" },
+
+  health: { type: "group", children: [
+    { type:"geojson", sources:["data/hospital.geojson","data/hospital.json"], styleKey:"hospital" },
+    { type:"geojson", sources:["data/clinic.geojson","data/clinic.json"], styleKey:"clinic" },
+  ]},
+
+  primary:  { type:"geojson", sources:["data/primary_school.geojson","data/primary_schools.geojson","data/primary_school.json"], styleKey:"primary_school" },
+  secondary:{ type:"geojson", sources:["data/secondary_school.geojson","data/secondary_schools.geojson","data/secondary_school.json"], styleKey:"secondary_school" },
+
+  petrol_station:{ type:"geojson", sources:["data/petrol_station.geojson","data/petrol_station.json","data/petrol.geojson"], styleKey:"petrol_station" },
+  bus_station:{ type:"geojson", sources:["data/bus_station.geojson","data/bus_stop.geojson","data/bus_station.json"], styleKey:"bus_station" },
+
+  // Networks
+  roads: { type: "group", children: [
+    { type:"geojson", sources:["data/trunk_road.geojson","data/trunk_rd.geojson","data/trunk_road.json"], styleKey:"trunk_road" },
+    { type:"geojson", sources:["data/primary_road.geojson","data/primary_rd.geojson","data/primary_road.json"], styleKey:"primary_road" },
+    { type:"geojson", sources:["data/secondary_road.geojson","data/secondary_rd.geojson","data/secondary_road.json"], styleKey:"secondary_road" },
+    { type:"geojson", sources:["data/tertiary_road.geojson","data/tertiary_rd.geojson","data/tertiary_road.json"], styleKey:"tertiary_road" },
+    { type:"geojson", sources:["data/unclassified_road.geojson","data/unclassified_rd.geojson","data/unclassified_road.json"], styleKey:"unclassified_road" },
+  ]},
+
+  transport: { type: "group", children: [
+    { type:"geojson", sources:["data/railway.geojson","data/railway.json"], styleKey:"railway" },
+    { type:"geojson", sources:["data/bus_station.geojson","data/bus_stop.geojson","data/bus_station.json"], styleKey:"bus_station" },
+  ]},
+};
+
+// Cache for loaded Leaflet layers
+const loadedLayers = {};
+let activeLayer;
+window.activeLayer = null;
+window.activeLayerKey = null;
+window.activeLayerTitle = '';
+
+function applyStyleFromQml(styleKey){
+  // Backwards-compat: kept for older code paths
+  return { style: getVectorStyle(styleKey), pointStyle: null };
+}
+
+async function fetchGeoJSONFromSources(sources){
+  const arr = Array.isArray(sources) ? sources : [sources];
+  let lastErr = null;
+  for(const url of arr){
+    if(!url) continue;
+    try{
+      const res = await fetch(url, { cache: 'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    }catch(e){
+      lastErr = e;
+    }
+  }
+  throw new Error('Failed to load any source: ' + arr.join(', ') + (lastErr ? (' | ' + lastErr.message) : ''));
+}
+
+function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
+  return L.geoJSON(geojson, {
+    style: style || undefined,
+    pointToLayer: (feature, latlng) => {
+      // Prefer SVG icons for known point layers
+      if(styleKey && SVG_ICONS && SVG_ICONS[styleKey]){
+        return L.marker(latlng, { icon: SVG_ICONS[styleKey] });
+      }
+      // Otherwise, use circle marker styled from QML if available
+      if(pointStyle) return L.circleMarker(latlng, pointStyle);
+      return L.marker(latlng);
+    }
+  });
+}
+
+async function buildLayer(def){
+  if(!def) throw new Error('Missing layer definition');
+
+  if(def.type === "group"){
+    const group = L.layerGroup();
+    const children = (def.children || []);
+    let added = 0;
+    for(const child of children){
+      try{
+        const lyr = await buildLayer(child);
+        if(lyr){
+          group.addLayer(lyr);
+          added++;
+        }
+      }catch(e){
+        // Skip missing child layers silently (common when some geojson files are not uploaded yet)
+        console.warn('Skipping child layer (missing file?)', child, e);
+      }
+    }
+    if(added === 0) throw new Error('No child layers loaded for this group');
+    return group;
+  }
+
+  // geojson
+  const sources = def.sources && def.sources.length ? def.sources : [];
+  const gj = await fetchGeoJSONFromSources(sources);
+
+  const opts = (window.getGeoJsonOptions ? window.getGeoJsonOptions(def.styleKey || '') : {});
+  // Safe fallbacks if style loader doesn't have this key
+  if(!opts.style && def.type === 'geojson'){
+    opts.style = () => ({ color: "#ff0000", weight: 2 });
+  }
+  return L.geoJSON(gj, opts);
+}
+
+// Title map for legend/meta
+const LAYER_TITLES = {
+  landcover: 'Landcover Map',
+  police: 'Police Stations Map',
+  health: 'Public Health Centres Map',
+  primary: 'Public Primary Schools Map',
+  secondary: 'Public Secondary Schools Map',
+  roads: 'Road Network Map',
+  transport: 'Transport Network Map',
+  water: 'Water Supply Network',
+  boreholes: 'Borehole Map & Service Areas',
+  popdist: 'Population Distribution',
+  popdens: 'Population Density Map',
+  slope: 'Slope Map',
+  aspect: 'Aspect Map',
+  hillshade: 'Hillshade Map',
+  contours: 'Contours Map',
+  topo: 'Topographic Map',
+  lcchange: 'Landcover Change Map',
+  landuse: 'Land Use Map',
+  rainfall: 'Rainfall Map',
+  airtemp: 'Air Temperature Map',
+  lst: 'Land Surface Temperature Map',
+  ndvi: 'Normalized Difference Vegetation Index (NDVI)'
+};
+
+const sampleLayers = {
+  // Keep placeholders for layers you haven't uploaded yet
+  landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
+  water:      demoCircle('Water Supply Network', -6.79, 39.25, 2100),
+  boreholes:  demoCircle('Borehole Map & Service Areas', -6.79, 39.25, 2100),
+  popdist:    demoCircle('Population Distribution', -6.79, 39.25, 2600),
+  popdens:    demoCircle('Population Density Map', -6.79, 39.25, 2600),
+  slope:      demoCircle('Slope Map', -6.79, 39.25, 2300),
+  aspect:     demoCircle('Aspect Map', -6.79, 39.25, 2300),
+  hillshade:  demoCircle('Hillshade Map', -6.79, 39.25, 2300),
+  contours:   demoCircle('Contours Map', -6.79, 39.25, 2300),
+  topo:       demoCircle('Topographic Map', -6.79, 39.25, 2300),
+  lcchange:   demoCircle('Landcover Change Map', -6.79, 39.25, 2200),
+  landuse:    demoCircle('Land Use Map', -6.79, 39.25, 2200),
+  rainfall:   demoCircle('Rainfall Map', -6.79, 39.25, 2600),
+  airtemp:    demoCircle('Air Temperature Map', -6.79, 39.25, 2600),
+  lst:        demoCircle('Land Surface Temperature Map', -6.79, 39.25, 2600),
+  ndvi:       demoCircle('Normalized Difference Vegetation Index (NDVI)', -6.79, 39.25, 2600),
+};
+
+
+// Compute bounds for any Leaflet layer / group (for auto-zoom)
+function layerBounds(lyr){
+  try{
+    if(!lyr) return null;
+    if(typeof lyr.getBounds === 'function'){
+      const b = lyr.getBounds();
+      if(b && b.isValid && b.isValid()) return b;
+    }
+    // LayerGroup: combine child bounds
+    if(typeof lyr.eachLayer === 'function'){
+      let bb = null;
+      lyr.eachLayer(l=>{
+        const b = layerBounds(l);
+        if(!b) return;
+        bb = bb ? bb.extend(b) : b;
+      });
+      if(bb && bb.isValid && bb.isValid()) return bb;
+    }
+  }catch(e){}
+  return null;
+}
+
+function autoZoomToLayer(lyr){
+  const b = layerBounds(lyr);
+  if(!b) return;
+  try{
+    map.fitBounds(b.pad(0.10), { maxZoom: 16, animate:true, duration:0.9 });
+  }catch(e){}
+}
+
+// Make loadLayer async-safe (UI unchanged)
+async function loadLayer(type){
+  try{
+    if(activeLayer) map.removeLayer(activeLayer);
+
+    toast('Loading layer…', 'info', 900);
+
+    // Real layer?
+    if(LAYER_SOURCES[type]){
+      if(!loadedLayers[type]){
+        loadedLayers[type] = await buildLayer(LAYER_SOURCES[type]);
+      }
+      activeLayer = loadedLayers[type];
+    } else {
+      // fallback to placeholder
+      const layer = sampleLayers[type];
+      if(!layer) {
+        toast('Layer not found: ' + type, 'error', 3500);
+        return;
+      }
+      activeLayer = layer;
+    }
+
+    activeLayer.addTo(map);
+
+    // Zoom behavior (Atlas settings)
+    if(window.zoomToLayerEnabled !== false){
+      autoZoomToLayer(activeLayer);   // zoom IN to selected layer
+    }else{
+      zoomOutDefault();               // zoom OUT to default view
+    }
+
+    // track selected layer for Export + Metadata
+    window.activeLayerKey = type;
+    window.activeLayerTitle = LAYER_TITLES[type] || (typeof type === 'string' ? type : 'Selected layer');
+    window.activeLayer = activeLayer;
+
+    if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
+    if(window.renderMetadata) window.renderMetadata();
+    setLegend(window.activeLayerKey, window.activeLayerTitle || 'Selected layer');
+
+    toast('Layer ready', 'success', 1600);
+  }catch(err){
+    console.error(err);
+    toast('Failed to load layer: ' + (err.message || err), 'error', 4000);
+  }
+}
+
+
+// ============ About Us modal (UI only) ============
+document.addEventListener('DOMContentLoaded', () => {
+  const aboutBtn = document.getElementById('aboutBtn');
+  const modal = document.getElementById('aboutModal');
+  const closeBtn = document.getElementById('aboutClose');
+  const aboutContactBtn = document.getElementById('aboutContactBtn');
+  const contactModal = document.getElementById('contactModal');
+  const contactModalClose = document.getElementById('contactModalClose');
+
+  if(!aboutBtn || !modal || !closeBtn) return;
+
+  function openAbout(){
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    closeBtn.focus();
+  }
+  function closeAbout(){
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    aboutBtn.focus();
+  }
+
+  aboutBtn.addEventListener('click', openAbout);
+  closeBtn.addEventListener('click', closeAbout);
+
+  // Contact button inside About modal
+  if(aboutContactBtn && contactModal){
+    aboutContactBtn.addEventListener('click', ()=>{
+      // Ensure About stays open; open Contact modal on top
+      contactModal.style.display = 'flex';
+      try{ contactModal.setAttribute('aria-hidden','false'); }catch(e){}
+      if(contactModalClose) contactModalClose.focus();
+    });
+  }
+
+  // Click outside card closes
+  modal.addEventListener('click', (e)=>{
+    if(e.target === modal) closeAbout();
+  });
+
+  // ESC closes
+  document.addEventListener('keydown', (e)=>{
+    if(e.key === 'Escape' && modal.classList.contains('open')) closeAbout();
+  });
+});
+</script>
+<!-- ================= ABOUT US MODAL ================= -->
+<div aria-hidden="true" aria-labelledby="aboutTitle" aria-modal="true" class="modal" id="aboutModal" role="dialog">
+<div class="modal-card">
+<div class="modal-head">
+<div>
+<h2 id="aboutTitle">About Us</h2>
+<p>Ardhi University • Department of Geospatial Sciences and Technology • GS 334 (Project III) • February 2026</p>
+</div>
+<div class="modal-head-actions">
+<button aria-label="Close" class="modal-close" id="aboutClose" type="button">✕</button>
+</div>
+</div>
+<div class="modal-body">
+<div class="modal-grid">
+<div class="modal-panel">
+<b>Project overview</b>
+<div>
+            This web atlas is an in-semester GIS &amp; Remote Sensing production project for <b>GS 334 – Project III (Geospatial Analytics for Societal Challenges)</b>.
+            The project area is <b>Ubungo District (Dar es Salaam City)</b>. The aim is to apply GIS &amp; RS skills in a realistic, multi-task production workflow
+            from planning and data acquisition to analysis, quality control, and final presentation.
+          </div>
+<b style="margin-top:10px">Core workflow</b>
+<ul>
+<li>Study Terms of Reference (deliverables, datasets, methods, software)</li>
+<li>Reconnaissance (satellite imagery / Google Earth + stakeholder introduction)</li>
+<li>Data acquisition (field + online sources)</li>
+<li>Data exploration, processing &amp; analysis</li>
+<li>Quality control (validation, verification, accuracy assessment)</li>
+<li>Data presentation (maps, web atlas, reporting)</li>
+</ul>
+</div>
+<div class="modal-panel">
+<b>Deliverables</b>
+<ul>
+<li>Production flow diagram + work plan / time schedule</li>
+<li>Web-based GIS Ubungo District Atlas (general &amp; thematic maps)</li>
+<li>Technical report + oral group presentation</li>
+</ul>
+<b style="margin-top:10px">Project supervision</b>
+<ul>
+<li>Dr. Anastazia Msusa</li>
+<li>Mr. Michael Mavura</li>
+<li>Mr. Iriael Mlay</li>
+<li>Ms. Christina Mshana</li>
+</ul>
+<b style="margin-top:10px">Assessment &amp; schedule</b>
+<ul>
+<li>Three assessed oral presentations (after fieldwork, after office work, after draft report)</li>
+<li>Final submission deadline: <b>06 March 2026</b></li>
+</ul>
+</div>
+</div>
+<div style="display:flex; justify-content:center; margin-top:18px;">
+  <button class="modal-action-btn" id="aboutContactBtn" type="button" title="Contact the team">✉️ Contact Us</button>
+</div>
+
+</div>
+</div>
+</div>
+<button id="contactBtn" style="position:fixed; right:20px; bottom:90px; z-index:9999;
+background:#1f4e79; color:white; border:none; padding:12px 16px;
+border-radius:8px; font-weight:600; cursor:pointer;; display:none;">
+Contact Us
+</button>
+<div id="contactModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:10000; align-items:center; justify-content:center; padding:20px;">
+<div id="contactModalCard" style="background:#ffffff; border-radius:16px; width:480px; max-width:95vw;
+     box-shadow:0 20px 60px rgba(0,0,0,0.25); overflow:hidden; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;">
+<div class="contact-header" style="padding:16px 18px; background:linear-gradient(135deg,#123a63,#1f4e79); color:#fff; display:flex; align-items:center; justify-content:space-between;">
+<div style="display:flex; align-items:center; gap:10px;">
+<div aria-hidden="true" style="width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.18);
+           display:grid; place-items:center; font-size:18px;">✉️</div>
+<div>
+<div style="font-weight:700; font-size:16px; line-height:1.1;">Contact</div>
+<div style="opacity:0.92; font-size:12.5px; margin-top:2px;">Ubungo District Web Atlas</div>
+</div>
+</div>
+<button aria-label="Close" id="contactModalClose" style="border:none; background:rgba(255,255,255,0.18); color:#fff; width:36px; height:36px; border-radius:10px;
+             cursor:pointer; font-size:18px; line-height:1;" type="button">✕</button>
+</div>
+<div id="contactModalBody" style="padding:16px 18px 18px 18px; color:#0f172a;">
+<div style="font-size:13.5px; margin:0 0 12px 0; color:#334155;">
+      For enquiries contact
+    </div>
+<!-- Scroll container for contacts -->
+<div id="contactScroll" style="max-height:50vh; overflow:auto; padding-right:6px;">
+<div class="contact-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255622521594" title="Call +255 622 521 594">+255 622 521 594</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255616788034" title="Call +255 616 788 034">+255 616 788 034</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255686764197" title="Call +255 686 764 197">+255 686 764 197</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255625838344" title="Call +255 625 838 344">+255 625 838 344</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255685158302" title="Call +255 685 158 302">+255 685 158 302</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255687295510" title="Call +255 687 295510">+255 687 295510</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255678484554" title="Call +255 678 484 554">+255 678 484 554</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255769520172" title="Call +255 769 520 172">+255 769 520 172</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255744968968" title="Call +255 744 968 968">+255 744 968 968</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255672296161" title="Call +255 672 296 161">+255 672 296 161</a>
+</div>
+<div class="contact-item">
+<div aria-hidden="true" class="contact-icon">📞</div>
+<a class="contact-link" href="tel:+255761854633" title="Call +255 761 854 633">+255 761 854 633</a>
+</div>
+</div>
+</div>
+<!-- Email LAST -->
+<div class="contact-item" style="margin-top:12px;">
+<div aria-hidden="true" class="contact-icon" style="background:#fef9c3;">📧</div>
+<a class="contact-link" href="mailto:info.atlasproject0@gmail.com" title="Email info.atlasproject0@gmail.com">info.atlasproject0@gmail.com</a>
+</div>
+</div>
+</div>
+<style>/* Align with About modal: clean cards + subtle borders */
+  #contactModal .contact-item {
+    display:flex; gap:8px; align-items:center;
+    padding:8px 10px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    background:#fff;
+  }
+  #contactModal .contact-icon {
+    width:28px; height:28px;
+    border-radius:10px;
+    background:#eef2ff;
+    display:grid; place-items:center;
+    flex: 0 0 auto;
+    font-size:14px;
+  }
+  /* Increase visibility: stronger color, full opacity, slightly heavier weight */
+  #contactModal .contact-link {
+    font-size:12.5px;
+    color:#0f172a;
+    opacity:1;
+    font-weight:650;
+    text-decoration:none;
+    line-height:1.15;
+    display:block;
+  }
+  #contactModal .contact-link:hover {
+    text-decoration:underline;
+  }
+  /* Scrollbar styling (subtle) */
+  #contactScroll::-webkit-scrollbar {
+    width:10px;
+  }
+  #contactScroll::-webkit-scrollbar-thumb {
+    background:rgba(31,78,121,0.25);
+    border-radius:999px;
+    border:3px solid transparent;
+    background-clip:content-box;
+  }
+  #contactScroll::-webkit-scrollbar-track {
+    background:transparent;
+  }
+
+
+
+/* =========================
+   RESPONSIVE / FLEX UI ONLY
+   (Views + logic untouched)
+   ========================= */
+
+/* Ensure predictable sizing */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; width: 100%; }
+body { margin: 0; overflow-x: hidden; }
+
+/* Make app containers fluid */
+#app, .app, .container, .layout, .shell { width: 100%; max-width: 100%; }
+
+/* Prevent fixed panels from causing horizontal scroll on small screens */
+.hero-card, .heroCard, .card, .panel, .sidebar, .toolbar, .topbar, .header-bar, .headerBar {
+  max-width: 100%;
+}
+
+/* Make common grids flexible without changing structure */
+.grid, .row, .columns, .cards, .options, .controls {
+  max-width: 100%;
+}
+
+/* If a sidebar exists, allow wrapping on small screens */
+@media (max-width: 980px) {
+  .layout, .shell, .container, .row, .columns {
+    flex-wrap: wrap !important;
+  }
+  .sidebar, .left-panel, .leftPanel {
+    width: 100% !important;
+    max-width: 100% !important;
+    order: 2;
+  }
+  .main, .content, .map-area, .mapArea, .viewer, .viewer-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    order: 1;
+  }
+}
+
+/* Make top actions wrap nicely */
+@media (max-width: 680px) {
+  .topbar, .header-bar, .headerBar {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  .topbar .actions, .header-bar .actions, .headerBar .actions,
+  .topbar-actions, .header-actions {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* Responsive modal sizing (About + Contact) */
+#aboutModalCard, #contactModalCard {
+  width: min(520px, 92vw) !important;
+  max-width: 92vw !important;
+}
+#contactModalBody, #aboutModalCard {
+  max-height: 78vh;
+}
+#contactScroll {
+  max-height: 52vh !important;
+}
+
+/* Make two-column contact grid collapse to one column on small screens */
+@media (max-width: 520px) {
+  #contactModal .contact-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Map / canvas / viewers fill available space without overflowing */
+#map, #map2d, #leafletMap, .leaflet-container,
+#cesiumContainer, .cesium-container,
+.canvas, .viewer, .viewer-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Keep buttons readable on small screens */
+button, .btn {
+  max-width: 100%;
+}
+
+/* Make any fixed-width card content wrap safely */
+p, li, a, span, div {
+  overflow-wrap: anywhere;
+}
+
+
+/* ==== Leaflet scale bar visibility fix ==== */
+.leaflet-control-container{
+  position: absolute !important;   /* restore Leaflet default */
+  inset: 0;                         /* allow top/bottom control anchors */
+  z-index: 3000 !important;         /* above custom overlays */
+  pointer-events: none;             /* Leaflet controls enable their own events */
+}
+.leaflet-top,
+.leaflet-bottom{
+  z-index: 3001 !important;
+  pointer-events: none;
+}
+.leaflet-control{
+  pointer-events: auto;             /* clickable controls */
+}
+
+/* Scale bar styling + spacing */
+.leaflet-control-scale{
+  margin-left: 12px;
+  margin-bottom: 12px;
+  display: block !important;
+}
+.leaflet-control-scale-line{
+  background: rgba(10, 20, 28, 0.72) !important;
+  color: rgba(232,242,255,0.94) !important;
+  border: 1px solid rgba(255,255,255,0.22) !important;
+  border-top: none !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px;
+}
+
+
+/* ==== Resizable sidebar + Layers accordion (UI only) ==== */
+:root{ --sidebar-w: 320px; }
+
+.sidebar{
+  position: relative;
+  width: var(--sidebar-w);
+  min-width: 220px;
+  max-width: 560px;
+}
+
+.sidebar-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin: 10px 0 8px 0;
+}
+
+.layers-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  flex: 1 1 auto;
+  padding: 10px 12px;
+}
+
+.layers-toggle .chev{
+  font-size: 12px;
+  opacity: 0.95;
+}
+
+.sidebar-size-buttons{
+  display:flex;
+  gap:8px;
+  flex: 0 0 auto;
+}
+
+.sidebar-size-buttons button{
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display:grid;
+  place-items:center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.layers-group{
+  display:block;
+  overflow:auto;
+  max-height: calc(100vh - 210px); /* allows scrolling if many layers */
+  padding-right: 4px;
+}
+
+.layers-group:not(.open){
+  display:none;
+}
+
+.sidebar-resizer{
+  position:absolute;
+  top:0;
+  right:-3px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2000;
+  background: transparent;
+}
+
+.sidebar-resizer::after{
+  content:"";
+  position:absolute;
+  top:12px;
+  bottom:12px;
+  left:50%;
+  width:2px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background: rgba(255,255,255,0.16);
+}
+
+@media (hover: none) and (pointer: coarse){
+  .sidebar-resizer{ width: 14px; right:-6px; }
+}
+
+@media (max-width: 980px){
+  .sidebar{ width: 100% !important; min-width: 0; max-width: 100% !important; }
+  .sidebar-resizer{ display:none; }
+  .layers-group{ max-height: 45vh; }
+}
+/* Show home-only controls (labels, borders, contact, search) only on HOME */
+#explore #globeControls,
+#explore .topbar-actions,
+#explore #contactBtn,
+#explore #labelsToggle,
+#explore #bordersToggle {
+  display: none !important;
+}
+
+
+  /* ================= HOME CONTROLS FADE (during transition) ================= */
+  #home .topbar,
+  #home .hero,
+  #home #globeControls{
+    transition: opacity 320ms ease, transform 320ms ease;
+    opacity: 1;
+  }
+  #home .topbar{ transform: translateY(0); }
+  #home .hero{ transform: translateY(0); }
+  #home #globeControls{ transform: translateY(0); }
+
+  /* When HOME section is not active, fade controls out smoothly */
+  #home:not(.active) .topbar{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  #home:not(.active) .hero{
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  #home:not(.active) #globeControls{
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+
+  /* ================= ATLAS FLOATING SETTINGS ================= */
+  .atlas-settings-btn{
+    position:absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1400;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(10, 20, 28, 0.72);
+    color: rgba(232,242,255,0.92);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.45);
+    backdrop-filter: blur(12px);
+    cursor:pointer;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .atlas-settings-btn:hover{ background: rgba(10, 20, 28, 0.80); }
+
+  .atlas-settings{
+    position:absolute;
+    top: 64px;
+    right: 16px;
+    z-index: 1400;
+    width: 260px;
+    background: rgba(10, 20, 28, 0.78);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+    backdrop-filter: blur(14px);
+    overflow:hidden;
+    pointer-events:auto;
+    transform-origin: top right;
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  }
+  .atlas-settings.open{
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+  .atlas-settings .head{
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+    color: rgba(232,242,255,0.92);
+    font-size: 12px;
+    letter-spacing: .2px;
+  }
+  .atlas-settings .body{
+    padding: 10px 12px 12px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    color: rgba(232,242,255,0.86);
+    font-size: 12px;
+  }
+  .atlas-settings label{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.06);
+  }
+  .atlas-settings select, .atlas-settings input[type="checkbox"]{
+    pointer-events:auto;
+  }
+  .atlas-settings select{
+    width: 120px;
+    padding: 6px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .xbtn{
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.06);
+    color: rgba(232,242,255,0.92);
+    cursor:pointer;
+  }
+  .atlas-settings .xbtn:hover{ background: rgba(255,255,255,0.10); }
+
+
+  /* Settings search row */
+  .atlas-settings .search-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .atlas-settings .search-row input{
+    flex: 1 1 auto;
+    padding: 7px 9px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(0,0,0,0.25);
+    color: rgba(232,242,255,0.92);
+    outline:none;
+  }
+  .atlas-settings .search-row button{
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(52,152,219,0.80);
+    color: #fff;
+    cursor:pointer;
+    font-weight:800;
+  }
+  .atlas-settings .search-row button:hover{ filter: brightness(1.06); }
+
+
+  /* ================= PATCH: FULL-WIDTH MAP + OFFCANVAS SIDEBAR DRAWER ================= */
+  /* Make atlas content fill screen */
+  #explore{ display:block !important; }
+  #explore.active{ display:block !important; }
+
+  #explore .content{
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    z-index: 900 !important;
+  }
+  #explore #map{ width:100% !important; height:100% !important; }
+
+  /* Sidebar becomes an overlay drawer (does NOT reserve space) */
+  #explore .sidebar{
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    width: 320px !important;
+    max-width: min(88vw, 360px) !important;
+    z-index: 4500 !important;
+    transform: translateX(-110%) !important; /* hidden by default */
+    transition: transform 360ms cubic-bezier(.22,.61,.36,1) !important;
+    will-change: transform;
+    box-shadow: 0 18px 55px rgba(0,0,0,0.55) !important;
+  }
+  #explore .sidebar:not(.collapsed){
+    transform: translateX(0) !important;
+  }
+  #explore .sidebar.collapsed{
+    transform: translateX(-110%) !important;
+  }
+
+  /* Scrim behind drawer */
+  #drawerScrim{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    z-index: 4400;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 220ms ease, visibility 220ms ease;
+  }
+  #drawerScrim.open{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  /* ================= PATCH: FLOATING CIRCLE HAMBURGER (BOTTOM-LEFT) ================= */
+  #sidebarCollapseBtn{
+    position: fixed !important;
+    bottom: 18px !important;
+    left: 18px !important;
+    top: auto !important;
+    right: auto !important;
+
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 999px !important;
+    background: rgba(20,30,38,0.90) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+
+    box-shadow: 0 10px 28px rgba(0,0,0,0.45) !important;
+    transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
+    z-index: 99999 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+
+  #sidebarCollapseBtn:hover{
+    transform: translateY(-1px) scale(1.06) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.55) !important;
+  }
+  #sidebarCollapseBtn:active{
+    transform: scale(0.98) !important;
+  }
+
+  /* Make bars slightly larger for circle */
+  #sidebarCollapseBtn .bars{
+    width: 18px !important;
+    height: 12px !important;
+  }
+
+  /* Hamburger -> X when open */
+  #sidebarCollapseBtn.is-open .bars::before{
+    top: 5px !important;
+    transform: rotate(45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars::after{
+    bottom: auto !important;
+    top: 5px !important;
+    transform: rotate(-45deg) !important;
+  }
+  #sidebarCollapseBtn.is-open .bars span{
+    opacity: 0 !important;
+  }
+
+</style>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const modal = document.getElementById("contactModal");
+  const btn = document.getElementById("contactBtn");
+  const closeX = document.getElementById("contactModalClose");
+
+  function openModal(){ if(modal) modal.style.display = "flex"; }
+  function closeModal(){ if(modal) modal.style.display = "none"; }
+
+  if(btn) btn.addEventListener("click", openModal);
+  if(closeX) closeX.addEventListener("click", closeModal);
+
+  // click outside card closes
+  window.addEventListener("click", function(ev){
+    if(ev.target === modal) closeModal();
+  });
+
+  // ESC closes
+  window.addEventListener("keydown", function(ev){
+    if(ev.key === "Escape") closeModal();
+  });
+});
+</script><script>
+// Resizable sidebar + Layers accordion JS
+document.addEventListener("DOMContentLoaded", () => {
+  // Layers accordion
+  const toggle = document.getElementById("layersToggle");
+  const group = document.getElementById("layersGroup");
+  if (toggle && group) {
+    toggle.addEventListener("click", () => {
+      const isOpen = group.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(isOpen));
+      const chev = toggle.querySelector(".chev");
+      if (chev) chev.textContent = isOpen ? "▾" : "▸";
+    });
+  }
+
+  // Sidebar resize (drag)
+  const resizer = document.getElementById("sidebarResizer");
+  const root = document.documentElement;
+  const minW = 220, maxW = 560;
+
+  function setW(px){
+    const clamped = Math.max(minW, Math.min(maxW, px));
+    root.style.setProperty("--sidebar-w", clamped + "px");
+  }
+
+  // +/- buttons
+  const btnSmaller = document.getElementById("sidebarSmaller");
+  const btnLarger = document.getElementById("sidebarLarger");
+  if (btnSmaller) btnSmaller.addEventListener("click", () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    setW(cur - 24);
+  });
+  if (btnLarger) btnLarger.addEventListener("click", () => {
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    setW(cur + 24);
+  });
+
+  if (!resizer) return;
+
+  let startX = 0, startW = 0, dragging = false;
+
+  function onDown(clientX){
+    dragging = true;
+    startX = clientX;
+    const cur = parseInt(getComputedStyle(root).getPropertyValue("--sidebar-w")) || 320;
+    startW = cur;
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+  }
+
+  function onMove(clientX){
+    if (!dragging) return;
+    const dx = clientX - startX;
+    setW(startW + dx);
+  }
+
+  function onUp(){
+    if (!dragging) return;
+    dragging = false;
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+  }
+
+  resizer.addEventListener("mousedown", (e) => onDown(e.clientX));
+  window.addEventListener("mousemove", (e) => onMove(e.clientX));
+  window.addEventListener("mouseup", onUp);
+
+  // Touch support
+  resizer.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    onDown(t.clientX);
+  }, {passive:true});
+  window.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    if (!t) return;
+    onMove(t.clientX);
+  }, {passive:true});
+  window.addEventListener("touchend", onUp);
+});
+</script><script>
+// Dashboard KPIs from Trend Summary
+(function() {
+  const els = {
+    ndvi: document.getElementById("kpiNdvi"),
+    rain: document.getElementById("kpiRain"),
+    at:   document.getElementById("kpiAT"),
+    lst:  document.getElementById("kpiLST"),
+  };
+
+  function fmt(val, kind) {
+    if (val === null || val === undefined || val === "" || Number.isNaN(Number(val))) return "--";
+    const num = Number(val);
+    if (kind === "ndvi") return num.toFixed(2);
+    if (kind === "rain") return Math.round(num).toString();
+    // temps
+    return num.toFixed(1);
+  }
+
+  function applySummary(s) {
+    if (!s || typeof s !== "object") return false;
+
+    // accept multiple key spellings
+    const ndvi = s.mean_ndvi ?? s.meanNDVI ?? s.ndvi_mean ?? s.ndvi ?? s.MeanNDVI;
+    const rain = s.mean_rainfall ?? s.meanRainfall ?? s.rain_mean ?? s.rainfall ?? s.Rainfall;
+    const at   = s.mean_air_temperature ?? s.meanAirTemperature ?? s.mean_at ?? s.air_temperature ?? s.airTemperature ?? s.AT ?? s.AirTemperature;
+    const lst  = s.mean_lst ?? s.meanLST ?? s.lst_mean ?? s.lst ?? s.LST;
+
+    let updated = false;
+    if (els.ndvi && ndvi !== undefined) { els.ndvi.textContent = fmt(ndvi, "ndvi"); updated = true; }
+    if (els.rain && rain !== undefined) { els.rain.textContent = fmt(rain, "rain"); updated = true; }
+    if (els.at   && at   !== undefined) { els.at.textContent   = fmt(at, "temp"); updated = true; }
+    if (els.lst  && lst  !== undefined) { els.lst.textContent  = fmt(lst, "temp"); updated = true; }
+    return updated;
+  }
+
+  function tryLocalStorage() {
+    try {
+      const raw = localStorage.getItem("atlasTrendSummary");
+      if (!raw) return false;
+      const obj = JSON.parse(raw);
+      return applySummary(obj);
+    } catch(e) {
+      return false;
+    }
+  }
+
+  async function tryFetch(paths) {
+    for (const p of paths) {
+      try {
+        const res = await fetch(p, { cache: "no-store" });
+        if (!res.ok) continue;
+        const obj = await res.json();
+        if (applySummary(obj)) return true;
+      } catch(e) {}
+    }
+    return false;
+  }
+
+  async function init() {
+    // 1) localStorage from Trend page (best)
+    if (tryLocalStorage()) return;
+
+    // 2) optional JSON file exported by Trend page
+    await tryFetch(["trend_summary.json", "data/trend_summary.json"]);
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+
+  // Live update when Trend page writes to localStorage
+  window.addEventListener("storage", (ev) => {
+    if (ev.key === "atlasTrendSummary") {
+      try {
+        const obj = JSON.parse(ev.newValue || "{}");
+        applySummary(obj);
+      } catch(e) {}
+    }
+  });
+})();
+
+// =========================
+// Sidebar collapse / expand
+// =========================
+(function(){
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.getElementById('sidebarCollapseBtn');
+  if(!sidebar || !btn) return;
+
+  function setCollapsed(collapsed){
+    sidebar.classList.toggle('collapsed', !!collapsed);
+    // Leaflet needs resize after layout change
+    try{ setTimeout(()=>{ map.invalidateSize(); }, 50); }catch(e){}
+  }
+
+  // collapsed by default
+  setCollapsed(true);
+
+  btn.addEventListener('click', ()=>{
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    setCollapsed(!isCollapsed);
+  });
+})();
+
+</script>
+<div>🟥 LST</div>
+<div>🟦 Rainfall</div>
+<div>⬛ Roads</div>
+</div>
+
+
+
+
+<!-- ================= LAYER METADATA MODAL ================= -->
+<div id="layerMetaModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <div id="layerMetaCard">
+    <div class="head">
+      <b id="layerMetaTitle">Metadata</b>
+      <button id="layerMetaClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <div class="body" id="layerMetaBody">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ================= PATCH: Drawer toggle + scrim + move hamburger to body + map resize =================
+(function(){
+  function ready(fn){
+    if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', fn); }
+    else { fn(); }
+  }
+
+  ready(function(){
+    const sidebar = document.querySelector('#explore .sidebar');
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const scrim = document.getElementById('drawerScrim');
+
+    // Ensure sidebar hidden by default
+    if(sidebar){ sidebar.classList.add('collapsed'); }
+
+    // Move button out of transformed sidebar so it's always visible
+    if(btn && btn.parentElement !== document.body){
+      document.body.appendChild(btn);
+    }
+
+    function setOpenState(open){
+      if(!sidebar || !btn) return;
+      sidebar.classList.toggle('collapsed', !open);
+      btn.classList.toggle('is-open', open);
+      if(scrim){
+        scrim.classList.toggle('open', open);
+        scrim.setAttribute('aria-hidden', open ? 'false' : 'true');
+      }
+      // Leaflet needs resize after UI transition
+      try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 380); }catch(e){}
+    }
+
+    if(btn && sidebar){
+      btn.addEventListener('click', ()=>{
+        const open = sidebar.classList.contains('collapsed'); // if collapsed -> open
+        setOpenState(open);
+      });
+    }
+
+    if(scrim){
+      scrim.addEventListener('click', ()=> setOpenState(false));
+    }
+
+    // When entering explore, keep sidebar closed and map full
+    const _showExplore = window.showExplore;
+    if(typeof _showExplore === 'function'){
+      window.showExplore = function(){
+        _showExplore();
+        setOpenState(false);
+        try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 520); }catch(e){}
+      }
+    } else {
+      // fallback sync once
+      setOpenState(false);
+    }
+  });
+})();
+</script>
+
+
+<script>
+// ===== Patch: robust hamburger click (capture) to always toggle drawer =====
+(function(){
+  function $(sel){ return document.querySelector(sel); }
+
+  function getSidebar(){
+    return $('#explore .sidebar') || document.getElementById('sidebar') || $('.sidebar') || $('#leftPanel') || $('#atlasSidebar');
+  }
+
+  function setOpen(open){
+    const sidebar = getSidebar();
+    const btn = document.getElementById('sidebarCollapseBtn');
+    const scrim = document.getElementById('drawerScrim');
+    if(!sidebar || !btn) return;
+
+    sidebar.classList.toggle('collapsed', !open);
+    btn.classList.toggle('is-open', open);
+
+    if(scrim){
+      scrim.classList.toggle('open', open);
+      scrim.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    document.body.classList.toggle('drawer-open', open);
+
+    // Resize Leaflet after animation
+    try{ setTimeout(()=>{ if(window.map && window.map.invalidateSize) window.map.invalidateSize(); }, 380); }catch(e){}
+  }
+
+  function toggle(){
+    const sidebar = getSidebar();
+    if(!sidebar) return;
+    const open = sidebar.classList.contains('collapsed'); // if collapsed, open it
+    setOpen(open);
+  }
+
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  ready(function(){
+    const btn = document.getElementById('sidebarCollapseBtn');
+    if(!btn) return;
+
+    // Ensure button can receive clicks
+    btn.style.pointerEvents = 'auto';
+
+    // Capture-phase handler to beat any stopPropagation in bubble phase
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      toggle();
+    }, true);
+
+    // Also allow keyboard activation
+    btn.setAttribute('tabindex','0');
+    btn.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        toggle();
+      }
+    });
+
+    // Clicking scrim closes
+    const scrim = document.getElementById('drawerScrim');
+    if(scrim){
+      scrim.addEventListener('click', ()=> setOpen(false), true);
+    }
+
+    // Start closed
+    setOpen(false);
+  });
+})();
+</script>
+
+</body>
+</html>
