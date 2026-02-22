@@ -3016,9 +3016,59 @@ function style_secondaryschools_11_0() {
         }
 
 // Build qgis2web layers (once) and expose a friendly map for Atlas buttons
+
+// --- q2w data loader (prevents "json_* is not defined" when files 404 or load order issues) ---
+const __q2wDataScripts = [
+  'q2w/layers/pppppolicemerged_0.js',
+  'q2w/layers/hspita_1.js',
+  'q2w/layers/busstp_2.js',
+  'q2w/layers/Petrolstn_3.js',
+  'q2w/layers/Primaryroad_4.js',
+  'q2w/layers/railway_5.js',
+  'q2w/layers/secondaryroad_6.js',
+  'q2w/layers/Tertiaryroad_7.js',
+  'q2w/layers/Trunkroad_8.js',
+  'q2w/layers/Unclassified_9.js',
+  'q2w/layers/primaryschlshp1_10.js',
+  'q2w/layers/secondaryschools_11.js'
+];
+
+function __loadScript(src){
+  return new Promise((resolve, reject) => {
+    if(document.querySelector('script[data-q2w="' + src + '"]')) return resolve(true);
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = false;
+    s.setAttribute('data-q2w', src);
+    s.onload = () => resolve(true);
+    s.onerror = () => reject(new Error('Could not load ' + src + ' (check it exists on GitHub Pages)'));
+    document.head.appendChild(s);
+  });
+}
+
+let __q2wReadyPromise = null;
+function ensureQ2WReady(){
+  if(__q2wReadyPromise) return __q2wReadyPromise;
+  __q2wReadyPromise = (async () => {
+    // If already present, skip loading
+    if(typeof window.json_pppppolicemerged_0 !== 'undefined') return true;
+
+    for(const src of __q2wDataScripts){
+      await __loadScript(src);
+    }
+    // verify
+    if(typeof window.json_pppppolicemerged_0 === 'undefined'){
+      throw new Error('q2w data loaded but json_pppppolicemerged_0 is still undefined (wrong file paths?)');
+    }
+    return true;
+  })();
+  return __q2wReadyPromise;
+}
+
 window.__q2w = window.__q2w || { built:false, layers:{}, groups:{} };
 
-function __q2wBuildLayers(){
+async function __q2wBuildLayers(){
+  await ensureQ2WReady();
   if(window.__q2w.built) return;
 
   // Create panes (zIndex matches qgis2web order roughly)
@@ -4370,7 +4420,7 @@ async function loadLayer(type){
 
     // ===== qgis2web exported (Leaflet) layers =====
     if(['police','health','primary','secondary','roads','transport'].includes(type)){
-      __q2wBuildLayers();
+      await __q2wBuildLayers();
       const lyr = window.__q2w?.groups?.[type];
       if(lyr){
         activeLayer = lyr;
