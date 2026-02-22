@@ -1136,6 +1136,7 @@ body.drawer-open #explore .content{
 }
 </style>
 
+<link rel="stylesheet" href="q2w/styles/qgis2web.css">
 </head>
 <body>
 <!-- ================= HOME ================= -->
@@ -2717,6 +2718,9 @@ function autoZoomToLayer(lyr){
 
 // Make loadLayer async-safe (UI unchanged)
 async function loadLayer(type){
+  // ensure qgis2web scripts are loaded (GitHub Pages path-safe)
+  if (window.__q2wReady) { try { await window.__q2wReady; } catch(e){} }
+
   try{
     if(activeLayer) map.removeLayer(activeLayer);
 
@@ -3856,33 +3860,69 @@ document.addEventListener("DOMContentLoaded", () => {
 })();
 </script>
 
-</body>
-</html>
-<!-- qgis2web Leaflet export (data + styles) -->
-<link rel="stylesheet" href="./q2w/styles/qgis2web.css">
 
 <script>
-  // Tracks whether q2w layer data scripts loaded successfully (helps debug 404 / path issues on GitHub Pages)
-  window.__q2wStatus = { loaded: {}, failed: {} };
-  function __q2wMarkLoaded(name){ window.__q2wStatus.loaded[name] = true; }
-  function __q2wMarkFailed(name, src){
-    window.__q2wStatus.failed[name] = src || true;
-    console.error("[q2w] Failed to load:", name, src);
+(function(){
+  // Robust qgis2web loader for GitHub Pages (handles /<repo>/ prefix + caching)
+  const Q2W_FILES = [
+    "pppppolicemerged_0.js",
+    "hspita_1.js",
+    "busstp_2.js",
+    "Petrolstn_3.js",
+    "Primaryroad_4.js",
+    "railway_5.js",
+    "secondaryroad_6.js",
+    "Tertiaryroad_7.js",
+    "Trunkroad_8.js",
+    "Unclassified_9.js",
+    "primaryschlshp1_10.js",
+    "secondaryschools_11.js"
+  ];
+
+  const status = window.__q2wStatus = { loaded: {}, failed: {} };
+
+  const seg = (location.pathname.split("/").filter(Boolean)[0] || "");
+  const prefixes = [
+    "",                    // relative: q2w/...
+    "./",                  // relative with dot
+    seg ? ("/" + seg + "/") : ""   // /<repo>/...
+  ].filter((v,i,a)=>a.indexOf(v)===i);
+
+  function tryLoad(file, prefixIndex){
+    return new Promise((resolve, reject)=>{
+      const prefix = prefixes[prefixIndex] ?? "";
+      const src = prefix + "q2w/layers/" + file + "?v=" + Date.now();
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      s.onload = ()=>resolve({src});
+      s.onerror = ()=>reject({src});
+      document.head.appendChild(s);
+    });
   }
+
+  async function loadOne(file){
+    for(let i=0;i<prefixes.length;i++){
+      try{
+        const ok = await tryLoad(file, i);
+        status.loaded[file] = ok.src;
+        return;
+      }catch(e){
+        // try next prefix
+      }
+    }
+    status.failed[file] = true;
+    console.error("[q2w] Failed to load", file, "tried prefixes:", prefixes);
+  }
+
+  window.__q2wReady = (async function(){
+    for(const f of Q2W_FILES){
+      await loadOne(f);
+    }
+    return status;
+  })();
+})();
 </script>
 
-<script src="./q2w/layers/pppppolicemerged_0.js?v=1" onload="__q2wMarkLoaded('pppppolicemerged_0')" onerror="__q2wMarkFailed('pppppolicemerged_0', this.src)"></script>
-<script src="./q2w/layers/hspita_1.js?v=1" onload="__q2wMarkLoaded('hspita_1')" onerror="__q2wMarkFailed('hspita_1', this.src)"></script>
-<script src="./q2w/layers/busstp_2.js?v=1" onload="__q2wMarkLoaded('busstp_2')" onerror="__q2wMarkFailed('busstp_2', this.src)"></script>
-<script src="./q2w/layers/Petrolstn_3.js?v=1" onload="__q2wMarkLoaded('Petrolstn_3')" onerror="__q2wMarkFailed('Petrolstn_3', this.src)"></script>
-<script src="./q2w/layers/Primaryroad_4.js?v=1" onload="__q2wMarkLoaded('Primaryroad_4')" onerror="__q2wMarkFailed('Primaryroad_4', this.src)"></script>
-<script src="./q2w/layers/railway_5.js?v=1" onload="__q2wMarkLoaded('railway_5')" onerror="__q2wMarkFailed('railway_5', this.src)"></script>
-<script src="./q2w/layers/secondaryroad_6.js?v=1" onload="__q2wMarkLoaded('secondaryroad_6')" onerror="__q2wMarkFailed('secondaryroad_6', this.src)"></script>
-<script src="./q2w/layers/Tertiaryroad_7.js?v=1" onload="__q2wMarkLoaded('Tertiaryroad_7')" onerror="__q2wMarkFailed('Tertiaryroad_7', this.src)"></script>
-<script src="./q2w/layers/Trunkroad_8.js?v=1" onload="__q2wMarkLoaded('Trunkroad_8')" onerror="__q2wMarkFailed('Trunkroad_8', this.src)"></script>
-<script src="./q2w/layers/Unclassified_9.js?v=1" onload="__q2wMarkLoaded('Unclassified_9')" onerror="__q2wMarkFailed('Unclassified_9', this.src)"></script>
-<script src="./q2w/layers/primaryschlshp1_10.js?v=1" onload="__q2wMarkLoaded('primaryschlshp1_10')" onerror="__q2wMarkFailed('primaryschlshp1_10', this.src)"></script>
-<script src="./q2w/layers/secondaryschools_11.js?v=1" onload="__q2wMarkLoaded('secondaryschools_11')" onerror="__q2wMarkFailed('secondaryschools_11', this.src)"></script>
-
-
-
+</body>
+</html>
