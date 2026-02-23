@@ -1112,6 +1112,63 @@
     opacity: 0 !important;
   }
 
+
+/* =========================
+   Layer on/off toggles
+   ========================= */
+.layers-group .layer-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin: 10px 0;
+}
+.layers-group .layer-btn{
+  flex:1;
+  width:100%;
+  text-align:center;
+}
+.layer-switch{
+  position:relative;
+  display:inline-block;
+  width:44px;
+  height:24px;
+  flex:0 0 44px;
+}
+.layer-switch input{
+  opacity:0;
+  width:0;
+  height:0;
+}
+.layer-slider{
+  position:absolute;
+  cursor:pointer;
+  inset:0;
+  border-radius:999px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
+  transition: 0.2s;
+}
+.layer-slider:before{
+  content:"";
+  position:absolute;
+  height:18px;
+  width:18px;
+  left:3px;
+  top:50%;
+  transform:translateY(-50%);
+  border-radius:999px;
+  background: rgba(255,255,255,0.85);
+  transition: 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.layer-switch input:checked + .layer-slider{
+  background: rgba(46, 204, 113, 0.45);
+  border-color: rgba(46, 204, 113, 0.55);
+}
+.layer-switch input:checked + .layer-slider:before{
+  transform: translate(20px, -50%);
+}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1218,7 +1275,162 @@ body.drawer-open #explore .content{
 <button class="secondary" id="sidebarSmaller" title="Make sidebar smaller" type="button">−</button>
 <button class="secondary" id="sidebarLarger" title="Make sidebar larger" type="button">+</button>
 </div>
-</div><div class="layers-group" id="layersGroup"><button onclick="showMap(); loadLayer('landcover')">Landcover Map</button><button onclick="showMap(); loadLayer('police')">Police Stations Map</button><button onclick="showMap(); loadLayer('health')">Public Health Centres Map</button><button onclick="showMap(); loadLayer('primary')">Public Primary Schools Map</button><button onclick="showMap(); loadLayer('secondary')">Public Secondary Schools Map</button><button onclick="showMap(); loadLayer('roads')">Road Network Map</button><button onclick="showMap(); loadLayer('transport')">Transport Network Map</button><button onclick="showMap(); loadLayer('water')">Water Supply Network</button><button onclick="showMap(); loadLayer('boreholes')">Borehole Map &amp; Service Areas</button><button onclick="showMap(); loadLayer('popdist')">Population Distribution</button><button onclick="showMap(); loadLayer('popdens')">Population Density Map</button><button onclick="showMap(); loadLayer('slope')">Slope Map</button><button onclick="showMap(); loadLayer('aspect')">Aspect Map</button><button onclick="showMap(); loadLayer('hillshade')">Hillshade Map</button><button onclick="showMap(); loadLayer('contours')">Contours Map</button><button onclick="showMap(); loadLayer('topo')">Topographic Map</button><button onclick="showMap(); loadLayer('lcchange')">Landcover Change Map</button><button onclick="showMap(); loadLayer('landuse')">Land Use Map</button><button onclick="showMap(); loadLayer('rainfall')">Rainfall Map</button><button onclick="showMap(); loadLayer('airtemp')">Air Temperature Map</button><button onclick="showMap(); loadLayer('lst')">Land Surface Temperature Map</button><button onclick="showMap(); loadLayer('ndvi')">Normalized Difference Vegetation Index (NDVI)</button></div>
+</div><div class="layers-group" id="layersGroup">
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="landcover" aria-label="Toggle Landcover Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="landcover">Landcover Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="police" aria-label="Toggle Police Stations Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="police">Police Stations Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="health" aria-label="Toggle Public Health Centres Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="health">Public Health Centres Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="primary" aria-label="Toggle Public Primary Schools Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="primary">Public Primary Schools Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="secondary" aria-label="Toggle Public Secondary Schools Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="secondary">Public Secondary Schools Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="roads" aria-label="Toggle Road Network Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="roads">Road Network Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="transport" aria-label="Toggle Transport Network Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="transport">Transport Network Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="water" aria-label="Toggle Water Supply Network">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="water">Water Supply Network</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="boreholes" aria-label="Toggle Borehole Map &amp; Service Areas">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="boreholes">Borehole Map &amp; Service Areas</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="popdist" aria-label="Toggle Population Distribution">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="popdist">Population Distribution</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="popdens" aria-label="Toggle Population Density Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="popdens">Population Density Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="slope" aria-label="Toggle Slope Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="slope">Slope Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="aspect" aria-label="Toggle Aspect Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="aspect">Aspect Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="hillshade" aria-label="Toggle Hillshade Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="hillshade">Hillshade Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="contours" aria-label="Toggle Contours Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="contours">Contours Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="topo" aria-label="Toggle Topographic Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="topo">Topographic Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="lcchange" aria-label="Toggle Landcover Change Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="lcchange">Landcover Change Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="landuse" aria-label="Toggle Land Use Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="landuse">Land Use Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="rainfall" aria-label="Toggle Rainfall Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="rainfall">Rainfall Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="airtemp" aria-label="Toggle Air Temperature Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="airtemp">Air Temperature Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="lst" aria-label="Toggle Land Surface Temperature Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="lst">Land Surface Temperature Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="ndvi" aria-label="Toggle Normalized Difference Vegetation Index (NDVI)">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="ndvi">Normalized Difference Vegetation Index (NDVI)</button>
+  </div>
+</div>
 <div style="height:10px"></div>
 <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
 
@@ -2443,8 +2655,51 @@ function setLegend(layerKey, layerTitle){
   const key = (layerKey || '').trim();
   const items = LEGEND_CONFIG[key] || null;
 
+  // If no manual legend config exists, try GeoServer WMS legend
   if(!items){
-    // fallback: show title only
+    const def = (key && typeof LAYER_SOURCES !== 'undefined') ? LAYER_SOURCES[key] : null;
+
+    // helper: build a WMS legend graphic URL
+    const legendUrl = (layerName) => {
+      const u = GEOSERVER_WMS_URL
+        + '?service=WMS&request=GetLegendGraphic&format=image/png'
+        + '&layer=' + encodeURIComponent(layerName)
+        + '&legend_options=' + encodeURIComponent('fontName:Arial;fontSize:12;bgColor:0x00000000')
+        + '&v=' + Date.now();
+      return u;
+    };
+
+    // Single WMS layer
+    if(def && def.type === 'wms' && def.layers){
+      legendBody.innerHTML = `
+        <div class="legend-row" style="align-items:flex-start">
+          <img alt="Legend" src="${legendUrl(def.layers)}" style="max-width:100%; height:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background:rgba(255,255,255,0.04); padding:6px;">
+        </div>
+        <div class="legend-row">
+          <span class="legend-text">${layerTitle || def.layers}</span>
+        </div>`;
+      return;
+    }
+
+    // Group (multiple overlays)
+    if(def && def.type === 'group' && Array.isArray(def.children)){
+      const rows = def.children
+        .filter(c => c && c.type === 'wms' && c.layers)
+        .map(c => `
+          <div class="legend-row" style="align-items:flex-start">
+            <img alt="Legend" src="${legendUrl(c.layers)}" style="max-width:100%; height:auto; border-radius:10px; border:1px solid rgba(255,255,255,0.10); background:rgba(255,255,255,0.04); padding:6px;">
+          </div>
+          <div class="legend-row">
+            <span class="legend-text">${c.layers}</span>
+          </div>
+        `).join('');
+      if(rows){
+        legendBody.innerHTML = rows;
+        return;
+      }
+    }
+
+    // Final fallback: show title only
     legendBody.innerHTML = `
       <div class="legend-row">
         <span class="legend-swatch"></span>
@@ -2544,32 +2799,65 @@ const SVG_ICONS = {
 };
 
 // Which GeoJSON file(s) power each UI layer key
-const LAYER_SOURCES = {
-  // Public services (from qgis2web export)
-  police:   { type: "q2w", var: "json_pppppolicemerged_0", styleKey: "police" },
-  health:   { type: "q2w", var: "json_hspita_1",          styleKey: "hospital" },
-  primary:  { type: "q2w", var: "json_primaryschlshp1_10", styleKey: "primary_schools" },
-  secondary:{ type: "q2w", var: "json_secondaryschools_11", styleKey: "secondary_school" },
+// =========================
+// GeoServer (ONLINE) WMS CONFIG
+// =========================
+// Your online GeoServer (Render)
+const GEOSERVER_BASE = "https://ubungo-geoserver.onrender.com/geoserver";
+// Workspace name in GeoServer
+const GEOSERVER_WORKSPACE = "ubungo";
+// WMS endpoint (workspace-scoped)
+const GEOSERVER_WMS_URL = `${GEOSERVER_BASE}/${GEOSERVER_WORKSPACE}/wms`;
 
-  // Networks (from qgis2web export)
+// NOTE:
+// If a layer does NOT display, it usually means the GeoServer layer name is different.
+// Edit the "layers:" values below to match your published layer names in GeoServer.
+
+// Which WMS layer(s) power each UI layer key
+const LAYER_SOURCES = {
+  // --- Public services ---
+  police:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:police` },
+  health:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:health` },
+  primary:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:primary_school` },
+  secondary: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:secondary_school` },
+
+  // --- Networks (overlay as groups) ---
   roads: { type: "group", children: [
-    { type:"q2w", var:"json_Trunkroad_8",       styleKey:"trunk_rd" },
-    { type:"q2w", var:"json_Primaryroad_4",     styleKey:"primary_rd" },
-    { type:"q2w", var:"json_secondaryroad_6",   styleKey:"secondary_rd" },
-    { type:"q2w", var:"json_Tertiaryroad_7",    styleKey:"tertiary_rd" },
-    { type:"q2w", var:"json_Unclassified_9",    styleKey:"unclassified_rd" },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:trunkroad` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:primaryroad` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:secondaryroad` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:tertiaryroad` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:unclassified` },
   ]},
 
   transport: { type: "group", children: [
-    { type:"q2w", var:"json_railway_5",   styleKey:"railway" },
-    { type:"q2w", var:"json_busstp_2",    styleKey:"bus_stop" },
-    { type:"q2w", var:"json_Petrolstn_3", styleKey:"petrol_station" },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:railway` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:busstop` },
+    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:petrolstation` },
   ]},
 
-  // Keep your other layers as they were (data folder)
-  landcover: { type: "geojson", sources: ["data/landcover.geojson"], styleKey: "landcover" },
-  water: { type: "geojson", sources: ["data/water_supply.geojson"], styleKey: "water_supply" },
-  boreholes: { type: "geojson", sources: ["data/boreholes.geojson"], styleKey: "boreholes" }
+  // --- Water ---
+  water:     { type: "wms", layers: `${GEOSERVER_WORKSPACE}:water_supply_network` },
+  boreholes: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:boreholes` },
+
+  // --- Environment / raster thematic maps ---
+  landcover: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landcover_map` },
+  lcchange:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landcover_change_map` },
+  landuse:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landuse_map` },
+
+  rainfall:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:rainfall_map` },
+  airtemp:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:air_temperature_map` },
+  lst:       { type: "wms", layers: `${GEOSERVER_WORKSPACE}:lst_map` },
+  ndvi:      { type: "wms", layers: `${GEOSERVER_WORKSPACE}:ndvi_map` },
+
+  slope:     { type: "wms", layers: `${GEOSERVER_WORKSPACE}:slope_map` },
+  aspect:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:aspect_map` },
+  hillshade: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:hillshade_map` },
+  contours:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:contours_map` },
+  topo:      { type: "wms", layers: `${GEOSERVER_WORKSPACE}:topographic_map` },
+
+  popdist:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:population_distribution` },
+  popdens:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:population_density` },
 };
 
 
@@ -2627,6 +2915,22 @@ if(def.type === "q2w"){
   const fallbackPoint = pointStyle || { radius: 6, color: "#111", weight: 1, fillColor: "#1abc9c", fillOpacity: 1 };
   return makeLeafletGeoJSONLayer(gj, style ? style : fallbackStyle, pointStyle ? pointStyle : fallbackPoint, def.styleKey || '');
 }
+
+  // WMS (GeoServer) tile layer
+  if(def.type === "wms"){
+    if(!def.layers) throw new Error('Missing "layers" for WMS definition');
+    return L.tileLayer.wms(GEOSERVER_WMS_URL, {
+      layers: def.layers,
+      format: 'image/png',
+      transparent: true,
+      version: def.version || '1.1.1',
+      tiled: true,
+      // Helps some servers; safe to include
+      uppercase: true,
+      // Avoid CORS-tainted canvas errors when exporting
+      crossOrigin: true
+    });
+  }
 
   // geojson
   const url = def.sources && def.sources[0];
@@ -2705,6 +3009,8 @@ function layerBounds(lyr){
       if(bb && bb.isValid && bb.isValid()) return bb;
     }
   }catch(e){}
+  // WMS layers (tile layers) don't have bounds — fallback to Ubungo/default bounds
+  try{ if(window.defaultBounds) return window.defaultBounds; }catch(e){}
   return null;
 }
 
@@ -2718,61 +3024,119 @@ function autoZoomToLayer(lyr){
 
 // Make loadLayer async-safe (UI unchanged)
 async function loadLayer(type){
+  // Backwards-compatible: now means "turn ON this layer" (multi-layer supported)
+  return addLayer(type);
+}
+
+// ===== Multi-layer support =====
+window.activeLayers = window.activeLayers || {};   // key -> Leaflet layer instance
+let __layerZ = 300; // increasing zIndex for overlays
+
+function setSelectedLayer(key){
+  window.activeLayerKey = key || null;
+  window.activeLayerTitle = key ? (LAYER_TITLES[key] || key) : 'None';
+  window.activeLayer = key ? (window.activeLayers && window.activeLayers[key]) : null;
+
+  if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
+  if(window.renderMetadata) window.renderMetadata();
+
+  // Legend shows the *selected* layer (last clicked/toggled on)
+  if(key){
+    setLegend(window.activeLayerKey, window.activeLayerTitle || 'Selected layer');
+  }else{
+    const legendImg = document.getElementById('legendImg');
+    if(legendImg) legendImg.src = '';
+    const legendTitle = document.getElementById('legendTitle');
+    if(legendTitle) legendTitle.textContent = '';
+  }
+}
+
+async function addLayer(type){
   // ensure qgis2web scripts are loaded (GitHub Pages path-safe)
   if (window.__q2wReady) { try { await window.__q2wReady; } catch(e){} }
 
   try{
-    if(activeLayer) map.removeLayer(activeLayer);
+    if(window.activeLayers[type] && map && map.hasLayer(window.activeLayers[type])){
+      // Already on — just select it
+      showMap();
+      setSelectedLayer(type);
+      toast('Layer already on', 'info', 900);
+      return window.activeLayers[type];
+    }
 
     toast('Loading layer…', 'info', 900);
+
+    let lyr = null;
 
     // Real layer?
     if(LAYER_SOURCES[type]){
       if(!loadedLayers[type]){
         loadedLayers[type] = await buildLayer(LAYER_SOURCES[type]);
       }
-      activeLayer = loadedLayers[type];
+      lyr = loadedLayers[type];
     } else {
       // fallback to placeholder
-      const layer = sampleLayers[type];
-      if(!layer) {
+      lyr = sampleLayers[type];
+      if(!lyr){
         toast('Layer not found: ' + type, 'error', 3500);
-        return;
+        return null;
       }
-      activeLayer = layer;
     }
 
-    activeLayer.addTo(map);
+    // Add to map + manage order
+    lyr.addTo(map);
+    try{
+      if(typeof lyr.setZIndex === 'function') lyr.setZIndex(++__layerZ);
+      if(typeof lyr.bringToFront === 'function') lyr.bringToFront();
+    }catch(e){}
 
-    // Zoom behavior (Atlas settings)
+    window.activeLayers[type] = lyr;
+
+    // Zoom behavior (Atlas settings) — zoom to the layer you just turned ON
     if(window.zoomToLayerEnabled !== false){
-      autoZoomToLayer(activeLayer);   // zoom IN to selected layer
+      autoZoomToLayer(lyr);
     }else{
-      zoomOutDefault();               // zoom OUT to default view
+      zoomOutDefault();
     }
 
-    // track selected layer for Export + Metadata
-    window.activeLayerKey = type;
-    window.activeLayerTitle = LAYER_TITLES[type] || (typeof type === 'string' ? type : 'Selected layer');
-    window.activeLayer = activeLayer;
+    // Selected layer becomes the last turned on
+    showMap();
+    setSelectedLayer(type);
 
-    if(window.refreshSelectedLayerChip) window.refreshSelectedLayerChip();
-    if(window.renderMetadata) window.renderMetadata();
-    setLegend(window.activeLayerKey, window.activeLayerTitle || 'Selected layer');
+    toast('Layer ON', 'success', 1200);
+    return lyr;
 
-    toast('Layer ready', 'success', 1600);
   }catch(err){
     console.error(err);
 
     // Helpful diagnostics for qgis2web data scripts on GitHub Pages
-    var missing = [];
     var failed = (window.__q2wStatus && window.__q2wStatus.failed) ? Object.keys(window.__q2wStatus.failed) : [];
     if(failed.length){
       toast('q2w scripts failed: ' + failed.join(', ') + ' (check repo paths/case + hard refresh Ctrl+F5)', 'error', 6500);
     }
 
-    toast('Failed to load layer: ' + (err && err.message ? err.message : err) + ' (check that q2w/layers scripts are loading)', 'error', 5000);
+    toast('Failed to load layer: ' + (err && err.message ? err.message : err), 'error', 5000);
+    return null;
   }
+}
+
+function removeLayer(type){
+  try{
+    const lyr = window.activeLayers[type];
+    if(lyr && map && map.hasLayer(lyr)){
+      map.removeLayer(lyr);
+    }
+  }catch(e){}
+  try{ delete window.activeLayers[type]; }catch(e){}
+
+  // If the removed layer was selected, pick another ON layer (last one), else clear selection
+  if(window.activeLayerKey === type){
+    const keys = Object.keys(window.activeLayers || {});
+    const next = keys.length ? keys[keys.length - 1] : null;
+    setSelectedLayer(next);
+  }
+
+  toast('Layer OFF', 'info', 900);
 }
 
 
@@ -3922,6 +4286,60 @@ document.addEventListener("DOMContentLoaded", () => {
     return status;
   })();
 })();
+
+// =========================
+// Layer on/off toggle wiring (multi-layer)
+// =========================
+document.addEventListener('DOMContentLoaded', () => {
+  const group = document.getElementById('layersGroup');
+  if(!group) return;
+
+  const toggles = Array.from(group.querySelectorAll('.layer-toggle'));
+  const buttons = Array.from(group.querySelectorAll('.layer-btn'));
+
+  // Switches: independent ON/OFF (multiple layers allowed)
+  toggles.forEach(t => {
+    t.addEventListener('change', async () => {
+      const key = t.dataset.layer;
+      if(t.checked){
+        showMap();
+        await addLayer(key);
+        // keep it checked even if something else happens
+        t.checked = true;
+      } else {
+        removeLayer(key);
+      }
+    });
+  });
+
+  // Buttons: select layer (and turn it ON if it was OFF)
+  buttons.forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const key = btn.dataset.layer;
+      const toggle = group.querySelector(`.layer-toggle[data-layer="${key}"]`);
+      if(!toggle) return;
+
+      if(!toggle.checked){
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change', { bubbles: true }));
+      }else{
+        // already ON: just select and bring to front
+        try{
+          const lyr = (window.activeLayers && window.activeLayers[key]) ? window.activeLayers[key] : null;
+          if(lyr){
+            if(typeof lyr.bringToFront === 'function') lyr.bringToFront();
+            if(typeof lyr.setZIndex === 'function'){
+              // nudge zIndex to top
+              lyr.setZIndex((lyr.options && lyr.options.zIndex ? lyr.options.zIndex : 300) + 1);
+            }
+          }
+        }catch(e){}
+        try{ setSelectedLayer(key); }catch(e){}
+      }
+    });
+  });
+});
+
 </script>
 
 </body>
