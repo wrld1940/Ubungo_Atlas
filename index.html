@@ -1552,6 +1552,20 @@ body.drawer-open #explore .content{
 </div>
 </div>
 </div>
+  <!-- qgis2web exported GeoJSON data (required for vector layers) -->
+  <script src="data/pppppolicemerged_0.js"></script>
+  <script src="data/hspita_1.js"></script>
+  <script src="data/busstp_2.js"></script>
+  <script src="data/Petrolstn_3.js"></script>
+  <script src="data/Primaryroad_4.js"></script>
+  <script src="data/railway_5.js"></script>
+  <script src="data/secondaryroad_6.js"></script>
+  <script src="data/Tertiaryroad_7.js"></script>
+  <script src="data/Trunkroad_8.js"></script>
+  <script src="data/Unclassified_9.js"></script>
+  <script src="data/primaryschlshp1_10.js"></script>
+  <script src="data/secondaryschools_11.js"></script>
+
 <script>
 /* ============ Screen switching (with fade) ============ */
 function showHome(){
@@ -2816,24 +2830,24 @@ const GEOSERVER_WMS_URL = `${GEOSERVER_BASE}/${GEOSERVER_WORKSPACE}/wms`;
 // Which WMS layer(s) power each UI layer key
 const LAYER_SOURCES = {
   // --- Public services ---
-  police:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:police` },
-  health:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:health` },
-  primary:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:primary_school` },
-  secondary: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:secondary_school` },
+  police:    { type: "q2w", var: "json_pppppolicemerged_0", styleKey: "police" },
+  health:    { type: "q2w", var: "json_hspita_1", styleKey: "hospital" },
+  primary:   { type: "q2w", var: "json_primaryschlshp1_10", styleKey: "primary_school" },
+  secondary: { type: "q2w", var: "json_secondaryschools_11", styleKey: "secondary_school" },
 
   // --- Networks (overlay as groups) ---
   roads: { type: "group", children: [
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:trunkroad` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:primaryroad` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:secondaryroad` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:tertiaryroad` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:unclassified` },
+    { type:"q2w", var:"json_Trunkroad_8", styleKey:"trunkroad" },
+    { type:"q2w", var:"json_Primaryroad_4", styleKey:"primaryroad" },
+    { type:"q2w", var:"json_secondaryroad_6", styleKey:"secondaryroad" },
+    { type:"q2w", var:"json_Tertiaryroad_7", styleKey:"tertiaryroad" },
+    { type:"q2w", var:"json_Unclassified_9", styleKey:"unclassified" },
   ]},
 
   transport: { type: "group", children: [
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:railway` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:busstop` },
-    { type:"wms", layers:`${GEOSERVER_WORKSPACE}:petrolstation` },
+    { type:"q2w", var:"json_railway_5", styleKey:"railway" },
+    { type:"q2w", var:"json_busstp_2", styleKey:"busstop" },
+    { type:"q2w", var:"json_Petrolstn_3", styleKey:"petrolstation" },
   ]},
 
   // --- Water ---
