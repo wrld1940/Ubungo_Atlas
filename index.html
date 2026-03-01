@@ -1194,6 +1194,8 @@ body.drawer-open #explore .content{
 </style>
 
 <link rel="stylesheet" href="q2w/styles/qgis2web.css">
+
+<script src="https://unpkg.com/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 </head>
 <body>
 <!-- ================= HOME ================= -->
@@ -1664,7 +1666,7 @@ const ubungoGeoJSON={"type":"FeatureCollection","features":[{"type":"Feature","p
 Cesium.GeoJsonDataSource.load(ubungoGeoJSON,{
   stroke: Cesium.Color.BLACK,
   fill: Cesium.Color.BLACK.withAlpha(0.10),
-  strokeWidth: 3
+  strokeWidth: 2
 }).then(ds=>{
   viewer.dataSources.add(ds);
   ds.entities.values.forEach(ent=>{
@@ -1730,6 +1732,142 @@ if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'E
 const map = L.map('map').setView([-6.79,39.25],12);
 
 window.map = map;
+// =========================
+// Raster value popup (exact pixel value)
+// Note: "Exact value" requires a matching GeoTIFF (EPSG:3857) in /rasters/.
+// Tiles alone are just images; they don't store the original numeric values.
+// =========================
+const RASTER_QUERY = {
+  activeKey: null,
+  activeInfo: null,
+  tiff: null,
+  image: null,
+  bbox: null,
+  width: 0,
+  height: 0,
+  loading: false
+};
+
+// Map UI layer key -> GeoTIFF file (edit filenames if yours differ)
+const RASTER_INFO = {
+  rainfall: { tiff: "rasters/rainfall.tif", title: "Rainfall", units: "mm" },
+  airtemp:  { tiff: "rasters/airtemp.tif",  title: "Air Temperature", units: "°C" },
+  lst:      { tiff: "rasters/lst.tif",      title: "Land Surface Temperature", units: "°C" },
+  ndvi:     { tiff: "rasters/ndvi.tif",     title: "NDVI", units: "" },
+  slope:    { tiff: "rasters/slope.tif",    title: "Slope", units: "degrees" },
+  aspect:   { tiff: "rasters/aspect.tif",   title: "Aspect", units: "degrees" },
+  hillshade:{ tiff: "rasters/hillshade.tif",title: "Hillshade", units: "" },
+  landcover:{ tiff: "rasters/landcover.tif",title: "Landcover", units: "" },
+  lcchange: { tiff: "rasters/lcchange.tif", title: "Landcover Change", units: "" },
+  landuse:  { tiff: "rasters/landuse.tif",  title: "Land Use", units: "" },
+  contours: { tiff: "rasters/contours.tif", title: "Contours", units: "m" },
+  topo:     { tiff: "rasters/topo.tif",     title: "Topographic", units: "" },
+  popdist:  { tiff: "rasters/popdist.tif",  title: "Population Distribution", units: "" },
+  popdens:  { tiff: "rasters/popdens.tif",  title: "Population Density", units: "people/km²" },
+};
+
+async function setActiveRasterForKey(key){
+  const info = RASTER_INFO[key] || null;
+  RASTER_QUERY.activeKey = key;
+  RASTER_QUERY.activeInfo = info;
+
+  if(!info){
+    RASTER_QUERY.tiff = null;
+    RASTER_QUERY.image = null;
+    RASTER_QUERY.bbox = null;
+    return;
+  }
+
+  if(RASTER_QUERY.image && RASTER_QUERY.activeInfo && RASTER_QUERY.activeInfo.tiff === info.tiff){
+    return;
+  }
+
+  if(!window.GeoTIFF){
+    toast("GeoTIFF library missing (cannot query raster values)", "error", 2600);
+    return;
+  }
+
+  RASTER_QUERY.loading = true;
+  toast("Preparing raster values…", "info", 1200);
+
+  try{
+    const url = info.tiff + (info.tiff.includes("?") ? "&" : "?") + "v=" + Date.now();
+    const tiff = await GeoTIFF.fromUrl(url);
+    const image = await tiff.getImage();
+
+    RASTER_QUERY.tiff = tiff;
+    RASTER_QUERY.image = image;
+    RASTER_QUERY.bbox = image.getBoundingBox();
+    RASTER_QUERY.width = image.getWidth();
+    RASTER_QUERY.height = image.getHeight();
+  }catch(err){
+    console.warn("Failed to load GeoTIFF:", info.tiff, err);
+    RASTER_QUERY.tiff = null;
+    RASTER_QUERY.image = null;
+    RASTER_QUERY.bbox = null;
+    toast("Exact value needs GeoTIFF in /rasters/ (EPSG:3857). Upload the GeoTIFF for this layer.", "error", 3800);
+  }finally{
+    RASTER_QUERY.loading = false;
+  }
+}
+
+function formatRasterValue(v){
+  if(v === null || v === undefined || Number.isNaN(v)) return "No data";
+  const k = RASTER_QUERY.activeKey || "";
+  const n = Number(v);
+  if(k === "ndvi" && Number.isFinite(n)) return n.toFixed(3);
+  if(Number.isFinite(n) && Math.abs(n - Math.round(n)) < 1e-6) return String(Math.round(n));
+  return Number.isFinite(n) ? n.toFixed(3) : String(v);
+}
+
+map.on("click", async (e) => {
+  if(!RASTER_QUERY.activeInfo || !RASTER_QUERY.image || !RASTER_QUERY.bbox) return;
+  if(RASTER_QUERY.loading) return;
+
+  try{
+    const p = L.CRS.EPSG3857.project(e.latlng);
+    const x = p.x;
+    const y = p.y;
+
+    const [minX, minY, maxX, maxY] = RASTER_QUERY.bbox;
+    if(x < minX || x > maxX || y < minY || y > maxY) return;
+
+    const xRatio = (x - minX) / (maxX - minX);
+    const yRatio = (maxY - y) / (maxY - minY);
+
+    const px = Math.floor(xRatio * RASTER_QUERY.width);
+    const py = Math.floor(yRatio * RASTER_QUERY.height);
+
+    const rasters = await RASTER_QUERY.image.readRasters({ window: [px, py, px + 1, py + 1] });
+    const rawVal = rasters && rasters[0] ? rasters[0][0] : null;
+
+    const label = (RASTER_QUERY.activeInfo.title || RASTER_QUERY.activeKey || "Raster");
+    const units = (RASTER_QUERY.activeInfo.units || "");
+    const valText = formatRasterValue(rawVal);
+
+    const popupHtml = `
+      <div style="min-width:220px">
+        <div style="font-weight:900; margin-bottom:6px">${label}</div>
+        <div style="font-size:12px; opacity:.85; margin-bottom:6px">
+          Lon: ${e.latlng.lng.toFixed(6)}<br>
+          Lat: ${e.latlng.lat.toFixed(6)}
+        </div>
+        <div style="font-size:13px">
+          <b>Value:</b> ${valText}${units ? " " + units : ""}
+        </div>
+      </div>
+    `;
+
+    L.popup({ closeButton:true, autoPan:true, maxWidth: 340 })
+      .setLatLng(e.latlng)
+      .setContent(popupHtml)
+      .openOn(map);
+  }catch(err){
+    console.warn("Raster query failed:", err);
+  }
+});
+
+
 
 // =========================
 // UBUNGO BOUNDARY (DEFAULT)
@@ -1783,7 +1921,7 @@ async function loadUbungoBoundary(){
       ubungoLayer = L.geoJSON(gj, {
         style: {
           color: '#000000',
-          weight: 3,
+          weight: 1.5,
           opacity: 1,
           fillOpacity: 0
         }
@@ -2851,27 +2989,27 @@ const LAYER_SOURCES = {
   ]},
 
   // --- Water ---
-  water:     { type: "wms", layers: `${GEOSERVER_WORKSPACE}:water_supply_network` },
-  boreholes: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:boreholes` },
+  water:  { type: "tile", url: "tiles/water/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/water.tif", title: "Water Supply Network", units: null } },
+  boreholes:  { type: "tile", url: "tiles/boreholes/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/boreholes.tif", title: "Boreholes", units: null } },
 
   // --- Environment / raster thematic maps ---
-  landcover: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landcover_map` },
-  lcchange:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landcover_change_map` },
-  landuse:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:landuse_map` },
+  landcover:  { type: "tile", url: "tiles/landcover/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landcover.tif", title: "Landcover Map", units: null } },
+  lcchange:  { type: "tile", url: "tiles/lcchange/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/lcchange.tif", title: "Landcover Change Map", units: null } },
+  landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
-  rainfall:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:rainfall_map` },
-  airtemp:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:air_temperature_map` },
-  lst:       { type: "wms", layers: `${GEOSERVER_WORKSPACE}:lst_map` },
-  ndvi:      { type: "wms", layers: `${GEOSERVER_WORKSPACE}:ndvi_map` },
+  rainfall:  { type: "tile", url: "tiles/rainfall/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/rainfall.tif", title: "Rainfall Map", units: "mm" } },
+  airtemp:  { type: "tile", url: "tiles/airtemp/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/airtemp.tif", title: "Air Temperature Map", units: "\u00b0C" } },
+  lst:  { type: "tile", url: "tiles/lst/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/lst.tif", title: "Land Surface Temperature Map", units: "\u00b0C" } },
+  ndvi:  { type: "tile", url: "tiles/ndvi/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/ndvi.tif", title: "NDVI", units: null } },
 
-  slope:     { type: "wms", layers: `${GEOSERVER_WORKSPACE}:slope_map` },
-  aspect:    { type: "wms", layers: `${GEOSERVER_WORKSPACE}:aspect_map` },
-  hillshade: { type: "wms", layers: `${GEOSERVER_WORKSPACE}:hillshade_map` },
-  contours:  { type: "wms", layers: `${GEOSERVER_WORKSPACE}:contours_map` },
-  topo:      { type: "wms", layers: `${GEOSERVER_WORKSPACE}:topographic_map` },
+  slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
+  aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
+  hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
+  contours:  { type: "tile", url: "tiles/contours/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/contours.tif", title: "Contours Map", units: "m" } },
+  topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
 
-  popdist:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:population_distribution` },
-  popdens:   { type: "wms", layers: `${GEOSERVER_WORKSPACE}:population_density` },
+  popdist:  { type: "tile", url: "tiles/popdist/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdist.tif", title: "Population Distribution", units: null } },
+  popdens:  { type: "tile", url: "tiles/popdens/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdens.tif", title: "Population Density", units: "people/km\u00b2" } },
 };
 
 
@@ -3172,7 +3310,19 @@ if(def.type === "q2w"){
   });
 }
 
-  // WMS (GeoServer) tile layer
+  
+  // XYZ tile layer (local tiles folder)
+  if(def.type === "tile"){
+    if(!def.url) throw new Error('Missing "url" for tile definition');
+    return L.tileLayer(def.url, {
+      minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
+      maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+      opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
+      crossOrigin: true
+    });
+  }
+
+// WMS (GeoServer) tile layer
   if(def.type === "wms"){
     if(!def.layers) throw new Error('Missing "layers" for WMS definition');
     return L.tileLayer.wms(GEOSERVER_WMS_URL, {
@@ -3358,6 +3508,9 @@ async function addLayer(type){
     // Selected layer becomes the last turned on
     showMap();
     setSelectedLayer(type);
+
+    // Enable raster value query (if this key has a GeoTIFF configured)
+    try{ await setActiveRasterForKey(type); }catch(e){}
 
     toast('Layer ON', 'success', 1200);
     return lyr;
@@ -4591,6 +4744,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }catch(e){}
         try{ setSelectedLayer(key); }catch(e){}
+        try{ setActiveRasterForKey(key); }catch(e){}
       }
     });
   });
