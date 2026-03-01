@@ -1,6 +1,0 @@
-FROM kartoza/geoserver:2.23.2
-
-ENV GEOSERVER_ADMIN_USER=admin
-ENV GEOSERVER_ADMIN_PASSWORD=geoserver
-
-EXPOSE 8080
