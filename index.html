@@ -1198,6 +1198,11 @@
 /* Raster filter: readable black text */
 #rasterFilterPanel, #rasterFilterPanel * { color: #000 !important; }
 #rasterFilterPanel select, #rasterFilterPanel option { color: #000 !important; }
+
+  /* Raster filter panel: force readable (black) text */
+  .filterPanel, .filterPanel * { color:#000 !important; }
+  .filterPanel select, .filterPanel option { color:#000 !important; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1325,168 +1330,7 @@ body.drawer-open #explore .content{
 </div>
 
 <div class="layers-group" id="layersGroup">
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="landcover" aria-label="Toggle Landcover Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="landcover">Landcover Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="changeDetection" aria-label="Toggle Change Detection">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="changeDetection">Change Detection</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="police" aria-label="Toggle Police Stations Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="police">Police Stations Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="health" aria-label="Toggle Public Health Centres Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="health">Public Health Centres Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="primary" aria-label="Toggle Public Primary Schools Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="primary">Public Primary Schools Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="secondary" aria-label="Toggle Public Secondary Schools Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="secondary">Public Secondary Schools Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="roads" aria-label="Toggle Road Network Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="roads">Road Network Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="transport" aria-label="Toggle Transport Network Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="transport">Transport Network Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="water" aria-label="Toggle Water Supply Network">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="water">Water Supply Network</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="boreholes" aria-label="Toggle Borehole Map &amp; Service Areas">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="boreholes">Borehole Map &amp; Service Areas</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="popdist" aria-label="Toggle Population Distribution">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="popdist">Population Distribution</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="popdens" aria-label="Toggle Population Density Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="popdens">Population Density Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="slope" aria-label="Toggle Slope Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="slope">Slope Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="aspect" aria-label="Toggle Aspect Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="aspect">Aspect Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="hillshade" aria-label="Toggle Hillshade Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="hillshade">Hillshade Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="contours" aria-label="Toggle Contours Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="contours">Contours Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="topo" aria-label="Toggle Topographic Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="topo">Topographic Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="lcchange" aria-label="Toggle Landcover Change Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="lcchange">Landcover Change Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="landuse" aria-label="Toggle Land Use Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="landuse">Land Use Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="rainfall" aria-label="Toggle Rainfall Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="rainfall">Rainfall Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="airtemp" aria-label="Toggle Air Temperature Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="airtemp">Air Temperature Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="lst" aria-label="Toggle Land Surface Temperature Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="lst">Land Surface Temperature Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="ndvi" aria-label="Toggle Normalized Difference Vegetation Index (NDVI)">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="ndvi">Normalized Difference Vegetation Index (NDVI)</button>
-  </div>
-</div>
+  
 <div style="height:10px"></div>
 <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
 
@@ -1817,6 +1661,7 @@ function getRasterInfoForKey(key){
       tiff: src.raster.tiff,
       title: src.raster.title || key,
       units: src.raster.units ?? null,
+      valueLabels: src.raster.valueLabels || null,
       tiffFallbacks: src.raster.tiffFallbacks || null
     };
   }
@@ -1879,13 +1724,38 @@ async function setActiveRasterForKey(key){
   }
 }
 
+function formatRasterClass(v){
+  if(v === null || v === undefined || Number.isNaN(v)) return "";
+  const n = Number(v);
+  return Number.isFinite(n) ? String(Math.round(n)) : String(v);
+}
+
 function formatRasterValue(v){
   if(v === null || v === undefined || Number.isNaN(v)) return "No data";
-  const k = RASTER_QUERY.activeKey || "";
+
+  const info = RASTER_QUERY.activeInfo || {};
+  const labels = info.valueLabels || null;
+
+  // categorical rasters (Landcover / Change Detection)
+  if(labels){
+    const iv = Number(v);
+    const k = Number.isFinite(iv) ? Math.round(iv) : null;
+    if(k !== null && Object.prototype.hasOwnProperty.call(labels, k)){
+      return String(labels[k]);
+    }
+    // fallback: show the class value if not found
+    return Number.isFinite(iv) ? String(Math.round(iv)) : String(v);
+  }
+
+  // continuous rasters
   const n = Number(v);
-  if(k === "ndvi" && Number.isFinite(n)) return n.toFixed(3);
-  if(Number.isFinite(n) && Math.abs(n - Math.round(n)) < 1e-6) return String(Math.round(n));
-  return Number.isFinite(n) ? n.toFixed(3) : String(v);
+  if(!Number.isFinite(n)) return String(v);
+
+  const key = (RASTER_QUERY.activeKey || "").toLowerCase();
+  if(key === "ndvi") return n.toFixed(3);
+  // temperatures & rainfall: show 2 decimals for nicer display
+  if(key === "airtemp" || key === "lst" || key === "rainfall") return n.toFixed(2);
+  return n.toFixed(3);
 }
 
 map.on("click", async (e) => {
@@ -1921,7 +1791,7 @@ map.on("click", async (e) => {
           Lat: ${e.latlng.lat.toFixed(6)}
         </div>
         <div style="font-size:13px">
-          <b>Value:</b> ${valText}${units ? " " + units : ""}
+          <b>Value:</b> ${valText}${(RASTER_QUERY.activeInfo && RASTER_QUERY.activeInfo.valueLabels) ? ` <span style="opacity:.7">(class ${formatRasterClass(rawVal)})</span>` : (units ? " " + units : "")}
         </div>
       </div>
     `;
@@ -2267,17 +2137,6 @@ const layerMetadata = {
     Notes: "Landcover classification for Ubungo District.",
     spatial_resolution: "10 m"
   },
-  landcover_change_map: {
-    Theme: "Landcover change",
-    Source: "Sentinel-2",
-    Date: "2020–2025",
-    CRS: "WGS 84 (EPSG:4326)",
-    Format: "Raster",
-    Notes: "Shows changes between 2020 and 2025.",
-    spatial_resolution: "10 m",
-    temporal_resolution: "Event-based (multi-year comparison)"
-  },
-
   // =========================
   // Transport / Roads
   // =========================
@@ -2812,6 +2671,24 @@ if(showCoordsChk){
 
 // Layer legends (simple, auto-built). Add/adjust labels here if needed.
 const LEGEND_CONFIG = {
+  landcover: [
+    { type:'fill', label:'Water (1)', fill:'#2f66ff' },
+    { type:'fill', label:'Vegetation (2)', fill:'#2b8a3e' },
+    { type:'fill', label:'Bareland (3)', fill:'#f6f28a' },
+    { type:'fill', label:'Builtup (4)', fill:'#b11a2b' },
+  ],
+  changeDetection: [
+    { type:'line', label:'0 Water', color:'#6c757d', weight:8 },
+    { type:'line', label:'1 Water→Bareland', color:'#6c757d', weight:8 },
+    { type:'line', label:'3 Water→Builtup', color:'#6c757d', weight:8 },
+    { type:'line', label:'5 Vegetation', color:'#6c757d', weight:8 },
+    { type:'line', label:'6 Vegetation→Bareland', color:'#6c757d', weight:8 },
+    { type:'line', label:'7 Vegetation→Builtup', color:'#6c757d', weight:8 },
+    { type:'line', label:'9 Bareland→Vegetation', color:'#6c757d', weight:8 },
+    { type:'line', label:'10 Bareland', color:'#6c757d', weight:8 },
+    { type:'line', label:'11 Bareland→Builtup', color:'#6c757d', weight:8 },
+    { type:'line', label:'15 Builtup', color:'#6c757d', weight:8 },
+  ],
   ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
   // Roads
   trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
@@ -2843,8 +2720,16 @@ function legendItemHTML(item){
         <span class="legend-text">${safeLabel}</span>
       </div>`;
   }
-  // line/polygon swatch
+  // line/polygon/fill swatch
   const c = item.color || '#ff0000';
+  if(item.fill){
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:${item.fill}; border:1px solid rgba(0,0,0,.25);"></span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+
   const w = item.weight || 3;
   const dash = item.dash ? `border-style:dashed; border-width:${Math.max(2, w)}px;` : `border-width:${Math.max(2, w)}px;`;
   return `
@@ -3046,9 +2931,7 @@ const LAYER_SOURCES = {
   boreholes:  { type: "tile", url: "tiles/boreholes/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/boreholes.tif", title: "Boreholes", units: null } },
 
   // --- Environment / raster thematic maps ---
-  landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },
-  lcchange:  { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
-  changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
+  landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },  changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
   rainfall:  { type: "tile", url: "tiles/rainfall/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/rainfall.tif", title: "Rainfall Map", units: "mm" } },
@@ -3465,18 +3348,34 @@ const RASTER_SERIES = {
     title: "Landcover",
     years: [2017, 2021, 2025],
     tileFolder: (y) => `LULC${y}`,
-    tiffPath: (y) => `rasters/LULC${y}.tif`,
+    // Your GeoTIFF names (as uploaded): 2017-projected.tif, 2021-projected.tif, 2025-projected.tif
+    tiffPath: (y) => `rasters/${y}-projected.tif`,
     yearLabel: (y) => String(y),
     units: null,
-    tiffFallbacks: (y) => [`rasters/${y}-projected.tif`, `rasters/${y}-projected_3857.tif`]
+    // extra fallbacks just in case
+    tiffFallbacks: (y) => [`rasters/${y}-projected_3857.tif`],
+    valueLabels: { 1: "Water", 2: "Vegetation", 3: "Bareland", 4: "Builtup" }
   },
   changeDetection: {
     title: "Change Detection",
     years: [2021, 2025],
     tileFolder: (y) => `Change_detection${y}`,
-    tiffPath: (y) => `rasters/Change_Detection${y}.tif`,
+    // Your GeoTIFF names (as uploaded): "Change Detection_2021.tif", "Change Detection_2025.tif"
+    tiffPath: (y) => `rasters/Change Detection_${y}.tif`,
     yearLabel: (y) => (y === 2021 ? "2017→2021" : (y === 2025 ? "2021→2025" : String(y))),
-    units: null
+    units: null,
+    valueLabels: {
+      0: "Water",
+      1: "Water→Bareland",
+      3: "Water→Builtup",
+      5: "Vegetation",
+      6: "Vegetation→Bareland",
+      7: "Vegetation→Builtup",
+      9: "Bareland→Vegetation",
+      10: "Bareland",
+      11: "Bareland→Builtup",
+      15: "Builtup"
+    }
   }
 };
 window.RASTER_SERIES = RASTER_SERIES;
@@ -3515,6 +3414,9 @@ function applyRasterSelection(datasetKey, year){
     const yLabel = (typeof cfg.yearLabel === "function") ? cfg.yearLabel(y) : String(y);
     LAYER_SOURCES[datasetKey].raster.title = `${cfg.title} ${yLabel}`;
     LAYER_SOURCES[datasetKey].raster.units = cfg.units;
+    // pass categorical labels (if any)
+    if(cfg.valueLabels){ LAYER_SOURCES[datasetKey].raster.valueLabels = cfg.valueLabels; }
+    else { delete LAYER_SOURCES[datasetKey].raster.valueLabels; }
   }
   // Update display title
   if(LAYER_TITLES[datasetKey]){
