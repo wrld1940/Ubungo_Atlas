@@ -1324,7 +1324,111 @@ body.drawer-open #explore .content{
   <div class="rf-hint" id="rfHint">Choose a year to switch the raster layer.</div>
 </div>
 
-<div class="layers-group" id="layersGroup"><div class="layer-item">
+<div class="layers-group" id="layersGroup">
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="landcover" aria-label="Toggle Landcover Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="landcover">Landcover Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="changeDetection" aria-label="Toggle Change Detection">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="changeDetection">Change Detection</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="police" aria-label="Toggle Police Stations Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="police">Police Stations Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="health" aria-label="Toggle Public Health Centres Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="health">Public Health Centres Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="primary" aria-label="Toggle Public Primary Schools Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="primary">Public Primary Schools Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="secondary" aria-label="Toggle Public Secondary Schools Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="secondary">Public Secondary Schools Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="roads" aria-label="Toggle Road Network Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="roads">Road Network Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="transport" aria-label="Toggle Transport Network Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="transport">Transport Network Map</button>
+  </div><div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="popdist" aria-label="Toggle Population Distribution">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="popdist">Population Distribution</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="popdens" aria-label="Toggle Population Density Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="popdens">Population Density Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="slope" aria-label="Toggle Slope Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="slope">Slope Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="aspect" aria-label="Toggle Aspect Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="aspect">Aspect Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="hillshade" aria-label="Toggle Hillshade Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="hillshade">Hillshade Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="contours" aria-label="Toggle Contours Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="contours">Contours Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="topo" aria-label="Toggle Topographic Map">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="topo">Topographic Map</button>
+  </div><div class="layer-item">
     <label class="layer-switch" title="Toggle layer on/off">
       <input type="checkbox" class="layer-toggle" data-layer="landuse" aria-label="Toggle Land Use Map">
       <span class="layer-slider"></span>
@@ -1756,34 +1860,6 @@ function formatRasterValue(v){
   if(v === null || v === undefined || Number.isNaN(v)) return "No data";
   const k = RASTER_QUERY.activeKey || "";
   const n = Number(v);
-
-  // Categorical rasters: show label + code
-  if(Number.isFinite(n) && (k === "landcover" || k === "changeDetection")){
-    const code = Math.round(n);
-    if(k === "landcover"){
-      const map = {1:"Water",2:"Vegetation",3:"Bareland",4:"Builtup"};
-      const lab = map[code];
-      return lab ? `${lab} (${code})` : String(code);
-    }
-    if(k === "changeDetection"){
-      const map = {
-        0:"Water",
-        1:"Water→Bareland",
-        3:"Water→Builtup",
-        5:"Vegetation",
-        6:"Vegetation→Bareland",
-        7:"Vegetation→Builtup",
-        9:"Bareland→Vegetation",
-        10:"Bareland→Builtup",
-        11:"Builtup→Builtup",
-        15:"Builtup"
-      };
-      const lab = map[code];
-      return lab ? `${lab} (${code})` : String(code);
-    }
-  }
-
-  // Continuous rasters
   if(k === "ndvi" && Number.isFinite(n)) return n.toFixed(3);
   if(Number.isFinite(n) && Math.abs(n - Math.round(n)) < 1e-6) return String(Math.round(n));
   return Number.isFinite(n) ? n.toFixed(3) : String(v);
@@ -1878,7 +1954,7 @@ async function loadUbungoBoundary(){
       ubungoLayer = L.geoJSON(gj, {
         style: {
           color: '#000000',
-          weight: 1.2,
+          weight: 1.5,
           opacity: 1,
           fillOpacity: 0
         }
@@ -2715,25 +2791,6 @@ if(showCoordsChk){
 const LEGEND_CONFIG = {
   ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
 
-  // Categorical rasters
-  landcover: [
-    { type:'fill', label:'1  Water', color:'#2f5bff' },
-    { type:'fill', label:'2  Vegetation', color:'#2e7d32' },
-    { type:'fill', label:'3  Bareland', color:'#f7f59a' },
-    { type:'fill', label:'4  Builtup', color:'#b71c1c' }
-  ],
-  changeDetection: [
-    { type:'text', label:'0  Water' },
-    { type:'text', label:'1  Water → Bareland' },
-    { type:'text', label:'3  Water → Builtup' },
-    { type:'text', label:'5  Vegetation' },
-    { type:'text', label:'6  Vegetation → Bareland' },
-    { type:'text', label:'7  Vegetation → Builtup' },
-    { type:'text', label:'9  Bareland → Vegetation' },
-    { type:'text', label:'10 Bareland → Builtup' },
-    { type:'text', label:'11 Builtup → Builtup' },
-    { type:'text', label:'15 Builtup' }
-  ],
   // Roads
   trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
   primary_rd: [{ type:'line', label:'Primary road', color:'#ff0000', weight:3 }],
@@ -2751,30 +2808,39 @@ const LEGEND_CONFIG = {
   bus_stop: [{ type:'icon', label:'Bus stop', iconKey:'bus_stop' }],
   primary_schools: [{ type:'icon', label:'Primary school', iconKey:'primary_schools' }],
   secondary_school: [{ type:'icon', label:'Secondary school', iconKey:'secondary_school' }],
+
+  // Raster categorical legends (manual)
+  landcover: [
+    { type:'box', label:'1  Water',      color:'#2F5BFF' },
+    { type:'box', label:'2  Vegetation', color:'#2E8B2D' },
+    { type:'box', label:'3  Bareland',   color:'#FFF59D' },
+    { type:'box', label:'4  Builtup',    color:'#B71C1C' }
+  ],
+
+  // Change detection (class labels)
+  changeDetection: [
+    { type:'box', label:'0   Water',                 color:'#C9D1D9' },
+    { type:'box', label:'1   Water → Bareland',      color:'#C9D1D9' },
+    { type:'box', label:'3   Water → Builtup',       color:'#C9D1D9' },
+    { type:'box', label:'5   Vegetation',            color:'#C9D1D9' },
+    { type:'box', label:'6   Vegetation → Bareland', color:'#C9D1D9' },
+    { type:'box', label:'7   Vegetation → Builtup',  color:'#C9D1D9' },
+    { type:'box', label:'9   Bareland → Vegetation', color:'#C9D1D9' },
+    { type:'box', label:'10  Bareland',              color:'#C9D1D9' },
+    { type:'box', label:'11  Bareland → Builtup',    color:'#C9D1D9' },
+    { type:'box', label:'15  Builtup',               color:'#C9D1D9' }
+  ],
+
+  // For continuous rasters, don't show misleading 1–4 legends here.
+  // (WMS legends can be inconsistent depending on server styles; this forces a clean title-only legend.)
+  rainfall: [],
+  airtemp: [],
+  lst: [],
+  ndvi: [],
 };
 
 function legendItemHTML(item){
   const safeLabel = item.label || 'Item';
-
-  // Filled swatch (categorical raster legend)
-  if(item.type === 'fill'){
-    const c = item.color || '#888';
-    return `
-      <div class="legend-row">
-        <span class="legend-swatch" style="background:${c}; border:1px solid rgba(255,255,255,0.25);"></span>
-        <span class="legend-text">${safeLabel}</span>
-      </div>`;
-  }
-
-  // Text-only legend row (no swatch)
-  if(item.type === 'text'){
-    return `
-      <div class="legend-row">
-        <span class="legend-swatch" style="border:none;background:transparent"></span>
-        <span class="legend-text">${safeLabel}</span>
-      </div>`;
-  }
-
   if(item.type === 'icon'){
     const icon = (SVG_ICONS && SVG_ICONS[item.iconKey]) ? SVG_ICONS[item.iconKey] : null;
     const svg = icon ? icon.options.html : '';
@@ -2784,6 +2850,17 @@ function legendItemHTML(item){
         <span class="legend-text">${safeLabel}</span>
       </div>`;
   }
+
+  // filled box swatch (categorical rasters)
+  if(item.type === 'box'){
+    const c = item.color || '#999999';
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:${c}; border-color: rgba(255,255,255,0.22); border-width:1px;"></span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+
   // line/polygon swatch
   const c = item.color || '#ff0000';
   const w = item.weight || 3;
@@ -2983,11 +3060,12 @@ const LAYER_SOURCES = {
   ]},
 
   // --- Water ---
-
+  water:  { type: "tile", url: "tiles/water/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/water.tif", title: "Water Supply Network", units: null } },
+  boreholes:  { type: "tile", url: "tiles/boreholes/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/boreholes.tif", title: "Boreholes", units: null } },
 
   // --- Environment / raster thematic maps ---
   landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },
-
+  lcchange:  { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
@@ -3546,7 +3624,8 @@ function hideRasterFilter(){
 const sampleLayers = {
   // Keep placeholders for layers you haven't uploaded yet
   landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
-
+  water:      demoCircle('Water Supply Network', -6.79, 39.25, 2100),
+  boreholes:  demoCircle('Borehole Map & Service Areas', -6.79, 39.25, 2100),
   popdist:    demoCircle('Population Distribution', -6.79, 39.25, 2600),
   popdens:    demoCircle('Population Density Map', -6.79, 39.25, 2600),
   slope:      demoCircle('Slope Map', -6.79, 39.25, 2300),
