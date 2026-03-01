@@ -1194,6 +1194,10 @@
   .raster-filter .rf-hint{font-size:12px;opacity:.75;margin-top:6px}
   .raster-filter .rf-close{padding:6px 10px;border-radius:12px}
 
+
+/* Raster filter: readable black text */
+#rasterFilterPanel, #rasterFilterPanel * { color: #000 !important; }
+#rasterFilterPanel select, #rasterFilterPanel option { color: #000 !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1327,6 +1331,13 @@ body.drawer-open #explore .content{
       <span class="layer-slider"></span>
     </label>
     <button class="layer-btn" type="button" data-layer="landcover">Landcover Map</button>
+  </div>
+  <div class="layer-item">
+    <label class="layer-switch" title="Toggle layer on/off">
+      <input type="checkbox" class="layer-toggle" data-layer="changeDetection" aria-label="Toggle Change Detection">
+      <span class="layer-slider"></span>
+    </label>
+    <button class="layer-btn" type="button" data-layer="changeDetection">Change Detection</button>
   </div>
   <div class="layer-item">
     <label class="layer-switch" title="Toggle layer on/off">
@@ -1791,26 +1802,30 @@ const RASTER_QUERY = {
   loading: false
 };
 
-// Map UI layer key -> GeoTIFF file (edit filenames if yours differ)
+// Raster info helper: prefer current LAYER_SOURCES[key].raster (supports time filters)
 const RASTER_INFO = {
-  rainfall: { tiff: "rasters/rainfall.tif", title: "Rainfall", units: "mm" },
-  airtemp:  { tiff: "rasters/airtemp.tif",  title: "Air Temperature", units: "°C" },
-  lst:      { tiff: "rasters/lst.tif",      title: "Land Surface Temperature", units: "°C" },
-  ndvi:     { tiff: "rasters/ndvi.tif",     title: "NDVI", units: "" },
+  // Fallbacks (used only if a layer has no raster definition)
   slope:    { tiff: "rasters/slope.tif",    title: "Slope", units: "degrees" },
   aspect:   { tiff: "rasters/aspect.tif",   title: "Aspect", units: "degrees" },
-  hillshade:{ tiff: "rasters/hillshade.tif",title: "Hillshade", units: "" },
-  landcover:{ tiff: "rasters/landcover.tif",title: "Landcover", units: "" },
-  lcchange: { tiff: "rasters/lcchange.tif", title: "Landcover Change", units: "" },
-  landuse:  { tiff: "rasters/landuse.tif",  title: "Land Use", units: "" },
-  contours: { tiff: "rasters/contours.tif", title: "Contours", units: "m" },
-  topo:     { tiff: "rasters/topo.tif",     title: "Topographic", units: "" },
-  popdist:  { tiff: "rasters/popdist.tif",  title: "Population Distribution", units: "" },
-  popdens:  { tiff: "rasters/popdens.tif",  title: "Population Density", units: "people/km²" },
+  hillshade:{ tiff: "rasters/hillshade.tif",title: "Hillshade", units: null }
 };
 
+function getRasterInfoForKey(key){
+  const src = (window.LAYER_SOURCES || LAYER_SOURCES || {})[key];
+  if(src && src.raster && src.raster.tiff){
+    return {
+      tiff: src.raster.tiff,
+      title: src.raster.title || key,
+      units: src.raster.units ?? null,
+      tiffFallbacks: src.raster.tiffFallbacks || null
+    };
+  }
+  return RASTER_INFO[key] || null;
+}
+
+
 async function setActiveRasterForKey(key){
-  const info = RASTER_INFO[key] || null;
+  const info = getRasterInfoForKey(key) || null;
   RASTER_QUERY.activeKey = key;
   RASTER_QUERY.activeInfo = info;
 
@@ -1834,8 +1849,18 @@ async function setActiveRasterForKey(key){
   toast("Preparing raster values…", "info", 1200);
 
   try{
-    const url = info.tiff + (info.tiff.includes("?") ? "&" : "?") + "v=" + Date.now();
-    const tiff = await GeoTIFF.fromUrl(url);
+    const candidates = [info.tiff].concat(Array.isArray(info.tiffFallbacks) ? info.tiffFallbacks : []);
+    let tiff = null;
+    let lastErr = null;
+    for(const cand of candidates){
+      try{
+        const url = cand + (cand.includes("?") ? "&" : "?") + "v=" + Date.now();
+        tiff = await GeoTIFF.fromUrl(url);
+        if(RASTER_QUERY.activeInfo) RASTER_QUERY.activeInfo.tiff = cand;
+        break;
+      }catch(e){ lastErr = e; }
+    }
+    if(!tiff){ throw (lastErr || new Error('Failed to load GeoTIFF')); }
     const image = await tiff.getImage();
 
     RASTER_QUERY.tiff = tiff;
@@ -1919,9 +1944,8 @@ const DEFAULT_VIEW = { center: [-6.79, 39.25], zoom: 12 };
 window.defaultBounds = null;
 window.ubungoBoundaryLayer = null;
 
-// Leaflet boundary layers (main + glow)
-let ubungoLayer = null;      // main outline (used by Borders toggle)
-let ubungoGlowLayer = null;  // soft glow underlay
+// Leaflet boundary layer (simple black outline)
+let ubungoLayer = null;      // outline (used by Borders toggle)
 
 function zoomOutDefault(){
   try{
@@ -1949,18 +1973,7 @@ async function loadUbungoBoundary(){
       const res = await fetch(url, { cache: 'no-store' });
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const gj = await res.json();
-
-      // Soft glow underlay (add first)
-      ubungoGlowLayer = L.geoJSON(gj, {
-        style: {
-          color: '#00ffff',
-          weight: 10,
-          opacity: 0.35,
-          fillOpacity: 0
-        }
-      }).addTo(map);
-
-      // Main sharp boundary (add second)
+// Main sharp boundary (add second)
       ubungoLayer = L.geoJSON(gj, {
         style: {
           color: '#000000',
@@ -2047,15 +2060,12 @@ function atlasApplyOverlays(){
     // Leaflet borders (Ubungo boundary on 2D map) + glow
     if(typeof map !== 'undefined'){
       const hasMain = (typeof ubungoLayer !== 'undefined' && ubungoLayer) ? map.hasLayer(ubungoLayer) : false;
-      const hasGlow = (typeof ubungoGlowLayer !== 'undefined' && ubungoGlowLayer) ? map.hasLayer(ubungoGlowLayer) : false;
 
       if(showBorders){
-        if(typeof ubungoGlowLayer !== 'undefined' && ubungoGlowLayer && !hasGlow) ubungoGlowLayer.addTo(map);
         if(typeof ubungoLayer !== 'undefined' && ubungoLayer && !hasMain) ubungoLayer.addTo(map);
         try{ if(ubungoLayer) ubungoLayer.bringToFront(); }catch(e){}
       }else{
         if(typeof ubungoLayer !== 'undefined' && ubungoLayer && hasMain) map.removeLayer(ubungoLayer);
-        if(typeof ubungoGlowLayer !== 'undefined' && ubungoGlowLayer && hasGlow) map.removeLayer(ubungoGlowLayer);
       }
     }
 // "OSM labels" on the 2D map -> Streets basemap
@@ -3036,8 +3046,9 @@ const LAYER_SOURCES = {
   boreholes:  { type: "tile", url: "tiles/boreholes/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/boreholes.tif", title: "Boreholes", units: null } },
 
   // --- Environment / raster thematic maps ---
-  landcover:  { type: "tile", url: "tiles/landcover/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landcover.tif", title: "Landcover Map", units: null } },
-  lcchange:  { type: "tile", url: "tiles/lcchange/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/lcchange.tif", title: "Landcover Change Map", units: null } },
+  landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },
+  lcchange:  { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
+  changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
   rainfall:  { type: "tile", url: "tiles/rainfall/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/rainfall.tif", title: "Rainfall Map", units: "mm" } },
@@ -3449,6 +3460,23 @@ const RASTER_SERIES = {
     tileFolder: (y) => `Airtemperature${y}`,
     tiffPath: (y) => `rasters/AirTemperature${y}.tif`,
     units: "°C"
+  },
+  landcover: {
+    title: "Landcover",
+    years: [2017, 2021, 2025],
+    tileFolder: (y) => `LULC${y}`,
+    tiffPath: (y) => `rasters/LULC${y}.tif`,
+    yearLabel: (y) => String(y),
+    units: null,
+    tiffFallbacks: (y) => [`rasters/${y}-projected.tif`, `rasters/${y}-projected_3857.tif`]
+  },
+  changeDetection: {
+    title: "Change Detection",
+    years: [2021, 2025],
+    tileFolder: (y) => `Change_detection${y}`,
+    tiffPath: (y) => `rasters/Change_Detection${y}.tif`,
+    yearLabel: (y) => (y === 2021 ? "2017→2021" : (y === 2025 ? "2021→2025" : String(y))),
+    units: null
   }
 };
 window.RASTER_SERIES = RASTER_SERIES;
@@ -3458,7 +3486,9 @@ window.rasterYearSelection = window.rasterYearSelection || {
   ndvi: 2024,
   lst: 2024,
   rainfall: 2024,
-  airtemp: 2024
+  airtemp: 2024,
+  landcover: 2025,
+  changeDetection: 2025
 };
 
 function applyRasterSelection(datasetKey, year){
@@ -3477,7 +3507,13 @@ function applyRasterSelection(datasetKey, year){
     LAYER_SOURCES[datasetKey].maxZoom = 15;
     LAYER_SOURCES[datasetKey].raster = LAYER_SOURCES[datasetKey].raster || {};
     LAYER_SOURCES[datasetKey].raster.tiff = cfg.tiffPath(y);
-    LAYER_SOURCES[datasetKey].raster.title = `${cfg.title} ${y}`;
+    if(typeof cfg.tiffFallbacks === "function"){
+      LAYER_SOURCES[datasetKey].raster.tiffFallbacks = cfg.tiffFallbacks(y);
+    }else{
+      delete LAYER_SOURCES[datasetKey].raster.tiffFallbacks;
+    }
+    const yLabel = (typeof cfg.yearLabel === "function") ? cfg.yearLabel(y) : String(y);
+    LAYER_SOURCES[datasetKey].raster.title = `${cfg.title} ${yLabel}`;
     LAYER_SOURCES[datasetKey].raster.units = cfg.units;
   }
   // Update display title
@@ -3527,7 +3563,7 @@ function showRasterFilter(focusKey){
     cfg.years.forEach(y=>{
       const o=document.createElement('option');
       o.value=String(y);
-      o.textContent=String(y);
+      o.textContent = (typeof cfg.yearLabel === "function") ? cfg.yearLabel(Number(y)) : String(y);
       yearSel.appendChild(o);
     });
     yearSel.value = String(window.rasterYearSelection[k] ?? cfg.years[cfg.years.length-1]);
