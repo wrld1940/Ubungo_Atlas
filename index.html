@@ -1169,6 +1169,31 @@
   transform: translate(20px, -50%);
 }
 
+
+  /* Raster filter panel (time-series rasters) */
+  .raster-filter{
+    margin: 10px 0 12px;
+    padding: 10px 10px;
+    border-radius: 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.10);
+  }
+  .raster-filter .rf-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+  .raster-filter .rf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0}
+  .raster-filter label{font-size:12px;opacity:.85}
+  .raster-filter select{
+    flex:1;
+    max-width: 180px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: #eaf2ff;
+    outline: none;
+  }
+  .raster-filter .rf-hint{font-size:12px;opacity:.75;margin-top:6px}
+  .raster-filter .rf-close{padding:6px 10px;border-radius:12px}
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1277,7 +1302,25 @@ body.drawer-open #explore .content{
 <button class="secondary" id="sidebarSmaller" title="Make sidebar smaller" type="button">−</button>
 <button class="secondary" id="sidebarLarger" title="Make sidebar larger" type="button">+</button>
 </div>
-</div><div class="layers-group" id="layersGroup">
+</div>
+
+<div id="rasterFilterPanel" class="raster-filter" style="display:none" aria-label="Raster time filter">
+  <div class="rf-head">
+    <b id="rfTitle">Raster filter</b>
+    <button type="button" class="secondary rf-close" id="rfCloseBtn" title="Hide filter">✕</button>
+  </div>
+  <div class="rf-row">
+    <label for="rfDataset">Dataset</label>
+    <select id="rfDataset"></select>
+  </div>
+  <div class="rf-row">
+    <label for="rfYear">Year</label>
+    <select id="rfYear"></select>
+  </div>
+  <div class="rf-hint" id="rfHint">Choose a year to switch the raster layer.</div>
+</div>
+
+<div class="layers-group" id="layersGroup">
   <div class="layer-item">
     <label class="layer-switch" title="Toggle layer on/off">
       <input type="checkbox" class="layer-toggle" data-layer="landcover" aria-label="Toggle Landcover Map">
@@ -3375,6 +3418,155 @@ const LAYER_TITLES = {
   ndvi: 'Normalized Difference Vegetation Index (NDVI)'
 };
 
+// ==============================
+// Raster time-series filter setup
+// ==============================
+const RASTER_SERIES = {
+  ndvi: {
+    title: "NDVI",
+    years: [2022, 2023, 2024],
+    tileFolder: (y) => `NDVI${y}`,
+    tiffPath: (y) => `rasters/NDVI${y}.tif`,
+    units: null
+  },
+  lst: {
+    title: "LST",
+    years: [2000, 2005, 2010, 2015, 2019, 2024],
+    tileFolder: (y) => `LST${y}`,
+    tiffPath: (y) => `rasters/LST${y}.tif`,
+    units: "°C"
+  },
+  rainfall: {
+    title: "Rainfall",
+    years: [1994, 2000, 2005, 2010, 2015, 2019, 2024],
+    tileFolder: (y) => `Rainfall${y}`,
+    tiffPath: (y) => `rasters/Rainfall${y}.tif`,
+    units: "mm"
+  },
+  airtemp: {
+    title: "Air Temperature",
+    years: [1994, 2000, 2005, 2010, 2015, 2019, 2024],
+    tileFolder: (y) => `Airtemperature${y}`,
+    tiffPath: (y) => `rasters/AirTemperature${y}.tif`,
+    units: "°C"
+  }
+};
+window.RASTER_SERIES = RASTER_SERIES;
+
+// Current selected year per dataset
+window.rasterYearSelection = window.rasterYearSelection || {
+  ndvi: 2024,
+  lst: 2024,
+  rainfall: 2024,
+  airtemp: 2024
+};
+
+function applyRasterSelection(datasetKey, year){
+  const cfg = RASTER_SERIES[datasetKey];
+  if(!cfg) return;
+  const y = Number(year);
+  if(!cfg.years.includes(y)) return;
+
+  window.rasterYearSelection[datasetKey] = y;
+
+  // Update LAYER_SOURCES to point to the selected year's tiles + GeoTIFF
+  const folder = cfg.tileFolder(y);
+  if(LAYER_SOURCES[datasetKey] && LAYER_SOURCES[datasetKey].type === "tile"){
+    LAYER_SOURCES[datasetKey].url = `tiles/${folder}/{z}/{x}/{y}.png`;
+    LAYER_SOURCES[datasetKey].minZoom = 9;
+    LAYER_SOURCES[datasetKey].maxZoom = 15;
+    LAYER_SOURCES[datasetKey].raster = LAYER_SOURCES[datasetKey].raster || {};
+    LAYER_SOURCES[datasetKey].raster.tiff = cfg.tiffPath(y);
+    LAYER_SOURCES[datasetKey].raster.title = `${cfg.title} ${y}`;
+    LAYER_SOURCES[datasetKey].raster.units = cfg.units;
+  }
+  // Update display title
+  if(LAYER_TITLES[datasetKey]){
+    LAYER_TITLES[datasetKey] = `${cfg.title} ${y}`;
+  }
+}
+
+// Build the filter UI based on active raster series layers
+function getActiveSeriesKeys(){
+  const keys = Object.keys(RASTER_SERIES);
+  return keys.filter(k => !!(window.activeLayers && window.activeLayers[k]));
+}
+
+function showRasterFilter(focusKey){
+  const panel = document.getElementById('rasterFilterPanel');
+  const dsSel = document.getElementById('rfDataset');
+  const yearSel = document.getElementById('rfYear');
+  const titleEl = document.getElementById('rfTitle');
+  if(!panel || !dsSel || !yearSel) return;
+
+  const active = getActiveSeriesKeys();
+  if(active.length === 0){
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+
+  // Populate dataset dropdown with active series layers only
+  dsSel.innerHTML = "";
+  active.forEach(k=>{
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = (RASTER_SERIES[k]?.title || k);
+    dsSel.appendChild(opt);
+  });
+
+  const key = active.includes(focusKey) ? focusKey : active[0];
+  dsSel.value = key;
+  titleEl.textContent = "Raster filter";
+
+  // Populate years
+  function fillYears(k){
+    const cfg = RASTER_SERIES[k];
+    yearSel.innerHTML = "";
+    cfg.years.forEach(y=>{
+      const o=document.createElement('option');
+      o.value=String(y);
+      o.textContent=String(y);
+      yearSel.appendChild(o);
+    });
+    yearSel.value = String(window.rasterYearSelection[k] ?? cfg.years[cfg.years.length-1]);
+  }
+  fillYears(key);
+
+  dsSel.onchange = ()=>{
+    fillYears(dsSel.value);
+  };
+  yearSel.onchange = async ()=>{
+    const k = dsSel.value;
+    const y = Number(yearSel.value);
+    applyRasterSelection(k, y);
+
+    // If layer is ON, refresh it
+    if(window.activeLayers && window.activeLayers[k]){
+      const wasSelected = (window.activeLayerKey === k);
+      removeLayer(k);
+      await addLayer(k);
+      if(wasSelected) setSelectedLayer(k);
+    }
+  };
+}
+
+function hideRasterFilter(){
+  const panel = document.getElementById('rasterFilterPanel');
+  if(panel) panel.style.display = "none";
+}
+
+// Initialize defaults on load
+(function initRasterSeries(){
+  Object.keys(RASTER_SERIES).forEach(k=>{
+    const y = window.rasterYearSelection[k] ?? RASTER_SERIES[k].years[RASTER_SERIES[k].years.length-1];
+    applyRasterSelection(k, y);
+  });
+})();
+
+
+
 const sampleLayers = {
   // Keep placeholders for layers you haven't uploaded yet
   landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
@@ -4705,6 +4897,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const toggles = Array.from(group.querySelectorAll('.layer-toggle'));
   const buttons = Array.from(group.querySelectorAll('.layer-btn'));
+  const rfClose = document.getElementById('rfCloseBtn');
+  if(rfClose){ rfClose.addEventListener('click', hideRasterFilter); }
+
 
   // Switches: independent ON/OFF (multiple layers allowed)
   toggles.forEach(t => {
@@ -4712,11 +4907,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const key = t.dataset.layer;
       if(t.checked){
         showMap();
+        // If this is a time-series raster, ensure it points to the selected year before adding
+        if(window.RASTER_SERIES && window.RASTER_SERIES[key]){
+          applyRasterSelection(key, window.rasterYearSelection?.[key] ?? window.RASTER_SERIES[key].years[window.RASTER_SERIES[key].years.length-1]);
+        }
         await addLayer(key);
+        if(window.RASTER_SERIES && window.RASTER_SERIES[key]){
+          showRasterFilter(key);
+        }
         // keep it checked even if something else happens
         t.checked = true;
       } else {
         removeLayer(key);
+        // Update raster filter visibility
+        if(window.RASTER_SERIES && window.RASTER_SERIES[key]){
+          const active = getActiveSeriesKeys();
+          if(active.length) showRasterFilter(active[0]);
+          else hideRasterFilter();
+        }
       }
     });
   });
@@ -4745,6 +4953,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }catch(e){}
         try{ setSelectedLayer(key); }catch(e){}
         try{ setActiveRasterForKey(key); }catch(e){}
+        try{ if(window.RASTER_SERIES && window.RASTER_SERIES[key]) showRasterFilter(key); }catch(e){}
       }
     });
   });
