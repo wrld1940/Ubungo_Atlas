@@ -1326,40 +1326,148 @@ body.drawer-open #explore .content{
 
 <div class="layers-group" id="layersGroup">
 <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="landuse" aria-label="Toggle Land Use Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="landuse">Land Use Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="rainfall" aria-label="Toggle Rainfall Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="rainfall">Rainfall Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="airtemp" aria-label="Toggle Air Temperature Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="airtemp">Air Temperature Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="lst" aria-label="Toggle Land Surface Temperature Map">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="lst">Land Surface Temperature Map</button>
-  </div>
-  <div class="layer-item">
-    <label class="layer-switch" title="Toggle layer on/off">
-      <input type="checkbox" class="layer-toggle" data-layer="ndvi" aria-label="Toggle Normalized Difference Vegetation Index (NDVI)">
-      <span class="layer-slider"></span>
-    </label>
-    <button class="layer-btn" type="button" data-layer="ndvi">Normalized Difference Vegetation Index (NDVI)</button>
-  </div>
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Landcover Map" class="layer-toggle" data-layer="landcover" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="landcover" type="button">Landcover Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Change Detection" class="layer-toggle" data-layer="changeDetection" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="changeDetection" type="button">Change Detection</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Police Stations Map" class="layer-toggle" data-layer="police" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="police" type="button">Police Stations Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Public Health Centres Map" class="layer-toggle" data-layer="health" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="health" type="button">Public Health Centres Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Public Primary Schools Map" class="layer-toggle" data-layer="primary" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="primary" type="button">Public Primary Schools Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Public Secondary Schools Map" class="layer-toggle" data-layer="secondary" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="secondary" type="button">Public Secondary Schools Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Road Network Map" class="layer-toggle" data-layer="roads" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="roads" type="button">Road Network Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Transport Network Map" class="layer-toggle" data-layer="transport" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="transport" type="button">Transport Network Map</button>
+</div>
+
+
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Population Distribution" class="layer-toggle" data-layer="popdist" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="popdist" type="button">Population Distribution</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Population Density Map" class="layer-toggle" data-layer="popdens" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="popdens" type="button">Population Density Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Slope Map" class="layer-toggle" data-layer="slope" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="slope" type="button">Slope Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Aspect Map" class="layer-toggle" data-layer="aspect" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="aspect" type="button">Aspect Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Hillshade Map" class="layer-toggle" data-layer="hillshade" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="hillshade" type="button">Hillshade Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Contours Map" class="layer-toggle" data-layer="contours" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="contours" type="button">Contours Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Topographic Map" class="layer-toggle" data-layer="topo" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="topo" type="button">Topographic Map</button>
+</div>
+
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Land Use Map" class="layer-toggle" data-layer="landuse" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="landuse" type="button">Land Use Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Rainfall Map" class="layer-toggle" data-layer="rainfall" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="rainfall" type="button">Rainfall Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Air Temperature Map" class="layer-toggle" data-layer="airtemp" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="airtemp" type="button">Air Temperature Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Land Surface Temperature Map" class="layer-toggle" data-layer="lst" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="lst" type="button">Land Surface Temperature Map</button>
+</div>
+<div class="layer-item">
+<label class="layer-switch" title="Toggle layer on/off">
+<input aria-label="Toggle Normalized Difference Vegetation Index (NDVI)" class="layer-toggle" data-layer="ndvi" type="checkbox"/>
+<span class="layer-slider"></span>
+</label>
+<button class="layer-btn" data-layer="ndvi" type="button">Normalized Difference Vegetation Index (NDVI)</button>
+</div>
 </div>
 <div style="height:10px"></div>
 <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
@@ -1698,41 +1806,6 @@ function getRasterInfoForKey(key){
 }
 
 
-
-// Categorical value labels for specific rasters (so popups show the REAL class meaning)
-const RASTER_VALUE_LABELS = {
-  landcover: {
-    1: "Water",
-    2: "Vegetation",
-    3: "Bareland",
-    4: "Builtup"
-  },
-  changeDetection: {
-    0: "Water",
-    1: "Water→Bareland",
-    3: "Water→Builtup",
-    5: "nVegetation",
-    6: "Vegetation→Bareland",
-    7: "Vegetation→Builtup",
-    9: "Bareland→Vegetation",
-    10: "Bareland",
-    11: "Bareland→Builtup",
-    15: "Builtup→Builtup"
-  }
-};
-
-function getRasterValueLabel(layerKey, rawVal){
-  const k = (layerKey || "").trim();
-  const map = RASTER_VALUE_LABELS[k] || null;
-  if(!map) return null;
-  const n = Number(rawVal);
-  if(!Number.isFinite(n)) return null;
-  const i = Math.round(n);
-  if(Math.abs(n - i) > 1e-6) return null;
-  return map[i] || null;
-}
-
-
 async function setActiveRasterForKey(key){
   const info = getRasterInfoForKey(key) || null;
   RASTER_QUERY.activeKey = key;
@@ -1821,9 +1894,6 @@ map.on("click", async (e) => {
     const label = (RASTER_QUERY.activeInfo.title || RASTER_QUERY.activeKey || "Raster");
     const units = (RASTER_QUERY.activeInfo.units || "");
     const valText = formatRasterValue(rawVal);
-    const classLabel = getRasterValueLabel(RASTER_QUERY.activeKey, rawVal);
-    const valueLine = classLabel ? `${valText}${units ? " " + units : ""} <span style="opacity:.85">(${classLabel})</span>`
-                                 : `${valText}${units ? " " + units : ""}`;
 
     const popupHtml = `
       <div style="min-width:220px">
@@ -1833,15 +1903,17 @@ map.on("click", async (e) => {
           Lat: ${e.latlng.lat.toFixed(6)}
         </div>
         <div style="font-size:13px">
-          <b>Value:</b> ${valueLine}
+          <b>Value:</b> ${valText}${units ? " " + units : ""}
         </div>
       </div>
     `;
 
-    L.popup({ closeButton:true, autoPan:true, maxWidth: 340 })
+    const __pop = L.popup({ closeButton:true, autoPan:true, maxWidth: 340 })
       .setLatLng(e.latlng)
       .setContent(popupHtml)
       .openOn(map);
+    // Auto-close after 20 seconds
+    setTimeout(()=>{ try{ map.closePopup(__pop); }catch(e){} }, 20000);
   }catch(err){
     console.warn("Raster query failed:", err);
   }
@@ -2388,6 +2460,7 @@ const layerMetaAliases = {
   transport_network_map: "transport_network_map",
   water_supply: "water_supply_network",
   water_supply_network: "water_supply_network",
+  boreholes: "boreholes_map_service_areas",
   borehole: "boreholes_map_service_areas",
   boreholes_map_service_areas: "boreholes_map_service_areas",
 
@@ -2724,25 +2797,6 @@ if(showCoordsChk){
 // Layer legends (simple, auto-built). Add/adjust labels here if needed.
 const LEGEND_CONFIG = {
   ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
-  // Categorical rasters
-  landcover: [
-    { type:'box', value: 1, label:'Water', color:'#2f5bff' },
-    { type:'box', value: 2, label:'Vegetation', color:'#2e7d32' },
-    { type:'box', value: 3, label:'Bareland', color:'#fff59d' },
-    { type:'box', value: 4, label:'Builtup', color:'#b71c1c' },
-  ],
-  changeDetection: [
-    { type:'value', value: 0, label:'Water' },
-    { type:'value', value: 1, label:'Water→Bareland' },
-    { type:'value', value: 3, label:'Water→Builtup' },
-    { type:'value', value: 5, label:'nVegetation' },
-    { type:'value', value: 6, label:'Vegetation→Bareland' },
-    { type:'value', value: 7, label:'Vegetation→Builtup' },
-    { type:'value', value: 9, label:'Bareland→Vegetation' },
-    { type:'value', value: 10, label:'Bareland' },
-    { type:'value', value: 11, label:'Bareland→Builtup' },
-    { type:'value', value: 15, label:'Builtup→Builtup' },
-  ],
   // Roads
   trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
   primary_rd: [{ type:'line', label:'Primary road', color:'#ff0000', weight:3 }],
@@ -2773,27 +2827,7 @@ function legendItemHTML(item){
         <span class="legend-text">${safeLabel}</span>
       </div>`;
   }
-
-  if(item.type === 'box'){
-    const c = item.color || '#999';
-    const v = (item.value !== undefined && item.value !== null) ? String(item.value) : null;
-    return `
-      <div class="legend-row">
-        <span class="legend-swatch" style="background:${c}; border:1px solid rgba(255,255,255,0.18); border-radius:6px;"></span>
-        <span class="legend-text">${v ? `<b>${v}</b> — ` : ''}${safeLabel}</span>
-      </div>`;
-  }
-  if(item.type === 'value'){
-    const v = (item.value !== undefined && item.value !== null) ? String(item.value) : '';
-    return `
-      <div class="legend-row">
-        <span class="legend-swatch" style="background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.18); width:28px; display:grid; place-items:center; font-weight:900; font-size:11px;">
-          ${v}
-        </span>
-        <span class="legend-text">${safeLabel}</span>
-      </div>`;
-  }
-    // line/polygon swatch
+  // line/polygon swatch
   const c = item.color || '#ff0000';
   const w = item.weight || 3;
   const dash = item.dash ? `border-style:dashed; border-width:${Math.max(2, w)}px;` : `border-width:${Math.max(2, w)}px;`;
@@ -2992,8 +3026,12 @@ const LAYER_SOURCES = {
   ]},
 
   // --- Water ---
+  water:  { type: "tile", url: "tiles/water/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/water.tif", title: "Water Supply Network", units: null } },
+  boreholes:  { type: "tile", url: "tiles/boreholes/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/boreholes.tif", title: "Boreholes", units: null } },
+
   // --- Environment / raster thematic maps ---
   landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },
+  lcchange:  { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
   landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
@@ -3358,6 +3396,8 @@ const LAYER_TITLES = {
   secondary: 'Public Secondary Schools Map',
   roads: 'Road Network Map',
   transport: 'Transport Network Map',
+  water: 'Water Supply Network',
+  boreholes: 'Borehole Map & Service Areas',
   popdist: 'Population Distribution',
   popdens: 'Population Density Map',
   slope: 'Slope Map',
@@ -3365,6 +3405,7 @@ const LAYER_TITLES = {
   hillshade: 'Hillshade Map',
   contours: 'Contours Map',
   topo: 'Topographic Map',
+  lcchange: 'Landcover Change Map',
   landuse: 'Land Use Map',
   rainfall: 'Rainfall Map',
   airtemp: 'Air Temperature Map',
@@ -3549,6 +3590,8 @@ function hideRasterFilter(){
 const sampleLayers = {
   // Keep placeholders for layers you haven't uploaded yet
   landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
+  water:      demoCircle('Water Supply Network', -6.79, 39.25, 2100),
+  boreholes:  demoCircle('Borehole Map & Service Areas', -6.79, 39.25, 2100),
   popdist:    demoCircle('Population Distribution', -6.79, 39.25, 2600),
   popdens:    demoCircle('Population Density Map', -6.79, 39.25, 2600),
   slope:      demoCircle('Slope Map', -6.79, 39.25, 2300),
@@ -3556,6 +3599,7 @@ const sampleLayers = {
   hillshade:  demoCircle('Hillshade Map', -6.79, 39.25, 2300),
   contours:   demoCircle('Contours Map', -6.79, 39.25, 2300),
   topo:       demoCircle('Topographic Map', -6.79, 39.25, 2300),
+  lcchange:   demoCircle('Landcover Change Map', -6.79, 39.25, 2200),
   landuse:    demoCircle('Land Use Map', -6.79, 39.25, 2200),
   rainfall:   demoCircle('Rainfall Map', -6.79, 39.25, 2600),
   airtemp:    demoCircle('Air Temperature Map', -6.79, 39.25, 2600),
