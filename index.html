@@ -1198,8 +1198,6 @@
 /* Raster filter: readable black text */
 #rasterFilterPanel, #rasterFilterPanel * { color: #000 !important; }
 #rasterFilterPanel select, #rasterFilterPanel option { color: #000 !important; }
-
-  .raster-filter-panel, .raster-filter-panel *{color:#000 !important;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1326,8 +1324,7 @@ body.drawer-open #explore .content{
   <div class="rf-hint" id="rfHint">Choose a year to switch the raster layer.</div>
 </div>
 
-<div class="layers-group" id="layersGroup">
-<div class="layer-item">
+<div class="layers-group" id="layersGroup"><div class="layer-item">
     <label class="layer-switch" title="Toggle layer on/off">
       <input type="checkbox" class="layer-toggle" data-layer="landuse" aria-label="Toggle Land Use Map">
       <span class="layer-slider"></span>
@@ -1755,46 +1752,44 @@ async function setActiveRasterForKey(key){
   }
 }
 
-
-const LANDCOVER_LABELS = { 1:"Water", 2:"Vegetation", 3:"Bareland", 4:"Builtup" };
-const CHANGE_DETECTION_LABELS = {
-  0:"Water",
-  1:"Water→Bareland",
-  3:"Water→Builtup",
-  5:"Vegetation",
-  6:"Vegetation→Bareland",
-  7:"Vegetation→Builtup",
-  9:"Bareland→Vegetation",
-  10:"Bareland",
-  11:"Bareland→Builtup",
-  15:"Builtup→Builtup"
-};
-
 function formatRasterValue(v){
   if(v === null || v === undefined || Number.isNaN(v)) return "No data";
-  const k = (RASTER_QUERY.activeKey || "").toLowerCase();
+  const k = RASTER_QUERY.activeKey || "";
   const n = Number(v);
 
-  if(k === "landcover"){
-    const code = Number.isFinite(n) ? Math.round(n) : v;
-    const lab = LANDCOVER_LABELS[code];
-    return lab ? `${lab} (${code})` : `Class ${code}`;
+  // Categorical rasters: show label + code
+  if(Number.isFinite(n) && (k === "landcover" || k === "changeDetection")){
+    const code = Math.round(n);
+    if(k === "landcover"){
+      const map = {1:"Water",2:"Vegetation",3:"Bareland",4:"Builtup"};
+      const lab = map[code];
+      return lab ? `${lab} (${code})` : String(code);
+    }
+    if(k === "changeDetection"){
+      const map = {
+        0:"Water",
+        1:"Water→Bareland",
+        3:"Water→Builtup",
+        5:"Vegetation",
+        6:"Vegetation→Bareland",
+        7:"Vegetation→Builtup",
+        9:"Bareland→Vegetation",
+        10:"Bareland→Builtup",
+        11:"Builtup→Builtup",
+        15:"Builtup"
+      };
+      const lab = map[code];
+      return lab ? `${lab} (${code})` : String(code);
+    }
   }
 
-  if(k === "changedetection"){
-    const code = Number.isFinite(n) ? Math.round(n) : v;
-    const lab = CHANGE_DETECTION_LABELS[code];
-    return lab ? `${lab} (${code})` : `Class ${code}`;
-  }
-
+  // Continuous rasters
   if(k === "ndvi" && Number.isFinite(n)) return n.toFixed(3);
-
-  if(Number.isFinite(n)) return n.toFixed(3);
-
-  return String(v);
+  if(Number.isFinite(n) && Math.abs(n - Math.round(n)) < 1e-6) return String(Math.round(n));
+  return Number.isFinite(n) ? n.toFixed(3) : String(v);
 }
 
-map.on("click, async (e) => {
+map.on("click", async (e) => {
   if(!RASTER_QUERY.activeInfo || !RASTER_QUERY.image || !RASTER_QUERY.bbox) return;
   if(RASTER_QUERY.loading) return;
 
@@ -1883,7 +1878,7 @@ async function loadUbungoBoundary(){
       ubungoLayer = L.geoJSON(gj, {
         style: {
           color: '#000000',
-          weight: 1.5,
+          weight: 1.2,
           opacity: 1,
           fillOpacity: 0
         }
@@ -2172,6 +2167,16 @@ const layerMetadata = {
     Format: "Raster",
     Notes: "Landcover classification for Ubungo District.",
     spatial_resolution: "10 m"
+  },
+  landcover_change_map: {
+    Theme: "Landcover change",
+    Source: "Sentinel-2",
+    Date: "2020–2025",
+    CRS: "WGS 84 (EPSG:4326)",
+    Format: "Raster",
+    Notes: "Shows changes between 2020 and 2025.",
+    spatial_resolution: "10 m",
+    temporal_resolution: "Event-based (multi-year comparison)"
   },
 
   // =========================
@@ -2708,7 +2713,27 @@ if(showCoordsChk){
 
 // Layer legends (simple, auto-built). Add/adjust labels here if needed.
 const LEGEND_CONFIG = {
-  ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight: 1.5 }],
+  ubungo: [{ type:'line', label:'Ubungo boundary', color:'#000000', weight:2.5 }],
+
+  // Categorical rasters
+  landcover: [
+    { type:'fill', label:'1  Water', color:'#2f5bff' },
+    { type:'fill', label:'2  Vegetation', color:'#2e7d32' },
+    { type:'fill', label:'3  Bareland', color:'#f7f59a' },
+    { type:'fill', label:'4  Builtup', color:'#b71c1c' }
+  ],
+  changeDetection: [
+    { type:'text', label:'0  Water' },
+    { type:'text', label:'1  Water → Bareland' },
+    { type:'text', label:'3  Water → Builtup' },
+    { type:'text', label:'5  Vegetation' },
+    { type:'text', label:'6  Vegetation → Bareland' },
+    { type:'text', label:'7  Vegetation → Builtup' },
+    { type:'text', label:'9  Bareland → Vegetation' },
+    { type:'text', label:'10 Bareland → Builtup' },
+    { type:'text', label:'11 Builtup → Builtup' },
+    { type:'text', label:'15 Builtup' }
+  ],
   // Roads
   trunk_rd: [{ type:'line', label:'Trunk road', color:'#ff0000', weight:3 }],
   primary_rd: [{ type:'line', label:'Primary road', color:'#ff0000', weight:3 }],
@@ -2730,6 +2755,26 @@ const LEGEND_CONFIG = {
 
 function legendItemHTML(item){
   const safeLabel = item.label || 'Item';
+
+  // Filled swatch (categorical raster legend)
+  if(item.type === 'fill'){
+    const c = item.color || '#888';
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="background:${c}; border:1px solid rgba(255,255,255,0.25);"></span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+
+  // Text-only legend row (no swatch)
+  if(item.type === 'text'){
+    return `
+      <div class="legend-row">
+        <span class="legend-swatch" style="border:none;background:transparent"></span>
+        <span class="legend-text">${safeLabel}</span>
+      </div>`;
+  }
+
   if(item.type === 'icon'){
     const icon = (SVG_ICONS && SVG_ICONS[item.iconKey]) ? SVG_ICONS[item.iconKey] : null;
     const svg = icon ? icon.options.html : '';
@@ -2754,44 +2799,6 @@ function setLegend(layerKey, layerTitle){
   if(!legendBody) return;
 
   const key = (layerKey || '').trim();
-
-  if(key === 'landcover'){
-    legendBody.innerHTML = `
-      <div class="legend-row" style="font-weight:800;margin-bottom:8px;color:#000">Landcover classes</div>
-      <div style="display:grid;gap:8px;color:#000">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="width:24px;height:24px;border-radius:8px;background:#335CFF;border:1px solid rgba(0,0,0,0.25)"></span>
-          <span><b>1</b> Water</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="width:24px;height:24px;border-radius:8px;background:#1F7A1F;border:1px solid rgba(0,0,0,0.25)"></span>
-          <span><b>2</b> Vegetation</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="width:24px;height:24px;border-radius:8px;background:#FFF79A;border:1px solid rgba(0,0,0,0.25)"></span>
-          <span><b>3</b> Bareland</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="width:24px;height:24px;border-radius:8px;background:#B11A2A;border:1px solid rgba(0,0,0,0.25)"></span>
-          <span><b>4</b> Builtup</span>
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  if(key === 'changeDetection'){
-    const rows = Object.entries(CHANGE_DETECTION_LABELS)
-      .sort((a,b)=>Number(a[0])-Number(b[0]))
-      .map(([v,l])=>`<div style="display:flex;gap:10px;align-items:center;color:#000"><b style="width:40px">${v}</b><span>${l}</span></div>`)
-      .join('');
-    legendBody.innerHTML = `
-      <div class="legend-row" style="font-weight:800;margin-bottom:8px;color:#000">Change detection classes</div>
-      <div style="display:grid;gap:6px;color:#000">${rows}</div>
-    `;
-    return;
-  }
-
   const items = LEGEND_CONFIG[key] || null;
 
   // If no manual legend config exists, try GeoServer WMS legend
@@ -2975,85 +2982,28 @@ const LAYER_SOURCES = {
     { type:"q2w", var:"json_Petrolstn_3", styleKey:"petrolstation" },
   ]},
 
-  
-  // --- Environment / raster thematic maps (XYZ tiles z9–15) ---
-  ndvi: {
-    type: "tile",
-    url: "tiles/NDVI2024/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/NDVI2024.tif", title: "NDVI 2024", units: null }
-  },
+  // --- Water ---
 
-  lst: {
-    type: "tile",
-    url: "tiles/LST2024/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/LST2024.tif", title: "LST 2024", units: "°C" }
-  },
 
-  rainfall: {
-    type: "tile",
-    url: "tiles/Rainfall2024/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/Rainfall2024.tif", title: "Rainfall 2024", units: "mm" }
-  },
+  // --- Environment / raster thematic maps ---
+  landcover:  { type: "tile", url: "tiles/LULC2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/LULC2025.tif", title: "Landcover 2025", units: null, tiffFallbacks: ["rasters/2025-projected.tif","rasters/2025-projected_3857.tif"] } },
 
-  airtemp: {
-    type: "tile",
-    url: "tiles/Airtemperature2024/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/AirTemperature2024.tif", title: "Air Temperature 2024", units: "°C" }
-  },
+  changeDetection: { type: "tile", url: "tiles/Change_detection2025/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/Change_Detection2025.tif", title: "Change Detection 2021→2025", units: null } },
+  landuse:  { type: "tile", url: "tiles/landuse/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/landuse.tif", title: "Land Use Map", units: null } },
 
-  landcover: {
-    type: "tile",
-    url: "tiles/LULC2025/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: {
-      tiff: "rasters/2025-projected.tif",
-      title: "Landcover 2025",
-      units: null,
-      tiffFallbacks: ["rasters/LULC2025.tif", "rasters/2025-projected_3857.tif"]
-    }
-  },
+  rainfall:  { type: "tile", url: "tiles/rainfall/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/rainfall.tif", title: "Rainfall Map", units: "mm" } },
+  airtemp:  { type: "tile", url: "tiles/airtemp/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/airtemp.tif", title: "Air Temperature Map", units: "\u00b0C" } },
+  lst:  { type: "tile", url: "tiles/lst/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/lst.tif", title: "Land Surface Temperature Map", units: "\u00b0C" } },
+  ndvi:  { type: "tile", url: "tiles/ndvi/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/ndvi.tif", title: "NDVI", units: null } },
 
-  changeDetection: {
-    type: "tile",
-    url: "tiles/Change_detection2025/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: {
-      tiff: "rasters/Change_Detection2025.tif",
-      title: "Change Detection 2021→2025",
-      units: null,
-      tiffFallbacks: ["rasters/Change Detection_2025.tif"]
-    }
-  },
+  slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
+  aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
+  hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
+  contours:  { type: "tile", url: "tiles/contours/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/contours.tif", title: "Contours Map", units: "m" } },
+  topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
 
-  slope: {
-    type: "tile",
-    url: "tiles/Slope/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/slope.tif", title: "Slope", units: "degrees" }
-  },
-
-  aspect: {
-    type: "tile",
-    url: "tiles/Aspect/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: { tiff: "rasters/aspect.tif", title: "Aspect", units: "degrees" }
-  },
-
-  hillshade: {
-    type: "tile",
-    url: "tiles/Hillshade/{z}/{x}/{y}.png",
-    minZoom: 9, maxZoom: 15,
-    raster: {
-      tiff: "rasters/hillshade.tif",
-      title: "Hillshade",
-      units: null,
-      tiffFallbacks: ["rasters/hillshade_3857.tif"]
-    }
-  },
+  popdist:  { type: "tile", url: "tiles/popdist/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdist.tif", title: "Population Distribution", units: null } },
+  popdens:  { type: "tile", url: "tiles/popdens/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdens.tif", title: "Population Density", units: "people/km\u00b2" } },
 };
 
 
@@ -3596,8 +3546,7 @@ function hideRasterFilter(){
 const sampleLayers = {
   // Keep placeholders for layers you haven't uploaded yet
   landcover:  demoCircle('Landcover Map', -6.79, 39.25, 2200),
-  water:      demoCircle('Water Supply Network', -6.79, 39.25, 2100),
-  boreholes:  demoCircle('Borehole Map & Service Areas', -6.79, 39.25, 2100),
+
   popdist:    demoCircle('Population Distribution', -6.79, 39.25, 2600),
   popdens:    demoCircle('Population Density Map', -6.79, 39.25, 2600),
   slope:      demoCircle('Slope Map', -6.79, 39.25, 2300),
