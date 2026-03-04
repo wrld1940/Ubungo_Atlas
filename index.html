@@ -1269,6 +1269,16 @@
   text-shadow: 0 1px 0 rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.85);
   padding: 0;
 }
+.qgis-label-sm{
+  background: rgba(255,255,255,0);
+  border: none;
+  box-shadow: none;
+  color: #111;
+  font-weight: 700;
+  font-size: 9px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.85);
+  padding: 0;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -3582,11 +3592,11 @@ const LAYER_SOURCES = {
       }
       return { color:"#232323", weight: 1, opacity: 1, fillColor: fill, fillOpacity: 1 };
     },
+    labelClass: "qgis-label-sm",
     label: function(feature){
       const p = feature && feature.properties ? feature.properties : {};
-      const name = p.NAME_3 || p.NAME_2 || "";
-      const dens = (p.pop_densit !== undefined && p.pop_densit !== null) ? Number(p.pop_densit).toFixed(0) : "";
-      return name ? `${name}\n${dens}` : "";
+      const name = p.NAME_3 || "";
+      return name ? String(name) : "";
     }
   };
 
@@ -3617,6 +3627,7 @@ const LAYER_SOURCES = {
       {
         type: "geojson",
         id: "popdist_pts",
+        labelClass: "qgis-label-sm",
         pane: "pane_popdist_pts",
         zIndex: 420,
         reproject: "EPSG:32737",
@@ -4089,7 +4100,7 @@ if(def.type === "q2w"){
             l.bindTooltip(txt, {
               permanent: true,
               direction: 'center',
-              className: 'qgis-label',
+              className: (def.labelClass || 'qgis-label'),
               opacity: 1
             });
           }catch(e){}
@@ -4151,9 +4162,14 @@ if(def.type === "q2w"){
       return L.tileLayer(def.url, {
         minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
         maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+        maxNativeZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
         opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
-        crossOrigin: true
-      });
+        crossOrigin: true,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 6,
+        noWrap: true
+      }).on('add', function(){ try{ this.redraw && this.redraw(); }catch(e){} });
     }
 
     // Smart fallback: if many tiles error, swap to next candidate
@@ -4161,11 +4177,20 @@ if(def.type === "q2w"){
     let errCount = 0;
     const errLimit = 12; // switch after this many errors
     const layer = L.tileLayer(candidates[idx], {
-      minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
-      maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
-      opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
-      crossOrigin: true
-    });
+        minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
+        maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+        maxNativeZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+        opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
+        crossOrigin: true,
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 6,
+        noWrap: true
+      });
+
+    layer.on('add', function(){ try{ this.redraw && this.redraw(); }catch(e){} });
+
+    layer.on('load', ()=>{ errCount = 0; });
 
     layer.on('tileerror', ()=>{
       errCount++;
