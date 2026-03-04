@@ -1264,17 +1264,7 @@
   border: none;
   box-shadow: none;
   color: #111;
-  font-weight: 800;
-  font-size: 12px;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.85);
-  padding: 0;
-}
-.qgis-label-sm{
-  background: rgba(255,255,255,0);
-  border: none;
-  box-shadow: none;
-  color: #111;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 9px;
   text-shadow: 0 1px 0 rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.85);
   padding: 0;
@@ -2116,6 +2106,12 @@ if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'E
 const map = L.map('map').setView([-6.79,39.25],12);
 
 window.map = map;
+
+// Limit heavy tile requests to Ubungo area (speeds up GitHub Pages tiles)
+window.UBUNGO_BOUNDS = L.latLngBounds(
+  L.latLng(-6.95, 39.00),
+  L.latLng(-6.55, 39.45)
+);
 
 // ===== Directions (Google Maps style) =====
 let _dirPicking = null; // 'start' | 'dest' | null
@@ -3592,11 +3588,9 @@ const LAYER_SOURCES = {
       }
       return { color:"#232323", weight: 1, opacity: 1, fillColor: fill, fillOpacity: 1 };
     },
-    labelClass: "qgis-label-sm",
     label: function(feature){
       const p = feature && feature.properties ? feature.properties : {};
-      const name = p.NAME_3 || "";
-      return name ? String(name) : "";
+      return (p.NAME_3 || "") ? `${p.NAME_3}` : "";
     }
   };
 
@@ -3618,16 +3612,12 @@ const LAYER_SOURCES = {
         ],
         style: function(){ return { color:"#232323", weight: 1, opacity: 1, fillColor:"#ffffd4", fillOpacity: 1 }; },
         label: function(feature){
-          const p = feature && feature.properties ? feature.properties : {};
-          const name = p.NAME_3 || p.NAME_2 || "";
-          const pop = (p.population !== undefined && p.population !== null) ? Number(p.population).toFixed(0) : "";
-          return name ? `${name}\n${pop}` : "";
+          return "";
         }
       },
       {
         type: "geojson",
         id: "popdist_pts",
-        labelClass: "qgis-label-sm",
         pane: "pane_popdist_pts",
         zIndex: 420,
         reproject: "EPSG:32737",
@@ -4100,7 +4090,7 @@ if(def.type === "q2w"){
             l.bindTooltip(txt, {
               permanent: true,
               direction: 'center',
-              className: (def.labelClass || 'qgis-label'),
+              className: 'qgis-label',
               opacity: 1
             });
           }catch(e){}
@@ -4161,15 +4151,17 @@ if(def.type === "q2w"){
     if(candidates.length === 1){
       return L.tileLayer(def.url, {
         minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
-        maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
         maxNativeZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+        maxZoom: (typeof def.maxZoom === 'number') ? (def.maxZoom + 2) : 20,
         opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
-        crossOrigin: true,
         updateWhenIdle: true,
         updateWhenZooming: false,
-        keepBuffer: 6,
-        noWrap: true
-      }).on('add', function(){ try{ this.redraw && this.redraw(); }catch(e){} });
+        keepBuffer: 2,
+        noWrap: true,
+        bounds: (window.UBUNGO_BOUNDS || null),
+        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+        crossOrigin: true
+      });
     }
 
     // Smart fallback: if many tiles error, swap to next candidate
@@ -4177,20 +4169,18 @@ if(def.type === "q2w"){
     let errCount = 0;
     const errLimit = 12; // switch after this many errors
     const layer = L.tileLayer(candidates[idx], {
-        minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
-        maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
-        maxNativeZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
-        opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
-        crossOrigin: true,
-        updateWhenIdle: true,
-        updateWhenZooming: false,
-        keepBuffer: 6,
-        noWrap: true
-      });
-
-    layer.on('add', function(){ try{ this.redraw && this.redraw(); }catch(e){} });
-
-    layer.on('load', ()=>{ errCount = 0; });
+      minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
+      maxNativeZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+      maxZoom: (typeof def.maxZoom === 'number') ? (def.maxZoom + 2) : 20,
+      opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
+      updateWhenIdle: true,
+      updateWhenZooming: false,
+      keepBuffer: 2,
+      noWrap: true,
+      bounds: (window.UBUNGO_BOUNDS || null),
+      errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
+      crossOrigin: true
+    });
 
     layer.on('tileerror', ()=>{
       errCount++;
@@ -4551,6 +4541,9 @@ async function addLayer(type){
 
     // Add to map + manage order
     lyr.addTo(map);
+    try{
+      if(typeof lyr.redraw === 'function') lyr.redraw();
+    }catch(e){}
     try{
       if(typeof lyr.setZIndex === 'function') lyr.setZIndex(++__layerZ);
       if(typeof lyr.bringToFront === 'function') lyr.bringToFront();
