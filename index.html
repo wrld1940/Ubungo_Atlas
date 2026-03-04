@@ -1259,19 +1259,16 @@
 #rasterFilterPanel, #rasterFilterPanel * { color: #000 !important; }
 #rasterFilterPanel select, #rasterFilterPanel option { color: #000 !important; }
 
-/* Population labels (Leaflet tooltips) */
-.pop-label{
-  background: rgba(10, 20, 28, 0.72);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(232,242,255,0.95);
-  border-radius: 10px;
-  padding: 2px 6px;
+.qgis-label{
+  background: rgba(255,255,255,0);
+  border: none;
+  box-shadow: none;
+  color: #111;
   font-weight: 800;
-  font-size: 11px;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.40);
+  font-size: 12px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.85), 0 0 3px rgba(255,255,255,0.85);
+  padding: 0;
 }
-body.hide-pop-labels .pop-label{ display:none !important; }
-
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -1299,6 +1296,8 @@ body.drawer-open #explore .content{
 <link rel="stylesheet" href="q2w/styles/qgis2web.css">
 
 <script src="https://unpkg.com/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.2/proj4.js"></script>
 </head>
 <body>
 <!-- ================= HOME ================= -->
@@ -2527,9 +2526,6 @@ function atlasApplyOverlays(){
     const showLabels = atlasToggleLabels ? !!atlasToggleLabels.checked : true;
     const showBorders = atlasToggleBorders ? !!atlasToggleBorders.checked : true;
 
-    // Vector labels (population layers) — hide/show via CSS class
-    try{ document.body.classList.toggle('hide-pop-labels', !showLabels); }catch(e){}
-
     // Cesium overlays (globe)
     if(typeof labelsLayer !== 'undefined' && labelsLayer) labelsLayer.show = showLabels;
     if(typeof bordersLayer !== 'undefined' && bordersLayer) bordersLayer.show = showBorders;
@@ -3429,49 +3425,6 @@ function demoCircle(label, lat, lon, radius){
 // Styles parsed (best-effort) from your QGIS .qml files
 const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"style":{"color":"red","weight":2.0}},"hospital":{"style":{"color":"red","weight":2.0}},"pharmacy":{"style":{"color":"red","weight":2.0}},"bus_stop":{"style":{"color":"red","weight":2.0}},"railway":{"style":{"color":"red","weight":2.0}},"petrol_station":{"style":{"color":"red","weight":2.0}},"trunk_rd":{"style":{"color":"red","weight":2.0}},"primary_rd":{"style":{"color":"red","weight":2.0}},"secondary_rd":{"style":{"color":"red","weight":2.0}},"tertiary_rd":{"style":{"color":"red","weight":2.0}},"unclassified_rd":{"style":{"color":"red","weight":2.0}},"primary_schools":{"style":{"color":"red","weight":2.0}},"secondary_school":{"style":{"color":"red","weight":2.0}},"ubungo":{"style":{"color":"black","weight":2.5}}};
 
-// ===== Added: QGIS-matched styles for Population + Contours (GeoJSON) =====
-(function(){
-  const MM_TO_PX = 3.78; // 1mm ≈ 3.78px at 96DPI
-  // Population Density (graduated) — field: pop_densit
-  const __POP_DENS_RANGES = [{"lower": 1546.584, "upper": 2775.7116, "label": "1500 - 2800", "fillColor": "#ffffd4", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 2775.7116, "upper": 5626.7266, "label": "2800 - 5600", "fillColor": "#fed98e", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 5626.7266, "upper": 6976.4192, "label": "5600 - 7000", "fillColor": "#fe9929", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 6976.4192, "upper": 20565.282600000002, "label": "7000 - 20600", "fillColor": "#d95f0e", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 20565.282600000002, "upper": 34016.94, "label": "20600 - 34000", "fillColor": "#993404", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}];
-  QML_STYLES.popdens = {
-    style: (feature) => {
-      const v = Number(feature?.properties?.pop_densit);
-      if(!Number.isFinite(v)) return { color:'#232323', weight: 1, fillColor:'#ffffd4', fillOpacity: 0.3 };
-      for(const r of __POP_DENS_RANGES){
-        if(v >= r.lower && v <= r.upper) return r;
-      }
-      return __POP_DENS_RANGES[__POP_DENS_RANGES.length-1] || { color:'#232323', weight: 1, fillColor:'#ffffd4', fillOpacity: 0.3 };
-    }
-  };
-
-  // Population Distribution (polygons) — single symbol from your QML
-  QML_STYLES.popdist = {
-    style: () => ({"fillColor": "#ffffd4", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828})
-  };
-
-  // Contours (lines) — categorized (IndexCon), both categories share same symbol in your QML
-  QML_STYLES.contours = {
-    style: () => ({"color": "#020507", "opacity": 1.0, "weight": 0.9828})
-  };
-
-  // Optional: centroid points (not wired to UI by default)
-  QML_STYLES.popcentroid = {
-    pointStyle: (feature) => {
-      const p = Number(feature?.properties?.population);
-      let r = 4.91;
-      if(Number.isFinite(p)){
-        if(p >= 26215 && p < 43880.4) r = 2.268;
-        else if(p >= 43880.4 && p < 53143) r = 4.914;
-        else if(p >= 53143 && p < 81367.8) r = 7.56;
-        else if(p >= 81367.8 && p < 114427.4) r = 10.206;
-        else if(p >= 114427.4) r = 12.852;
-      }
-      return { radius: r, color: "#232323", opacity: 1.0, weight: 0.0, fillColor: "#834b83", fillOpacity: 1.0 };
-    }
-  };
-})();
-
 // Simple SVG icons for point layers (Leaflet). UI unchanged.
 function makeSvgIcon(svg, size=28){
   return L.divIcon({
@@ -3578,14 +3531,158 @@ const LAYER_SOURCES = {
   slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
   aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
   hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
-  contours:  { type: "geojson", url: ["data/Contour.geojson","Contour.geojson","data/contour.geojson","contour.geojson"], styleKey: "contours" },
+  contours:  { type: "tile", url: "tiles/contours/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/contours.tif", title: "Contours Map", units: "m" } },
   topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
-  popdist:  { type: "group", children: [
-    { type: "geojson", url: "data/Ubungo%20distribution.geojson", styleKey: "popdist", pane: "pane_popdist_poly", zIndex: 410 },
-    { type: "geojson", url: "data/Population%20distribution%20centroid.geojson", styleKey: "popcentroid", pane: "pane_popdist_pts", zIndex: 420 }
-  ] },
-  popdens:  { type: "geojson", url: "data/Ubungo%20density.geojson", styleKey: "popdens" },
+
+  popdist:  { type: "tile", url: "tiles/popdist/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdist.tif", title: "Population Distribution", units: null } },
+  popdens:  { type: "tile", url: "tiles/popdens/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdens.tif", title: "Population Density", units: "people/km\u00b2" } },
 };
+// =========================
+// Overrides: Use GeoJSON for Contours + Population layers (QGIS-like)
+// =========================
+(function(){
+  // Contours (your GeoJSON is UTM 37S -> reproject on the fly)
+  LAYER_SOURCES.contours = {
+    type: "geojson",
+    id: "contours",
+    pane: "pane_contours_geo",
+    zIndex: 360,
+    reproject: "EPSG:32737",
+    urls: [
+      "data/Contour.geojson",
+      "data/Contour.geojson".replace(/ /g, "%20"),
+      "Contour.geojson",
+      "Contour.geojson".replace(/ /g, "%20")
+    ],
+    style: function(){ return { color:"#020507", weight: 1, opacity: 1 }; }
+  };
+
+  // Population Density polygons (UTM 37S -> reproject)
+  LAYER_SOURCES.popdens = {
+    type: "geojson",
+    id: "popdens",
+    pane: "pane_popdens_poly",
+    zIndex: 380,
+    reproject: "EPSG:32737",
+    urls: [
+      "data/Ubungo%20density.geojson",
+      "data/Ubungo density.geojson",
+      "Ubungo%20density.geojson",
+      "Ubungo density.geojson"
+    ],
+    style: function(feature){
+      const v = Number(feature && feature.properties && feature.properties.pop_densit);
+      let fill = "#ffffd4";
+      if(!Number.isNaN(v)){
+        if(v >= 1546.5840 && v < 2775.7116) fill = "#ffffd4";
+        else if(v >= 2775.7116 && v < 5626.7266) fill = "#fed98e";
+        else if(v >= 5626.7266 && v < 6976.4192) fill = "#fe9929";
+        else if(v >= 6976.4192 && v < 20565.2826) fill = "#d95f0e";
+        else fill = "#993404";
+      }
+      return { color:"#232323", weight: 1, opacity: 1, fillColor: fill, fillOpacity: 1 };
+    },
+    label: function(feature){
+      const p = feature && feature.properties ? feature.properties : {};
+      const name = p.NAME_3 || p.NAME_2 || "";
+      const dens = (p.pop_densit !== undefined && p.pop_densit !== null) ? Number(p.pop_densit).toFixed(0) : "";
+      return name ? `${name}\n${dens}` : "";
+    }
+  };
+
+  // Population Distribution group: polygons BELOW, centroids ABOVE
+  LAYER_SOURCES.popdist = {
+    type: "group",
+    children: [
+      {
+        type: "geojson",
+        id: "popdist_poly",
+        pane: "pane_popdist_poly",
+        zIndex: 385,
+        reproject: "EPSG:32737",
+        urls: [
+          "data/Ubungo%20distribution.geojson",
+          "data/Ubungo distribution.geojson",
+          "Ubungo%20distribution.geojson",
+          "Ubungo distribution.geojson"
+        ],
+        style: function(){ return { color:"#232323", weight: 1, opacity: 1, fillColor:"#ffffd4", fillOpacity: 1 }; },
+        label: function(feature){
+          const p = feature && feature.properties ? feature.properties : {};
+          const name = p.NAME_3 || p.NAME_2 || "";
+          const pop = (p.population !== undefined && p.population !== null) ? Number(p.population).toFixed(0) : "";
+          return name ? `${name}\n${pop}` : "";
+        }
+      },
+      {
+        type: "geojson",
+        id: "popdist_pts",
+        pane: "pane_popdist_pts",
+        zIndex: 420,
+        reproject: "EPSG:32737",
+        urls: [
+          "data/Population%20distribution%20centroid.geojson",
+          "data/Population distribution centroid.geojson",
+          "Population%20distribution%20centroid.geojson",
+          "Population distribution centroid.geojson"
+        ],
+        pointToLayer: function(feature, latlng){
+          const p = feature && feature.properties ? feature.properties : {};
+          const pop = Number(p.population);
+          let r = 5;
+          if(!Number.isNaN(pop)){
+            if(pop >= 26215 && pop < 43880.4) r = 3;
+            else if(pop >= 43880.4 && pop < 53143) r = 5;
+            else if(pop >= 53143 && pop < 81367.8) r = 8;
+            else if(pop >= 81367.8 && pop < 114427.4) r = 10;
+            else r = 13;
+          }
+          return L.circleMarker(latlng, { radius: r, color:"#232323", weight: 1, opacity: 1, fillColor:"#834b83", fillOpacity: 1 });
+        },
+        label: function(feature){
+          const p = feature && feature.properties ? feature.properties : {};
+          const name = p.NAME_3 || p.NAME_2 || "";
+          const pop = (p.population !== undefined && p.population !== null) ? Number(p.population).toFixed(0) : "";
+          return name ? `${name}` : "";
+        }
+      }
+    ]
+  };
+
+  // Make roads + transport draw BELOW public service points
+  window.__setNetworkPanes = function(){
+    try{
+      const setPaneZ = (pane, z)=>{
+        if(!map) return;
+        if(!map.getPane(pane)){
+          map.createPane(pane);
+          map.getPane(pane).style['mix-blend-mode'] = 'normal';
+        }
+        map.getPane(pane).style.zIndex = String(z);
+      };
+      // q2w pane names derive from var names without json_
+      setPaneZ('pane_Trunkroad_8', 300);
+      setPaneZ('pane_Primaryroad_4', 300);
+      setPaneZ('pane_secondaryroad_6', 300);
+      setPaneZ('pane_Tertiaryroad_7', 300);
+      setPaneZ('pane_Unclassified_9', 300);
+      setPaneZ('pane_railway_5', 305);
+      // bus stops + petrol stations above roads
+      setPaneZ('pane_busstp_2', 430);
+      setPaneZ('pane_Petrolstn_3', 430);
+      // keep schools/police/health above networks
+      setPaneZ('pane_pppppolicemerged_0', 440);
+      setPaneZ('pane_hspita_1', 440);
+      setPaneZ('pane_primaryschlshp1_10', 440);
+      setPaneZ('pane_secondaryschools_11', 440);
+    }catch(e){}
+  };
+
+  // Transport ON => ensure Roads ON (roads under points)
+  window.__ensureRoadsWhenTransportOn = true;
+
+})();
+
 
 
 // Cache for loaded Leaflet layers
@@ -3786,88 +3883,26 @@ function applyStyleFromQml(styleKey){
   return { style: s.style || null, pointStyle: s.pointStyle || null };
 }
 
-// Pane ordering overrides (lower zIndex = draw underneath)
-const PANE_Z_OVERRIDES = {
-  // Roads (keep below other overlays)
-  'pane_Trunkroad_8': 210,
-  'pane_Primaryroad_4': 210,
-  'pane_secondaryroad_6': 210,
-  'pane_Tertiaryroad_7': 210,
-  'pane_Unclassified_9': 210,
-
-  // Transport network (still below thematic layers)
-  'pane_railway_5': 220,
-  'pane_busstp_2': 220,
-  'pane_Petrolstn_3': 220
-};
-
 async function fetchGeoJSON(url){
   const res = await fetch(url, { cache: 'no-store' });
   if(!res.ok) throw new Error('Failed to load ' + url + ' (' + res.status + ')');
   return await res.json();
 }
 
-function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey, paneName){
-  // Create pane if requested (lets us force draw order: points above polygons)
-  try{
-    if(map && paneName && !map.getPane(paneName)){
-      map.createPane(paneName);
-      map.getPane(paneName).style.zIndex = String(PANE_Z_OVERRIDES[paneName] != null ? PANE_Z_OVERRIDES[paneName] : 400);
-      map.getPane(paneName).style['mix-blend-mode'] = 'normal';
-    }
-  }catch(e){}
-
-  const styleOpt = style ? ((typeof style === 'function') ? (f)=>Object.assign({pane: paneName||undefined}, style(f)) : Object.assign({pane: paneName||undefined}, style)) : undefined;
-
+function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
   return L.geoJSON(geojson, {
-    pane: paneName || undefined,
-    style: styleOpt,
-    onEachFeature: (feature, layer) => {
-      try{
-        // Population labels (QGIS-style: ward name + key value)
-        if(styleKey === 'popdist' || styleKey === 'popdens'){
-          const name = feature?.properties?.NAME_3 ?? '';
-          const pop = feature?.properties?.population;
-          const dens = feature?.properties?.pop_densit;
-          const parts = [];
-          if(name) parts.push(String(name));
-          if(pop != null && pop !== '' && pop !== undefined) parts.push('Pop: ' + Number(pop).toLocaleString());
-          if(styleKey === 'popdens' && dens != null && dens !== '' && dens !== undefined) parts.push('Dens: ' + Number(dens).toLocaleString() + '/km²');
-          const label = parts.join('<br/>');
-          if(label){
-            layer.bindTooltip(label, { permanent: true, direction: 'center', className: 'pop-label', opacity: 0.95 });
-          }
-        }
-        if(styleKey === 'popcentroid'){
-          const name = feature?.properties?.NAME_3 ?? '';
-          const pop = feature?.properties?.population;
-          const label = (name ? String(name) : 'Ward') + (pop != null ? ('<br/>Pop: ' + Number(pop).toLocaleString()) : '');
-          layer.bindTooltip(label, { permanent: true, direction: 'top', className: 'pop-label', opacity: 0.95 });
-        }
-      }catch(e){}
-    },
+    style: style || undefined,
     pointToLayer: (feature, latlng) => {
       // Prefer SVG icons for known point layers
       if(styleKey && SVG_ICONS && SVG_ICONS[styleKey]){
-        return L.marker(latlng, { icon: SVG_ICONS[styleKey], pane: paneName || undefined });
+        return L.marker(latlng, { icon: SVG_ICONS[styleKey] });
       }
-
-      // If pointStyle is a function, compute per-feature (graduated sizes etc.)
-      if(typeof pointStyle === 'function'){
-        const ps = pointStyle(feature) || {};
-        return L.circleMarker(latlng, Object.assign({ pane: paneName || undefined }, ps));
-      }
-
       // Otherwise, use circle marker styled from QML if available
-      if(pointStyle){
-        return L.circleMarker(latlng, Object.assign({ pane: paneName || undefined }, pointStyle));
-      }
-
-      return L.marker(latlng, { pane: paneName || undefined });
+      if(pointStyle) return L.circleMarker(latlng, pointStyle);
+      return L.marker(latlng);
     }
   });
 }
-
 
 async function buildLayer(def){
   if(!def) throw new Error('Missing layer definition');
@@ -3947,24 +3982,147 @@ if(def.type === "q2w"){
   });
 }
 
-  
-  // Plain GeoJSON (loaded by fetch) — for GitHub Pages-friendly vector layers
+  // GeoJSON layer (from /data or root) + optional reprojection + QGIS-like labels
   if(def.type === "geojson"){
-    if(!def.url) throw new Error('Missing "url" for geojson definition');
-    const { style, pointStyle } = applyStyleFromQml(def.styleKey || "");
-    const gj = await fetchGeoJSON(def.url);
-        // Optional pane + zIndex for precise ordering
+    const candidates = def.urls || [def.url].filter(Boolean);
+    if(!candidates.length) throw new Error('Missing "url(s)" for geojson definition');
+
+    async function fetchFirst(){
+      for(const p of candidates){
+        try{
+          const url = p + (p.includes('?') ? '&' : '?') + 'v=' + Date.now();
+          const res = await fetch(url, { cache: 'no-store' });
+          if(!res.ok) throw new Error('HTTP ' + res.status);
+          const gj = await res.json();
+          return { gj, path: p };
+        }catch(e){ /* try next */ }
+      }
+      throw new Error('GeoJSON not found: tried ' + candidates.join(', '));
+    }
+
+    const { gj, path } = await fetchFirst();
+
+    // Define common projections for Ubungo datasets (UTM 37S)
     try{
-      if(map && def.pane){
-        if(!map.getPane(def.pane)) map.createPane(def.pane);
-        if(def.zIndex != null) map.getPane(def.pane).style.zIndex = String(def.zIndex);
-        map.getPane(def.pane).style['mix-blend-mode'] = 'normal';
+      if(typeof proj4 !== 'undefined'){
+        if(!proj4.defs['EPSG:32737']){
+          proj4.defs('EPSG:32737', '+proj=utm +zone=37 +south +datum=WGS84 +units=m +no_defs');
+        }
       }
     }catch(e){}
-    return makeLeafletGeoJSONLayer(gj, style, pointStyle, def.styleKey || "", def.pane || null);
+
+    // Reproject coordinates if they look like projected meters (x>180 or y>90)
+    function needsReproject(g){
+      try{
+        const f = g && g.features && g.features[0];
+        if(!f) return false;
+        const geom = f.geometry;
+        if(!geom) return false;
+        const t = geom.type;
+        let c = null;
+        if(t === 'Point') c = geom.coordinates;
+        else if(t === 'LineString') c = geom.coordinates[0];
+        else if(t === 'MultiLineString') c = geom.coordinates[0][0];
+        else if(t === 'Polygon') c = geom.coordinates[0][0];
+        else if(t === 'MultiPolygon') c = geom.coordinates[0][0][0];
+        if(!c) return false;
+        const x = Math.abs(c[0]), y = Math.abs(c[1]);
+        return (x > 180 || y > 90);
+      }catch(e){ return false; }
+    }
+
+    function reprojCoords(coords, from){
+      // coords: [x,y] or nested
+      if(typeof coords[0] === 'number'){
+        const out = proj4(from, 'EPSG:4326', coords);
+        return [out[0], out[1]];
+      }
+      return coords.map(c => reprojCoords(c, from));
+    }
+
+    let data = gj;
+    if(def.reproject && typeof proj4 !== 'undefined' && needsReproject(gj)){
+      try{
+        data = JSON.parse(JSON.stringify(gj));
+        for(const f of data.features){
+          if(f.geometry && f.geometry.coordinates){
+            f.geometry.coordinates = reprojCoords(f.geometry.coordinates, def.reproject);
+          }
+        }
+        console.log('Reprojected GeoJSON', def.url || def.urls?.[0], 'from', def.reproject);
+      }catch(e){
+        console.warn('Reprojection failed, using raw coordinates', e);
+        data = gj;
+      }
+    }
+
+    // Ensure pane
+    const paneName = def.pane || ('pane_' + (def.id || 'geojson'));
+    try{
+      if(map && !map.getPane(paneName)){
+        map.createPane(paneName);
+        map.getPane(paneName).style.zIndex = String(def.zIndex || 390);
+        map.getPane(paneName).style['mix-blend-mode'] = 'normal';
+      }else if(map && def.zIndex && map.getPane(paneName)){
+        map.getPane(paneName).style.zIndex = String(def.zIndex);
+      }
+    }catch(e){}
+
+    const styleFn = def.style || null;
+    const pointToLayer = def.pointToLayer || null;
+
+    const layer = L.geoJSON(data, {
+      pane: paneName,
+      style: (feature) => styleFn ? styleFn(feature) : (def.pathStyle || { color:'#000', weight: 1 }),
+      pointToLayer: pointToLayer ? pointToLayer : undefined
+    });
+
+    // Labels (tooltips) — obey global Labels toggle
+    if(def.label && typeof def.label === 'function'){
+      try{
+        layer.eachLayer(l=>{
+          try{
+            const f = l.feature;
+            if(!f) return;
+            const txt = def.label(f);
+            if(!txt) return;
+            l.bindTooltip(txt, {
+              permanent: true,
+              direction: 'center',
+              className: 'qgis-label',
+              opacity: 1
+            });
+          }catch(e){}
+        });
+
+        // Show/hide labels according to Atlas Labels toggle
+        const apply = ()=>{
+          const show = (typeof atlasToggleLabels !== 'undefined' && atlasToggleLabels) ? !!atlasToggleLabels.checked : true;
+          layer.eachLayer(l=>{
+            const tt = l.getTooltip && l.getTooltip();
+            if(!tt) return;
+            if(show){
+              if(!tt.isOpen || !tt.isOpen()) { try{ l.openTooltip(); }catch(e){} }
+            }else{
+              try{ l.closeTooltip(); }catch(e){}
+            }
+          });
+        };
+        setTimeout(apply, 50);
+        if(typeof atlasToggleLabels !== 'undefined' && atlasToggleLabels){
+          atlasToggleLabels.addEventListener('change', apply);
+        }
+      }catch(e){}
+    }
+
+    // Diagnostics
+    try{ console.log('Loaded GeoJSON from:', path); }catch(e){}
+    return layer;
   }
 
 
+
+  
   // XYZ tile layer (local tiles folder) with smart fallbacks (GitHub Pages is case-sensitive)
   if(def.type === "tile"){
     if(!def.url) throw new Error('Missing "url" for tile definition');
@@ -4374,6 +4532,9 @@ async function addLayer(type){
     }catch(e){}
 
     window.activeLayers[type] = lyr;
+
+    try{ if(window.__setNetworkPanes) window.__setNetworkPanes(); }catch(e){}
+
 
     // Zoom behavior (Atlas settings) — zoom to the layer you just turned ON
     if(window.zoomToLayerEnabled !== false){
@@ -5595,6 +5756,29 @@ document.addEventListener('DOMContentLoaded', () => {
   toggles.forEach(t => {
     t.addEventListener('change', async () => {
       const key = t.dataset.layer;
+      // Topographic Map behaves like a preset: turns on/off multiple layers (no raster topo tiles)
+      if(key === 'topo'){
+        const preset = ['contours','secondary','police','health','primary','transport','roads'];
+        if(t.checked){
+          for(const k of preset){
+            const tg = group.querySelector(`.layer-toggle[data-layer="${k}"]`);
+            if(tg && !tg.checked){ tg.checked = true; tg.dispatchEvent(new Event('change', { bubbles:true })); }
+          }
+        }else{
+          for(const k of preset){
+            const tg = group.querySelector(`.layer-toggle[data-layer="${k}"]`);
+            if(tg && tg.checked){ tg.checked = false; tg.dispatchEvent(new Event('change', { bubbles:true })); }
+          }
+        }
+        return; // do not call addLayer/removeLayer for topo itself
+      }
+
+      // Transport ON => ensure Roads ON (roads below points)
+      if(key === 'transport' && t.checked && window.__ensureRoadsWhenTransportOn){
+        const roadsT = group.querySelector('.layer-toggle[data-layer="roads"]');
+        if(roadsT && !roadsT.checked){ roadsT.checked = true; roadsT.dispatchEvent(new Event('change', { bubbles:true })); }
+      }
+
       if(t.checked){
         showMap();
         // If this is a time-series raster, ensure it points to the selected year before adding
