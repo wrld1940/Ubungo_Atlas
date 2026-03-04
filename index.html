@@ -352,6 +352,7 @@
 
   #dashboard{
     position:absolute;
+    z-index: 5000; /* ensure above any overlays */
     inset:0;
     display:none;
     padding: 26px;
@@ -5507,6 +5508,58 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+</script>
+
+
+<script>
+/* ===== Fix: make Trend & Correlation buttons always interactive + force Plotly render ===== */
+(function(){
+  function ready(fn){
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  function forceOpen(which){
+    try{
+      if(typeof window.__openClimatePanel === 'function'){
+        window.__openClimatePanel(which);
+      }
+    }catch(e){ console.error(e); }
+
+    // After panel becomes visible, force Plotly resize/rerender
+    try{
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        if(window.Plotly){
+          const ids = (which==='trend')
+            ? ['trend_ndvi','trend_at','trend_lst','trend_pr']
+            : ['corr_ndvi_at','corr_ndvi_lst','corr_ndvi_pr'];
+          ids.forEach(id=>{
+            const el=document.getElementById(id);
+            if(el && el.data) { try{ Plotly.Plots.resize(el); }catch(_){} }
+          });
+        }
+      }));
+    }catch(_){}
+  }
+
+  ready(function(){
+    const actions = document.querySelectorAll('#dashboard .dash-actions .dash-action');
+    actions.forEach(btn=>{
+      // Ensure the button can receive clicks even if an overlay exists
+      btn.style.pointerEvents = 'auto';
+      btn.style.position = btn.style.position || 'relative';
+      btn.style.zIndex = '1';
+
+      // Capture-phase click handler (beats stopPropagation elsewhere)
+      btn.addEventListener('click', function(e){
+        // If inline onclick already exists, still allow it, but ensure it runs
+        const label = (btn.textContent || '').toLowerCase();
+        if(label.includes('correlation')) forceOpen('corr');
+        if(label.includes('trend')) forceOpen('trend');
+      }, true);
+    });
+  });
+})();
 </script>
 
 </body>
