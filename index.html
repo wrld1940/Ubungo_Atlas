@@ -868,6 +868,64 @@
     cursor:pointer;
     white-space:nowrap;
   }
+
+  #mapSearchPanel button.icon-btn{
+    width:44px;
+    min-width:44px;
+    padding:10px 0;
+    text-align:center;
+    background: rgba(255,255,255,0.10);
+    border:1px solid rgba(255,255,255,0.22);
+    font-weight: 900;
+  }
+  #mapSearchPanel .directions-panel{
+    margin-top:10px;
+    padding:10px;
+    border-radius: 14px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(10,16,24,0.80);
+    backdrop-filter: blur(8px);
+  }
+  #mapSearchPanel .dir-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  #mapSearchPanel .dir-row input{
+    flex:1;
+    padding:10px 12px;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.08);
+    color: rgba(232,242,255,0.95);
+    outline:none;
+  }
+  #mapSearchPanel .small-btn{
+    width:42px;
+    min-width:42px;
+    padding:10px 0;
+    border-radius: 12px;
+    border:1px solid rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.10);
+    color:#fff;
+    cursor:pointer;
+    font-weight:900;
+  }
+  #mapSearchPanel .dir-actions{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  #mapSearchPanel .dir-actions .secondary{
+    background: rgba(255,255,255,0.10);
+  }
+  #mapSearchPanel .dir-status{
+    margin-top:8px;
+    font-size: 12px;
+    color: rgba(232,242,255,0.75);
+  }
+
   #mapSearchPanel .hint{
     margin-top:8px;
     font-size: 12px;
@@ -1280,8 +1338,6 @@ body.drawer-open #explore .content{
 </div>
 </div>
 </div>
-<input id="placeSearch" type="text"/>
-<button id="searchBtn">Go</button>
 </div>
 <!-- ================= ATLAS ================= -->
 <div aria-label="Atlas" class="section" id="explore">
@@ -1541,10 +1597,28 @@ body.drawer-open #explore .content{
   <!-- Map Search (toggle in Atlas settings) -->
   <div id="mapSearchPanel" aria-label="Place search panel">
     <div class="row">
-      <input id="atlasSearchInput" type="text" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)">
-      <button id="atlasSearchGo" type="button">Search</button>
+      <input id="placeSearch" type="text" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)">
+      <button id="searchBtn" type="button">Search</button>
+      <button id="atlasDirectionsBtn" type="button" title="Get directions" aria-label="Get directions" class="icon-btn">➤</button>
     </div>
-    
+
+    <div id="atlasDirectionsPanel" class="directions-panel" style="display:none;">
+      <div class="dir-row">
+        <input id="dirStart" type="text" placeholder="Start (type or pick)">
+        <button id="dirMyLoc" type="button" title="Use my location" class="small-btn">📍</button>
+        <button id="dirPickStart" type="button" title="Pick start on map" class="small-btn">🖱️</button>
+      </div>
+      <div class="dir-row">
+        <input id="dirDest" type="text" placeholder="Destination (type or pick)">
+        <button id="dirPickDest" type="button" title="Pick destination on map" class="small-btn">🖱️</button>
+      </div>
+      <div class="dir-actions">
+        <button id="dirGo" type="button">Route</button>
+        <button id="dirClear" type="button" class="secondary">Clear</button>
+      </div>
+      <div id="dirStatus" class="dir-status" aria-live="polite"></div>
+    </div>
+  </div>
   </div>
 
 </div>
@@ -1768,6 +1842,156 @@ if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'E
 const map = L.map('map').setView([-6.79,39.25],12);
 
 window.map = map;
+
+// ===== Directions (Google Maps style) =====
+let _dirPicking = null; // 'start' | 'dest' | null
+let _dirStartLatLng = null;
+let _dirDestLatLng = null;
+let _dirRouteLine = null;
+let _dirStartMarker = null;
+let _dirDestMarker = null;
+
+function _dirSetStatus(msg){
+  const el = document.getElementById('dirStatus');
+  if(el) el.textContent = msg || '';
+}
+
+function _dirClearRoute(){
+  if(_dirRouteLine){ map.removeLayer(_dirRouteLine); _dirRouteLine=null; }
+  if(_dirStartMarker){ map.removeLayer(_dirStartMarker); _dirStartMarker=null; }
+  if(_dirDestMarker){ map.removeLayer(_dirDestMarker); _dirDestMarker=null; }
+  _dirPicking = null;
+  _dirStartLatLng = null;
+  _dirDestLatLng = null;
+  const s = document.getElementById('dirStart'); if(s) s.value = '';
+  const d = document.getElementById('dirDest'); if(d) d.value = '';
+  _dirSetStatus('');
+}
+
+async function _dirGeocode(q){
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if(!res.ok) throw new Error('Geocoding failed');
+  const json = await res.json();
+  return (json && json.length) ? { lat: parseFloat(json[0].lat), lon: parseFloat(json[0].lon), name: json[0].display_name } : null;
+}
+
+async function _dirRoute(startLL, destLL){
+  const url = `https://router.project-osrm.org/route/v1/driving/${startLL.lng},${startLL.lat};${destLL.lng},${destLL.lat}?overview=full&geometries=geojson`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('Routing failed');
+  const json = await res.json();
+  if(!json.routes || !json.routes.length) throw new Error('No route');
+  return json.routes[0];
+}
+
+function _dirDrawRoute(route){
+  const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+  if(_dirRouteLine) map.removeLayer(_dirRouteLine);
+  _dirRouteLine = L.polyline(coords, { color: '#1e88ff', weight: 6, opacity: 0.95 }).addTo(map); // BLUE
+  map.fitBounds(_dirRouteLine.getBounds(), { padding:[40,40] });
+  const km = (route.distance/1000);
+  const min = (route.duration/60);
+  _dirSetStatus(`Distance: ${km.toFixed(2)} km • Time: ${Math.round(min)} min`);
+}
+
+function _dirSetStart(latlng, label){
+  _dirStartLatLng = latlng;
+  if(_dirStartMarker) map.removeLayer(_dirStartMarker);
+  _dirStartMarker = L.marker(latlng).addTo(map);
+  const s = document.getElementById('dirStart'); if(s && label) s.value = label;
+}
+
+function _dirSetDest(latlng, label){
+  _dirDestLatLng = latlng;
+  if(_dirDestMarker) map.removeLayer(_dirDestMarker);
+  _dirDestMarker = L.marker(latlng).addTo(map);
+  const d = document.getElementById('dirDest'); if(d && label) d.value = label;
+}
+
+function _dirTogglePanel(){
+  const p = document.getElementById('atlasDirectionsPanel');
+  if(!p) return;
+  const open = p.style.display !== 'none';
+  p.style.display = open ? 'none' : 'block';
+  if(!open) _dirSetStatus('Tip: Use 📍 or 🖱️ to pick points, or type places.');
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('atlasDirectionsBtn');
+  if(btn) btn.addEventListener('click', (e)=>{ e.preventDefault(); _dirTogglePanel(); });
+
+  const myLoc = document.getElementById('dirMyLoc');
+  if(myLoc) myLoc.addEventListener('click', ()=>{
+    _dirSetStatus('Getting your location…');
+    if(!navigator.geolocation){ _dirSetStatus('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition((pos)=>{
+      const ll = L.latLng(pos.coords.latitude, pos.coords.longitude);
+      _dirSetStart(ll, 'Your location');
+      map.setView(ll, Math.max(map.getZoom(), 14));
+      _dirSetStatus('Start set to your location.');
+    }, ()=>_dirSetStatus('Unable to get location (allow permission).'), { enableHighAccuracy:true, timeout:10000 });
+  });
+
+  const pickS = document.getElementById('dirPickStart');
+  if(pickS) pickS.addEventListener('click', ()=>{ _dirPicking='start'; _dirSetStatus('Click on the map to set START.'); });
+
+  const pickD = document.getElementById('dirPickDest');
+  if(pickD) pickD.addEventListener('click', ()=>{ _dirPicking='dest'; _dirSetStatus('Click on the map to set DESTINATION.'); });
+
+  const go = document.getElementById('dirGo');
+  if(go) go.addEventListener('click', async ()=>{
+    try{
+      _dirSetStatus('Preparing route…');
+
+      // If typed start/dest, geocode them
+      if(!_dirStartLatLng){
+        const s = (document.getElementById('dirStart')?.value || '').trim();
+        if(s){
+          const g = await _dirGeocode(s);
+          if(g) _dirSetStart(L.latLng(g.lat, g.lon), s);
+        }
+      }
+      if(!_dirDestLatLng){
+        const d = (document.getElementById('dirDest')?.value || '').trim();
+        if(d){
+          const g = await _dirGeocode(d);
+          if(g) _dirSetDest(L.latLng(g.lat, g.lon), d);
+        }
+      }
+
+      if(!_dirStartLatLng || !_dirDestLatLng){
+        _dirSetStatus('Set Start and Destination first (📍 / 🖱️ / type).');
+        return;
+      }
+
+      _dirSetStatus('Routing…');
+      const r = await _dirRoute(_dirStartLatLng, _dirDestLatLng);
+      _dirDrawRoute(r);
+    }catch(err){
+      _dirSetStatus('Route failed. Check internet / try different points.');
+      console.error(err);
+    }
+  });
+
+  const clr = document.getElementById('dirClear');
+  if(clr) clr.addEventListener('click', _dirClearRoute);
+});
+
+// map click picking
+map.on('click', (e)=>{
+  if(!_dirPicking) return;
+  if(_dirPicking==='start'){
+    _dirSetStart(e.latlng, `Start: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+    _dirPicking=null;
+    _dirSetStatus('Start set. Now set Destination.');
+  } else if(_dirPicking==='dest'){
+    _dirSetDest(e.latlng, `Dest: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`);
+    _dirPicking=null;
+    _dirSetStatus('Destination set. Click Route.');
+  }
+});
+
 // =========================
 // Raster value popup (exact pixel value)
 // Note: "Exact value" requires a matching GeoTIFF (EPSG:3857) in /rasters/.
@@ -3773,9 +3997,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if(!aboutBtn || !modal || !closeBtn) return;
 
   function openAbout(){
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    closeBtn.focus();
+    // Always open About on HOME screen (not inside the Atlas)
+    try{ if(typeof showHome === 'function'){ showHome(); } }catch(e){}
+    // Open modal after the section switch is applied
+    requestAnimationFrame(()=>{
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      closeBtn.focus();
+    });
   }
   function closeAbout(){
     modal.classList.remove('open');
