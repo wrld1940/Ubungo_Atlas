@@ -3289,57 +3289,7 @@ const LEGEND_CONFIG = {
   bus_stop: [{ type:'icon', label:'Bus stop', iconKey:'bus_stop' }],
   primary_schools: [{ type:'icon', label:'Primary school', iconKey:'primary_schools' }],
   secondary_school: [{ type:'icon', label:'Secondary school', iconKey:'secondary_school' }],
-
-  // --- QGIS-like legends for your GeoJSON + QML layers ---
-  contours: [{ type:'line', label:'Contour lines', color:"rgba(2,5,7,1.0000)", weight:0.26 }],
-  popdens: [{"type": "fill", "label": "1500 - 2800", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)"}, {"type": "fill", "label": "2800 - 5600", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(254,217,142,1.0000)"}, {"type": "fill", "label": "5600 - 7000", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(254,153,41,1.0000)"}, {"type": "fill", "label": "7000 - 20600", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(217,95,14,1.0000)"}, {"type": "fill", "label": "20600 - 34000", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(153,52,4,1.0000)"}],
-  popdist: [{"type": "fill", "label": "Population areas", "color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)"}, {"type": "fill", "label": "26215 - 43880", "color": "rgba(35,35,35,1.0000)", "weight": 2, "fillColor": "rgba(131,75,131,1.0000)"}, {"type": "fill", "label": "43880 - 53143", "color": "rgba(35,35,35,1.0000)", "weight": 2, "fillColor": "rgba(131,75,131,1.0000)"}, {"type": "fill", "label": "53143 - 81368", "color": "rgba(35,35,35,1.0000)", "weight": 2, "fillColor": "rgba(131,75,131,1.0000)"}, {"type": "fill", "label": "81368 - 114427", "color": "rgba(35,35,35,1.0000)", "weight": 2, "fillColor": "rgba(131,75,131,1.0000)"}, {"type": "fill", "label": "114427 - 145274", "color": "rgba(35,35,35,1.0000)", "weight": 2, "fillColor": "rgba(131,75,131,1.0000)"}],
 };
-// ===== QML-derived renderers (exact symbology for your uploaded GeoJSON layers) =====
-const QML_RENDERERS = {
-  contours_line: {
-    style: () => ({"color": "rgba(2,5,7,1.0000)", "weight": 0.26, "opacity": 1.0})
-  },
-  popdist_poly: {
-    style: () => ({"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)", "fillOpacity": 1.0})
-  },
-  popdens_grad: {
-    style: (feature) => {
-      const v = Number(feature && feature.properties ? feature.properties["pop_densit"] : NaN);
-      // QGIS graduated ranges
-      const ranges = [{"lower": 1546.584, "upper": 2775.7116, "label": "1500 - 2800", "symbol": "0"}, {"lower": 2775.7116, "upper": 5626.7266, "label": "2800 - 5600", "symbol": "1"}, {"lower": 5626.7266, "upper": 6976.4192, "label": "5600 - 7000", "symbol": "2"}, {"lower": 6976.4192, "upper": 20565.282600000002, "label": "7000 - 20600", "symbol": "3"}, {"lower": 20565.282600000002, "upper": 34016.94, "label": "20600 - 34000", "symbol": "4"}];
-      const sym = {"0": {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)", "fillOpacity": 1.0}, "1": {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(254,217,142,1.0000)", "fillOpacity": 1.0}, "2": {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(254,153,41,1.0000)", "fillOpacity": 1.0}, "3": {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(217,95,14,1.0000)", "fillOpacity": 1.0}, "4": {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(153,52,4,1.0000)", "fillOpacity": 1.0}};
-      if(!isFinite(v)) return sym["0"] || {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)", "fillOpacity": 1.0};
-      for(let i=0;i<ranges.length;i++) {
-        const r = ranges[i];
-        const lo = Number(r.lower), hi = Number(r.upper);
-        const isLast = (i === ranges.length - 1);
-        if((v >= lo && v < hi) || (isLast && v <= hi)) {
-          return sym[String(r.symbol)] || sym["0"] || {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)", "fillOpacity": 1.0};
-        }
-      }
-      return sym[String(ranges[ranges.length-1].symbol)] || sym["0"] || {"color": "rgba(35,35,35,1.0000)", "weight": 0.26, "fillColor": "rgba(255,255,212,1.0000)", "fillOpacity": 1.0};
-    }
-  },
-  popdist_pts_grad: {
-    pointStyle: (feature) => {
-      const v = Number(feature && feature.properties ? feature.properties["population"] : NaN);
-      const ranges = [{"lower": 26215.0, "upper": 43880.4, "label": "26215 - 43880", "symbol": "0"}, {"lower": 43880.4, "upper": 53143.0, "label": "43880 - 53143", "symbol": "1"}, {"lower": 53143.0, "upper": 81367.79999999999, "label": "53143 - 81368", "symbol": "2"}, {"lower": 81367.79999999999, "upper": 114427.40000000002, "label": "81368 - 114427", "symbol": "3"}, {"lower": 114427.40000000002, "upper": 145274.0, "label": "114427 - 145274", "symbol": "4"}];
-      const sym = {"0": {"radius": 0.6, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0}, "1": {"radius": 1.3, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0}, "2": {"radius": 2.0, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0}, "3": {"radius": 2.7, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0}, "4": {"radius": 3.4, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0}};
-      if(!isFinite(v)) return sym["0"] || {"radius": 0.6, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0};
-      for(let i=0;i<ranges.length;i++) {
-        const r = ranges[i];
-        const lo = Number(r.lower), hi = Number(r.upper);
-        const isLast = (i === ranges.length - 1);
-        if((v >= lo && v < hi) || (isLast && v <= hi)) {
-          return sym[String(r.symbol)] || sym["0"] || {"radius": 0.6, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0};
-        }
-      }
-      return sym[String(ranges[ranges.length-1].symbol)] || sym["0"] || {"radius": 0.6, "fillColor": "rgba(131,75,131,1.0000)", "fillOpacity": 1.0, "color": "rgba(35,35,35,1.0000)", "weight": 0.0, "opacity": 1.0};
-    }
-  }
-};
-
 
 function legendItemHTML(item){
   const safeLabel = item.label || 'Item';
@@ -3352,20 +3302,17 @@ function legendItemHTML(item){
         <span class="legend-text">${safeLabel}</span>
       </div>`;
   }
-  // line/polygon swatch (optionally filled)
+  // line/polygon swatch
   const c = item.color || '#ff0000';
   const w = item.weight || 3;
   const dash = item.dash ? `border-style:dashed; border-width:${Math.max(2, w)}px;` : `border-width:${Math.max(2, w)}px;`;
-  const bg = item.fillColor ? `background:${item.fillColor};` : `background:transparent;`;
-  const sw = `
-     <span class="legend-swatch" style="${bg}border-color:${c};${dash}"></span>
-  `;
   return `
     <div class="legend-row">
-      ${sw}
+      <span class="legend-swatch" style="background:transparent;border-color:${c};${dash}"></span>
       <span class="legend-text">${safeLabel}</span>
     </div>`;
 }
+
 function setLegend(layerKey, layerTitle){
   if(!legendBody) return;
 
@@ -3464,6 +3411,38 @@ function demoCircle(label, lat, lon, radius){
 
 // Styles parsed (best-effort) from your QGIS .qml files
 const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"style":{"color":"red","weight":2.0}},"hospital":{"style":{"color":"red","weight":2.0}},"pharmacy":{"style":{"color":"red","weight":2.0}},"bus_stop":{"style":{"color":"red","weight":2.0}},"railway":{"style":{"color":"red","weight":2.0}},"petrol_station":{"style":{"color":"red","weight":2.0}},"trunk_rd":{"style":{"color":"red","weight":2.0}},"primary_rd":{"style":{"color":"red","weight":2.0}},"secondary_rd":{"style":{"color":"red","weight":2.0}},"tertiary_rd":{"style":{"color":"red","weight":2.0}},"unclassified_rd":{"style":{"color":"red","weight":2.0}},"primary_schools":{"style":{"color":"red","weight":2.0}},"secondary_school":{"style":{"color":"red","weight":2.0}},"ubungo":{"style":{"color":"black","weight":2.5}}};
+
+// ===== Added: QGIS-matched styles for Population + Contours (GeoJSON) =====
+(function(){
+  const MM_TO_PX = 3.78; // 1mm ≈ 3.78px at 96DPI
+  // Population Density (graduated) — field: pop_densit
+  const __POP_DENS_RANGES = [{"lower": 1546.584, "upper": 2775.7116, "label": "1500 - 2800", "fillColor": "#ffffd4", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 2775.7116, "upper": 5626.7266, "label": "2800 - 5600", "fillColor": "#fed98e", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 5626.7266, "upper": 6976.4192, "label": "5600 - 7000", "fillColor": "#fe9929", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 6976.4192, "upper": 20565.282600000002, "label": "7000 - 20600", "fillColor": "#d95f0e", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}, {"lower": 20565.282600000002, "upper": 34016.94, "label": "20600 - 34000", "fillColor": "#993404", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828}];
+  QML_STYLES.popdens = {
+    style: (feature) => {
+      const v = Number(feature?.properties?.pop_densit);
+      if(!Number.isFinite(v)) return { color:'#232323', weight: 1, fillColor:'#ffffd4', fillOpacity: 0.3 };
+      for(const r of __POP_DENS_RANGES){
+        if(v >= r.lower && v <= r.upper) return r;
+      }
+      return __POP_DENS_RANGES[__POP_DENS_RANGES.length-1] || { color:'#232323', weight: 1, fillColor:'#ffffd4', fillOpacity: 0.3 };
+    }
+  };
+
+  // Population Distribution (polygons) — single symbol from your QML
+  QML_STYLES.popdist = {
+    style: () => ({"fillColor": "#ffffd4", "fillOpacity": 1.0, "color": "#232323", "opacity": 1.0, "weight": 0.9828})
+  };
+
+  // Contours (lines) — categorized (IndexCon), both categories share same symbol in your QML
+  QML_STYLES.contours = {
+    style: () => ({"color": "#020507", "opacity": 1.0, "weight": 0.9828})
+  };
+
+  // Optional: centroid points (not wired to UI by default)
+  QML_STYLES.popcentroid = {
+    pointStyle: {"radius": 2.268, "color": "#232323", "opacity": 1.0, "weight": 0.0, "fillColor": "#834b83", "fillOpacity": 1.0}
+  };
+})();
 
 // Simple SVG icons for point layers (Leaflet). UI unchanged.
 function makeSvgIcon(svg, size=28){
@@ -3571,11 +3550,10 @@ const LAYER_SOURCES = {
   slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
   aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
   hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
-  contours:  { type: "tile", url: "tiles/contours/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/contours.tif", title: "Contours Map", units: "m" } },
+  contours:  { type: "geojson", url: "data/Contour.geojson", styleKey: "contours" },
   topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
-
-  popdist:  { type: "tile", url: "tiles/popdist/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdist.tif", title: "Population Distribution", units: null } },
-  popdens:  { type: "tile", url: "tiles/popdens/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/popdens.tif", title: "Population Density", units: "people/km\u00b2" } },
+  popdist:  { type: "geojson", url: "data/Ubungo%20distribution.geojson", styleKey: "popdist" },
+  popdens:  { type: "geojson", url: "data/Ubungo%20density.geojson", styleKey: "popdens" },
 };
 
 
@@ -3877,54 +3855,16 @@ if(def.type === "q2w"){
 }
 
   
-  
-  // GeoJSON file (vector) — supports exact QGIS-like symbology from QML (single + graduated)
+  // Plain GeoJSON (loaded by fetch) — for GitHub Pages-friendly vector layers
   if(def.type === "geojson"){
     if(!def.url) throw new Error('Missing "url" for geojson definition');
+    const { style, pointStyle } = applyStyleFromQml(def.styleKey || "");
     const gj = await fetchGeoJSON(def.url);
-
-    // Ensure overlay pane exists
-    const paneName = 'pane_' + (def.styleKey || 'geojson');
-    try{
-      if(map && !map.getPane(paneName)){
-        map.createPane(paneName);
-        map.getPane(paneName).style.zIndex = 420;
-        map.getPane(paneName).style['mix-blend-mode'] = 'normal';
-      }
-    }catch(e){}
-
-    const renderer = (QML_RENDERERS && def.styleKey) ? QML_RENDERERS[def.styleKey] : null;
-
-    // Polygon/line style
-    const styleFn = (feature) => {
-      if(renderer && typeof renderer.style === 'function'){
-        const s = renderer.style(feature) || {};
-        if(!s.pane) s.pane = paneName;
-        return s;
-      }
-      const { style } = applyStyleFromQml(def.styleKey || "");
-      const out = style ? style : { color: "#00ffff", weight: 2, fillOpacity: 0.15 };
-      if(!out.pane) out.pane = paneName;
-      return out;
-    };
-
-    // Point rendering
-    const pointToLayer = (feature, latlng) => {
-      if(renderer && typeof renderer.pointStyle === 'function'){
-        const ps = renderer.pointStyle(feature) || null;
-        if(ps){
-          return L.circleMarker(latlng, ps);
-        }
-      }
-      const { pointStyle } = applyStyleFromQml(def.styleKey || "");
-      if(pointStyle) return L.circleMarker(latlng, pointStyle);
-      return L.circleMarker(latlng, { radius: 5, color: "#111", weight: 1, fillColor: "#1abc9c", fillOpacity: 1 });
-    };
-
-    return L.geoJSON(gj, { pane: paneName, style: styleFn, pointToLayer });
+    return makeLeafletGeoJSONLayer(gj, style, pointStyle, def.styleKey || "");
   }
 
-// XYZ tile layer (local tiles folder) with smart fallbacks (GitHub Pages is case-sensitive)
+
+  // XYZ tile layer (local tiles folder) with smart fallbacks (GitHub Pages is case-sensitive)
   if(def.type === "tile"){
     if(!def.url) throw new Error('Missing "url" for tile definition');
 
