@@ -11,6 +11,7 @@
 <!-- Leaflet -->
 <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 <style>
   :root{
     --bg: #061018;
@@ -1283,8 +1284,6 @@ body.drawer-open #explore .content{
 <link rel="stylesheet" href="q2w/styles/qgis2web.css">
 
 <script src="https://unpkg.com/geotiff@2.1.3/dist-browser/geotiff.js"></script>
-
-<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 </head>
 <body>
 <!-- ================= HOME ================= -->
@@ -1645,35 +1644,43 @@ body.drawer-open #explore .content{
 <div style="color:rgba(255,255,255,0.75);font-size:13px;margin-bottom:8px">
           Analytical layers for climate relationships and patterns.
         </div>
+
 <div class="dash-actions">
-<button class="dash-action" onclick="toggleClimatePanel('correlation')">
-<b>Correlation</b>
-<span>Explore relationships between climate variables (demo placeholder).</span>
-</button>
-<button class="dash-action" onclick="toggleClimatePanel('trend')">
-<b>Trend</b>
-<span>View time-based climate trends (demo placeholder).</span>
-</button>
+  <button class="dash-action" type="button" onclick="__openClimatePanel('corr')">
+    <b>Correlation</b>
+    <span>Explore relationships between climate variables.</span>
+  </button>
+  <button class="dash-action" type="button" onclick="__openClimatePanel('trend')">
+    <b>Trend</b>
+    <span>View time-based climate trends.</span>
+  </button>
 </div>
-<div id="climatePanels" style="margin-top:12px;display:none;">
-  <div id="climateTrendPanel" style="display:none;">
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0;">
-      <div style="color:rgba(255,255,255,0.75);font-size:13px;">Trend charts</div>
+
+<!-- Embedded climate analytics panels (no page navigation) -->
+<div id="climatePanels" style="margin-top:12px; display:none;">
+  <div id="panelTrend" style="display:none;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin: 6px 0 10px 0;">
+      <div class="chip" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10);">
+        <span style="opacity:.85">Filter:</span>
+        <input id="trendFrom" type="date" style="margin-left:8px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
+        <input id="trendTo" type="date" style="margin-left:6px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
+      </div>
+      <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__renderTrend(true)">Apply</button>
+      <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__resetTrend()">Reset</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;">
-      <div class="dash-card"><b style="font-size:14px;">NDVI</b><div id="trend_ndvi" style="height:340px;"></div></div>
-      <div class="dash-card"><b style="font-size:14px;">Air Temperature</b><div id="trend_at" style="height:340px;"></div></div>
-      <div class="dash-card"><b style="font-size:14px;">LST</b><div id="trend_lst" style="height:340px;"></div></div>
-      <div class="dash-card"><b style="font-size:14px;">Precipitation</b><div id="trend_pr" style="height:340px;"></div></div>
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
+      <div class="dash-card"><div id="trend_ndvi" style="height:340px;"></div></div>
+      <div class="dash-card"><div id="trend_at" style="height:340px;"></div></div>
+      <div class="dash-card"><div id="trend_lst" style="height:340px;"></div></div>
+      <div class="dash-card"><div id="trend_pr" style="height:340px;"></div></div>
     </div>
   </div>
 
-  <div id="climateCorrelationPanel" style="display:none;">
-    <div style="color:rgba(255,255,255,0.75);font-size:13px;margin:10px 0;">Correlation charts</div>
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;">
-      <div class="dash-card"><b style="font-size:14px;">NDVI vs Air Temperature</b><div id="corr_ndvi_at" style="height:360px;"></div></div>
-      <div class="dash-card"><b style="font-size:14px;">NDVI vs LST</b><div id="corr_ndvi_lst" style="height:360px;"></div></div>
-      <div class="dash-card"><b style="font-size:14px;">NDVI vs Precipitation</b><div id="corr_ndvi_pr" style="height:360px;"></div></div>
+  <div id="panelCorr" style="display:none;">
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
+      <div class="dash-card"><div id="corr_ndvi_at" style="height:360px;"></div></div>
+      <div class="dash-card"><div id="corr_ndvi_lst" style="height:360px;"></div></div>
+      <div class="dash-card" style="grid-column:1/-1;"><div id="corr_ndvi_pr" style="height:360px;"></div></div>
     </div>
   </div>
 </div>
@@ -1698,6 +1705,231 @@ body.drawer-open #explore .content{
 
 <script>
 /* ============ Screen switching (with fade) ============ */
+/* ============ Embedded Climate Analytics (Trend + Correlation) ============ */
+const __SERIES = {"date":["2000-01-01","2000-02-01","2000-03-01","2000-04-01","2000-05-01","2000-06-01","2000-07-01","2000-08-01","2000-09-01","2000-10-01","2000-11-01","2000-12-01","2001-01-01","2001-02-01","2001-03-01","2001-04-01","2001-05-01","2001-06-01","2001-07-01","2001-08-01","2001-09-01","2001-10-01","2001-11-01","2001-12-01","2002-01-01","2002-02-01","2002-03-01","2002-04-01","2002-05-01","2002-06-01","2002-07-01","2002-08-01","2002-09-01","2002-10-01","2002-11-01","2002-12-01","2003-01-01","2003-02-01","2003-03-01","2003-04-01","2003-05-01","2003-06-01","2003-07-01","2003-08-01","2003-09-01","2003-10-01","2003-11-01","2003-12-01","2004-01-01","2004-02-01","2004-03-01","2004-04-01","2004-05-01","2004-06-01","2004-07-01","2004-08-01","2004-09-01","2004-10-01","2004-11-01","2004-12-01","2005-01-01","2005-02-01","2005-03-01","2005-04-01","2005-05-01","2005-06-01","2005-07-01","2005-08-01","2005-09-01","2005-10-01","2005-11-01","2005-12-01","2006-01-01","2006-02-01","2006-03-01","2006-04-01","2006-05-01","2006-06-01","2006-07-01","2006-08-01","2006-09-01","2006-10-01","2006-11-01","2006-12-01","2007-01-01","2007-02-01","2007-03-01","2007-04-01","2007-05-01","2007-06-01","2007-07-01","2007-08-01","2007-09-01","2007-10-01","2007-11-01","2007-12-01","2008-01-01","2008-02-01","2008-03-01","2008-04-01","2008-05-01","2008-06-01","2008-07-01","2008-08-01","2008-09-01","2008-10-01","2008-11-01","2008-12-01","2009-01-01","2009-02-01","2009-03-01","2009-04-01","2009-05-01","2009-06-01","2009-07-01","2009-08-01","2009-09-01","2009-10-01","2009-11-01","2009-12-01","2010-01-01","2010-02-01","2010-03-01","2010-04-01","2010-05-01","2010-06-01","2010-07-01","2010-08-01","2010-09-01","2010-10-01","2010-11-01","2010-12-01","2011-01-01","2011-02-01","2011-03-01","2011-04-01","2011-05-01","2011-06-01","2011-07-01","2011-08-01","2011-09-01","2011-10-01","2011-11-01","2011-12-01","2012-01-01","2012-02-01","2012-03-01","2012-04-01","2012-05-01","2012-06-01","2012-07-01","2012-08-01","2012-09-01","2012-10-01","2012-11-01","2012-12-01","2013-01-01","2013-02-01","2013-03-01","2013-04-01","2013-05-01","2013-06-01","2013-07-01","2013-08-01","2013-09-01","2013-10-01","2013-11-01","2013-12-01","2014-01-01","2014-02-01","2014-03-01","2014-04-01","2014-05-01","2014-06-01","2014-07-01","2014-08-01","2014-09-01","2014-10-01","2014-11-01","2014-12-01","2015-01-01","2015-02-01","2015-03-01","2015-04-01","2015-05-01","2015-06-01","2015-07-01","2015-08-01","2015-09-01","2015-10-01","2015-11-01","2015-12-01","2016-01-01","2016-02-01","2016-03-01","2016-04-01","2016-05-01","2016-06-01","2016-07-01","2016-08-01","2016-09-01","2016-10-01","2016-11-01","2016-12-01","2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01","2018-01-01","2018-02-01","2018-03-01","2018-04-01","2018-05-01","2018-06-01","2018-07-01","2018-08-01","2018-09-01","2018-10-01","2018-11-01","2018-12-01","2019-01-01","2019-02-01","2019-03-01","2019-04-01","2019-05-01","2019-06-01","2019-07-01","2019-08-01","2019-09-01","2019-10-01","2019-11-01","2019-12-01","2020-01-01","2020-02-01","2020-03-01","2020-04-01","2020-05-01","2020-06-01","2020-07-01","2020-08-01","2020-09-01","2020-10-01","2020-11-01","2020-12-01","2021-01-01","2021-02-01","2021-03-01","2021-04-01","2021-05-01","2021-06-01","2021-07-01","2021-08-01","2021-09-01","2021-10-01","2021-11-01","2021-12-01","2022-01-01","2022-02-01","2022-03-01","2022-04-01","2022-05-01","2022-06-01","2022-07-01","2022-08-01","2022-09-01","2022-10-01","2022-11-01","2022-12-01","2023-01-01","2023-02-01","2023-03-01","2023-04-01","2023-05-01","2023-06-01","2023-07-01","2023-08-01","2023-09-01","2023-10-01","2023-11-01","2023-12-01","2024-01-01","2024-02-01","2024-03-01","2024-04-01","2024-05-01","2024-06-01","2024-07-01","2024-08-01","2024-09-01","2024-10-01","2024-11-01","2024-12-01"],"ndvi":[NaN,0.46,0.53,0.68,0.71,0.67,0.63,0.56,0.48,0.39,0.41,0.6,0.67,0.64,0.67,0.71,0.73,0.71,0.61,0.55,0.47,0.43,0.4,0.41,0.54,0.59,0.63,0.73,0.7,0.68,0.63,0.63,0.6,0.55,0.59,0.62,0.64,0.56,0.53,0.62,0.63,0.66,0.62,0.52,0.45,0.38,0.42,0.51,0.44,0.57,0.63,0.68,0.66,0.6,0.56,0.45,0.39,0.51,0.6,0.66,0.66,0.64,0.62,0.68,0.71,0.67,0.6,0.53,0.48,0.43,0.43,0.45,0.42,0.42,0.6,0.7,0.72,0.7,0.66,0.6,0.52,0.45,0.6,0.65,0.63,0.6,0.62,0.69,0.7,0.67,0.58,0.52,0.46,0.41,0.46,0.57,0.55,0.61,0.57,0.68,0.69,0.64,0.57,0.5,0.44,0.44,0.56,0.63,0.53,0.55,0.61,0.67,0.66,0.59,0.48,0.41,0.35,0.33,0.37,0.41,0.47,0.45,0.51,0.64,0.68,0.67,0.61,0.52,0.46,0.39,0.38,0.48,0.48,0.45,0.54,0.66,0.69,0.66,0.59,0.51,0.44,0.45,0.54,0.64,0.61,0.58,0.59,0.63,0.66,0.59,0.51,0.45,0.39,0.37,0.38,0.43,0.55,0.53,0.55,0.67,0.67,0.59,0.49,0.42,0.38,0.44,0.46,0.57,0.53,0.52,0.63,0.68,0.66,0.6,0.56,0.48,0.47,0.46,0.45,0.49,0.52,0.5,0.48,0.66,0.67,0.63,0.59,0.5,0.43,0.37,0.48,0.51,0.47,0.56,0.57,0.61,0.63,0.58,0.49,0.43,0.39,0.37,0.42,0.47,0.43,0.45,0.55,0.63,0.68,0.65,0.58,0.52,0.47,0.44,0.56,0.59,0.57,0.56,0.61,0.63,0.65,0.62,0.55,0.48,0.47,0.43,0.4,0.46,0.54,0.53,0.55,0.58,0.64,0.62,0.54,0.49,0.45,0.52,0.57,0.63,0.61,0.61,0.65,0.66,0.63,0.57,0.51,0.49,0.45,0.5,0.6,0.62,0.6,0.6,0.57,0.6,0.6,0.55,0.51,0.43,0.4,0.36,0.38,0.52,0.56,0.57,0.55,0.59,0.61,0.55,0.5,0.46,0.4,0.33,0.35,0.47,0.52,0.55,0.53,0.62,0.64,0.59,0.53,0.5,0.44,0.43,0.56,0.62,0.56,0.58,0.59,0.64,0.61,0.58,0.56,0.51,0.49,0.49,0.51,0.56],"at":[31.71,32.15,31.47,30.96,30.51,28.85,28.88,28.71,30.05,31.16,31.34,30.97,30.1,32.44,32.35,30.15,29.99,29.25,29.14,29.42,30.05,31.01,31.49,31.48,31.38,31.66,31.35,29.91,30.68,29.94,29.66,28.92,29.55,31.12,31.47,32.06,31.81,33.03,33.07,32.81,30.84,30.05,28.14,29.94,30.43,31.99,32.19,32.28,32.29,31.89,31.95,30.06,30.84,29.35,29.44,30.3,29.65,29.74,30.64,30.26,31.91,32.85,32.51,30.98,30.48,30.34,28.8,29.14,30.45,30.72,31.29,32.21,32.31,32.55,31.87,29.75,29.71,28.69,28.54,29.2,29.48,30.62,30.57,30.79,30.91,31.76,31.37,30.48,29.78,29.39,28.64,29.24,30.71,30.84,31.09,31.69,31.58,31.14,31.57,29.86,29.91,28.83,28.61,29.3,30.35,31.29,31.04,31.19,32.09,32.84,31.95,30.23,30.25,30.35,28.9,29.65,30.85,31.09,31.53,32.61,31.71,32.36,32.05,30.58,30.38,29.65,28.76,29.5,29.58,31.56,31.59,32.68,32.49,32.43,32.31,30.55,30.17,29.85,29.01,29.0,29.83,30.74,30.86,31.99,31.31,32.15,31.29,30.61,30.11,29.9,29.6,28.7,30.35,31.52,31.17,32.42,31.51,31.86,31.45,30.07,30.24,29.85,29.64,29.6,30.82,30.99,31.79,31.92,31.74,31.95,31.35,29.98,29.61,30.08,29.26,30.1,29.63,31.41,32.35,32.38,31.19,32.05,31.77,31.61,29.76,29.98,29.81,29.74,30.55,32.22,32.07,32.29,31.38,32.13,32.65,30.53,30.91,30.19,29.66,29.57,29.88,31.03,31.26,30.88,32.41,32.1,31.8,30.56,29.38,29.84,29.3,29.55,30.21,31.43,30.15,31.49,30.54,32.65,31.19,30.19,29.66,29.44,28.57,29.13,29.91,30.0,30.48,32.16,32.76,33.07,33.38,31.84,30.18,30.39,29.57,30.25,31.0,31.21,31.66,32.0,32.11,32.49,32.23,30.86,30.49,30.51,29.43,29.8,30.58,31.52,31.13,32.26,31.87,32.02,32.39,30.38,30.12,29.74,29.45,29.75,30.68,31.43,32.12,31.51,31.87,32.19,32.6,31.29,30.76,30.22,28.78,29.18,30.05,30.52,31.56,32.18,31.84,32.51,32.27,30.72,30.77,30.05,29.8,30.24,31.13,32.18,31.02,32.45,31.83,33.16,32.44,30.5,30.77,30.49,29.67,30.24,30.69,31.59,31.97,31.93],"lst":[30.17,32.78,29.48,26.67,35.82,32.43,36.75,34.29,28.19,30.07,28.99,32.11,33.73,30.92,37.88,27.92,31.14,32.7,30.31,37.04,31.54,32.0,40.62,28.49,32.03,31.07,28.94,27.87,27.31,30.32,29.49,35.44,32.76,28.91,33.9,28.65,33.27,32.42,37.74,28.96,30.35,34.11,34.08,35.93,34.86,31.47,36.59,29.25,32.96,28.92,29.97,33.27,35.55,29.61,38.91,32.26,33.46,31.03,29.39,31.05,32.51,28.72,37.26,25.61,32.36,34.55,30.77,37.52,32.06,30.69,37.08,29.29,30.02,30.99,32.95,26.71,25.52,32.48,31.26,35.49,34.89,31.35,32.19,27.02,32.34,28.52,35.5,30.06,30.2,33.76,29.75,37.41,32.66,31.37,34.38,29.95,30.92,29.32,30.21,30.72,32.4,28.81,35.4,30.99,31.36,31.9,29.27,30.98,34.31,29.92,39.6,30.07,33.7,34.45,32.04,40.25,36.02,32.51,34.31,32.26,34.04,32.15,39.38,28.61,29.44,34.38,30.93,37.81,33.19,32.01,32.06,29.17,32.52,34.52,32.79,30.69,28.52,34.36,31.46,32.86,31.47,30.7,31.27,28.53,30.12,35.18,31.08,31.02,34.27,33.13,40.01,34.32,30.59,36.89,32.22,33.28,33.19,32.3,32.49,30.34,33.33,33.23,30.56,33.53,33.16,33.06,33.82,31.6,31.63,33.07,35.0,30.07,31.82,33.02,29.32,34.67,33.13,28.09,37.65,30.05,32.62,31.68,35.95,29.31,28.69,36.88,31.34,38.44,31.56,33.67,35.88,30.46,30.06,35.06,32.48,32.22,34.18,29.23,36.48,33.34,34.34,34.84,32.54,32.2,30.5,31.39,27.16,28.95,29.04,33.14,29.51,36.65,31.74,32.77,31.53,30.4,36.72,31.47,39.76,28.8,30.9,31.64,26.46,37.92,33.23,31.43,37.02,30.51,31.8,33.51,32.81,29.42,31.4,32.51,30.7,35.62,32.38,33.89,33.06,28.34,30.71,32.8,31.38,31.69,32.88,30.04,37.61,32.59,30.58,32.58,27.82,32.29,35.31,32.22,35.1,29.77,31.7,33.96,28.29,36.93,33.39,30.09,27.51,29.05,33.88,32.33,34.58,29.74,30.19,33.47,33.75,37.19,35.24,29.77,35.81,28.99,30.93,28.55,33.15,27.94,28.17,33.62,31.11,35.25,30.65,30.13,29.9,29.01,30.71,30.74,27.94,29.84,30.88,29.14,35.28,30.79,30.02,32.1,27.92,31.64],"pr":[12.15,10.57,175.0,169.13,49.0,95.83,20.95,41.9,8.26,6.36,75.81,196.57,70.15,72.87,125.38,241.39,114.88,28.98,15.33,5.44,6.05,7.11,27.87,80.32,88.04,105.84,187.36,402.54,39.15,10.24,24.44,91.38,52.84,68.46,83.84,123.82,22.26,30.29,101.13,47.8,129.77,83.16,19.26,2.0,13.03,29.63,54.94,34.52,69.73,160.61,131.72,253.45,13.75,42.7,2.88,5.13,36.2,101.12,81.69,148.52,109.76,39.58,123.72,125.85,203.0,6.24,10.9,22.23,24.16,88.64,22.19,12.18,19.8,45.46,232.52,237.99,121.62,115.93,17.59,9.05,36.18,95.87,199.37,223.13,29.1,48.8,217.77,148.31,110.27,21.93,8.3,35.56,22.21,58.71,82.34,66.26,43.16,83.39,180.01,220.01,60.48,11.77,7.28,10.04,20.05,75.88,99.92,21.74,20.24,74.24,91.11,172.51,28.35,23.39,6.26,6.61,3.07,49.6,51.75,92.75,43.17,87.35,148.15,287.13,98.03,13.54,5.19,13.23,51.65,1.0,46.35,91.29,8.92,120.02,70.44,203.11,99.79,23.99,8.65,23.22,70.6,46.67,218.32,292.99,16.83,51.54,55.86,205.74,93.88,9.15,3.12,27.49,18.89,16.25,100.44,73.87,67.62,6.67,184.43,171.4,75.77,4.74,4.37,12.85,32.14,44.29,68.93,85.02,6.01,93.66,148.57,361.61,175.41,9.34,7.96,1.0,82.73,17.81,41.67,67.63,67.49,38.27,95.92,164.59,272.1,3.79,7.61,20.94,18.0,19.34,120.78,67.27,100.27,92.59,55.32,352.19,116.63,38.22,11.0,7.21,33.59,44.07,120.38,87.07,11.47,93.6,111.93,170.78,146.81,55.87,8.15,13.65,48.36,161.52,150.08,58.72,79.8,17.49,201.74,275.65,120.05,14.46,23.25,13.87,44.13,103.68,87.6,120.58,61.08,38.02,61.55,202.56,255.93,14.34,9.74,24.36,22.31,228.61,168.87,191.48,96.99,168.44,255.94,410.67,128.79,20.67,25.89,25.4,22.61,94.34,166.47,50.72,72.11,87.3,79.65,295.59,43.44,29.99,15.66,18.25,26.94,21.68,105.02,182.04,71.6,81.22,73.38,165.37,41.19,16.74,17.18,16.15,19.92,24.04,72.52,84.57,39.62,26.46,88.64,345.36,80.83,41.48,14.91,25.39,25.43,82.11,317.15,129.24,151.77,90.94,292.87,474.05,114.58,34.27,16.79,22.87,24.84,54.64,73.16,171.42]};
+
+function __parseSeries(){
+  const d = __SERIES;
+  const n = d.date.length;
+  const out = [];
+  for(let i=0;i<n;i++){
+    const row = {
+      date: new Date(d.date[i]),
+      ndvi: (d.ndvi[i]===null || Number.isNaN(d.ndvi[i])) ? null : Number(d.ndvi[i]),
+      at: (d.at[i]===null || Number.isNaN(d.at[i])) ? null : Number(d.at[i]),
+      lst: (d.lst[i]===null || Number.isNaN(d.lst[i])) ? null : Number(d.lst[i]),
+      pr: (d.pr[i]===null || Number.isNaN(d.pr[i])) ? null : Number(d.pr[i]),
+    };
+    out.push(row);
+  }
+  return out.filter(r => !isNaN(r.date));
+}
+
+let __seriesRows = null;
+let __trendRendered = false;
+let __corrRendered = false;
+
+function __openClimatePanel(which){
+  const panels = document.getElementById('climatePanels');
+  const pTrend = document.getElementById('panelTrend');
+  const pCorr = document.getElementById('panelCorr');
+  if(!panels || !pTrend || !pCorr) return;
+
+  panels.style.display = 'block';
+
+  if(which === 'trend'){
+    pCorr.style.display = 'none';
+    pTrend.style.display = (pTrend.style.display === 'none' || !pTrend.style.display) ? 'block' : 'none';
+    if(pTrend.style.display === 'block') __renderTrend(false);
+  } else {
+    pTrend.style.display = 'none';
+    pCorr.style.display = (pCorr.style.display === 'none' || !pCorr.style.display) ? 'block' : 'none';
+    if(pCorr.style.display === 'block') __renderCorr();
+  }
+}
+
+function __filterRows(){
+  if(!__seriesRows) __seriesRows = __parseSeries();
+  const fromEl = document.getElementById('trendFrom');
+  const toEl = document.getElementById('trendTo');
+  let from = fromEl && fromEl.value ? new Date(fromEl.value) : null;
+  let to = toEl && toEl.value ? new Date(toEl.value) : null;
+  if(to) to = new Date(to.getTime() + 24*3600*1000 - 1);
+  return __seriesRows.filter(r=>{
+    if(from && r.date < from) return false;
+    if(to && r.date > to) return false;
+    return true;
+  });
+}
+
+function __linreg(x, y){
+  const n = x.length;
+  if(n < 2) return {m:0,b:0};
+  let sx=0, sy=0, sxx=0, sxy=0;
+  for(let i=0;i<n;i++){ sx += x[i]; sy += y[i]; sxx += x[i]*x[i]; sxy += x[i]*y[i]; }
+  const denom = (n*sxx - sx*sx);
+  const m = denom === 0 ? 0 : (n*sxy - sx*sy)/denom;
+  const b = (sy - m*sx)/n;
+  return {m,b};
+}
+
+function __pearson(x, y){
+  const n = x.length;
+  if(n < 3) return {r:0, r2:0, n};
+  let sx=0, sy=0;
+  for(let i=0;i<n;i++){ sx += x[i]; sy += y[i]; }
+  const mx = sx/n, my = sy/n;
+  let sxx=0, syy=0, sxy=0;
+  for(let i=0;i<n;i++){
+    const dx=x[i]-mx, dy=y[i]-my;
+    sxx += dx*dx; syy += dy*dy; sxy += dx*dy;
+  }
+  const denom = Math.sqrt(sxx*syy);
+  const r = denom === 0 ? 0 : sxy/denom;
+  return {r, r2: r*r, n};
+}
+
+function __phi(z){
+  const sign = z < 0 ? -1 : 1;
+  z = Math.abs(z) / Math.sqrt(2);
+  const t = 1/(1+0.3275911*z);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429;
+  const erf = 1-((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t*Math.exp(-z*z);
+  return 0.5*(1+sign*erf);
+}
+
+function __pValueFromR(r, n){
+  if(n < 4) return null;
+  const df = n - 2;
+  const t = Math.abs(r) * Math.sqrt(df / Math.max(1e-12, (1 - r*r)));
+  const p = 2 * (1 - __phi(t)); // normal approx
+  return Math.max(0, Math.min(1, p));
+}
+
+function __renderTrend(force){
+  if(!window.Plotly) return;
+  if(__trendRendered && !force) return;
+
+  const rows = __filterRows();
+  const fromEl = document.getElementById('trendFrom');
+  const toEl = document.getElementById('trendTo');
+  if(fromEl && !fromEl.value && rows.length) fromEl.value = rows[0].date.toISOString().slice(0,10);
+  if(toEl && !toEl.value && rows.length) toEl.value = rows[rows.length-1].date.toISOString().slice(0,10);
+
+  function drawTime(divId, key, title, yLabel){
+    const xs = [];
+    const ys = [];
+    for(const r of rows){
+      const v = r[key];
+      if(v===null || v===undefined) continue;
+      xs.push(r.date);
+      ys.push(v);
+    }
+    const xNum = xs.map(d=>d.getTime());
+    const reg = __linreg(xNum, ys);
+    const yFit = xNum.map(x=>reg.m*x+reg.b);
+
+    const trace = {x: xs, y: ys, mode:'lines+markers', name:title};
+    const fit = {x: xs, y: yFit, mode:'lines', name:'Trend Line'};
+    const layout = {
+      margin: {l:48,r:18,t:42,b:44},
+      title: {text: title, font: {size: 14}},
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'rgba(0,0,0,0)',
+      font: {color:'#e8f2ff'},
+      xaxis: {title:'Date', gridcolor:'rgba(255,255,255,0.08)'},
+      yaxis: {title:yLabel||'', gridcolor:'rgba(255,255,255,0.08)'},
+      legend: {orientation:'h', x:0, y:1.12},
+    };
+    Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
+  }
+
+  drawTime('trend_ndvi','ndvi','Monthly average NDVI trend graph for the year 2000-2024','NDVI');
+  drawTime('trend_at','at','Monthly average Air temperature trend graph for the year 2000-2024','°C');
+  drawTime('trend_lst','lst','Monthly average LST trend graph for the year 2000-2024','°C');
+  drawTime('trend_pr','pr','Monthly average precipitation trend graph for the year 2000-2024','mm');
+
+  const mean = (arr)=> arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : null;
+  const nd = rows.map(r=>r.ndvi).filter(v=>v!==null);
+  const at = rows.map(r=>r.at).filter(v=>v!==null);
+  const lst = rows.map(r=>r.lst).filter(v=>v!==null);
+  const pr = rows.map(r=>r.pr).filter(v=>v!==null);
+
+  const setTxt = (id,val,dec)=>{ const el=document.getElementById(id); if(el) el.textContent = (val===null?'--':val.toFixed(dec)); };
+  setTxt('kpiNDVI', mean(nd), 2);
+  setTxt('kpiAT', mean(at), 1);
+  setTxt('kpiLST', mean(lst), 1);
+  setTxt('kpiRain', mean(pr), 0);
+
+  __trendRendered = true;
+}
+
+function __resetTrend(){
+  const fromEl = document.getElementById('trendFrom');
+  const toEl = document.getElementById('trendTo');
+  if(fromEl) fromEl.value = '';
+  if(toEl) toEl.value = '';
+  __trendRendered = false;
+  __renderTrend(true);
+}
+
+function __renderCorr(){
+  if(!window.Plotly) return;
+  if(__corrRendered) return;
+  if(!__seriesRows) __seriesRows = __parseSeries();
+
+  function scatter(divId, xKey, yKey, title, xLabel, yLabel){
+    const xs=[], ys=[];
+    for(const r of __seriesRows){
+      const x=r[xKey], y=r[yKey];
+      if(x===null || y===null || x===undefined || y===undefined) continue;
+      xs.push(x); ys.push(y);
+    }
+    const stats = __pearson(xs, ys);
+    const reg = __linreg(xs, ys);
+    const p = __pValueFromR(stats.r, stats.n);
+    const eq = `y = ${reg.m.toFixed(4)}x + ${reg.b.toFixed(4)}`;
+    const ann = `r = ${stats.r.toFixed(4)}<br>R² = ${stats.r2.toFixed(4)}<br>n = ${stats.n}<br>p = ${p===null?'--':(p<0.0001?'<0.0001':p.toFixed(4))}<br>${eq}`;
+
+    const trace = {x: xs, y: ys, mode:'markers', name:'Data'};
+    const xMin=Math.min(...xs), xMax=Math.max(...xs);
+    const xLine=[xMin,xMax];
+    const yLine=xLine.map(x=>reg.m*x+reg.b);
+    const fit = {x:xLine, y:yLine, mode:'lines', name:'Line of Best Fit'};
+
+    const layout = {
+      margin: {l:52,r:18,t:42,b:44},
+      title: {text:title, font: {size:14}},
+      paper_bgcolor:'rgba(0,0,0,0)',
+      plot_bgcolor:'rgba(0,0,0,0)',
+      font: {color:'#e8f2ff'},
+      xaxis: {title:xLabel, gridcolor:'rgba(255,255,255,0.08)'},
+      yaxis: {title:yLabel, gridcolor:'rgba(255,255,255,0.08)'},
+      legend: {orientation:'h', x:0, y:1.12},
+      annotations: [{
+        xref:'paper', yref:'paper', x:0.98, y:0.98,
+        xanchor:'right', yanchor:'top',
+        text: ann,
+        showarrow:false,
+        font: {size: 11},
+        align:'left',
+        bgcolor:'rgba(0,0,0,0.25)',
+        bordercolor:'rgba(255,255,255,0.18)',
+        borderwidth:1,
+        borderpad:8
+      }]
+    };
+    Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
+  }
+
+  scatter('corr_ndvi_at','ndvi','at','NDVI vs Air Temperature','NDVI','Air Temperature (°C)');
+  scatter('corr_ndvi_lst','ndvi','lst','NDVI vs LST','NDVI','LST (°C)');
+  scatter('corr_ndvi_pr','ndvi','pr','NDVI vs Precipitation','NDVI','Precipitation (mm)');
+
+  __corrRendered = true;
+}
+/* ====================================================================== */
+
 function showHome(){
   document.getElementById('explore').classList.remove('active');
   document.getElementById('home').classList.add('active');
@@ -3282,9 +3514,9 @@ const LAYER_SOURCES = {
   lst:  { type: "tile", url: "tiles/lst/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/lst.tif", title: "Land Surface Temperature Map", units: "\u00b0C" } },
   ndvi:  { type: "tile", url: "tiles/ndvi/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/ndvi.tif", title: "NDVI", units: null } },
 
-  slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", urls: ["tiles/slope/{z}/{x}/{y}.png", "tiles/slope/{z}/{x}/{y}.jpg", "tiles/Slope/{z}/{x}/{y}.png", "tiles/Slope/{z}/{x}/{y}.jpg", "tiles/SLOPE/{z}/{x}/{y}.png", "tiles/SLOPE/{z}/{x}/{y}.jpg"], minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
-  aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", urls: ["tiles/aspect/{z}/{x}/{y}.png", "tiles/aspect/{z}/{x}/{y}.jpg", "tiles/Aspect/{z}/{x}/{y}.png", "tiles/Aspect/{z}/{x}/{y}.jpg", "tiles/ASPECT/{z}/{x}/{y}.png", "tiles/ASPECT/{z}/{x}/{y}.jpg"], minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
-  hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", urls: ["tiles/hillshade/{z}/{x}/{y}.png", "tiles/hillshade/{z}/{x}/{y}.jpg", "tiles/Hillshade/{z}/{x}/{y}.png", "tiles/Hillshade/{z}/{x}/{y}.jpg", "tiles/HILLSHADE/{z}/{x}/{y}.png", "tiles/HILLSHADE/{z}/{x}/{y}.jpg"], minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
+  slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
+  aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
+  hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
   contours:  { type: "tile", url: "tiles/contours/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/contours.tif", title: "Contours Map", units: "m" } },
   topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
 
@@ -3591,36 +3823,64 @@ if(def.type === "q2w"){
 }
 
   
-    function _createFallbackTileLayer(urls, options){
-    let idx = 0;
-    const layer = L.tileLayer(urls[idx], options);
-    layer._fallbackUrls = urls.slice();
-    layer._fallbackIndex = 0;
-    layer._tileErr = 0;
-    layer.on('tileerror', function(){
-      this._tileErr = (this._tileErr||0) + 1;
-      if(this._tileErr >= 6 && this._fallbackIndex < this._fallbackUrls.length - 1){
-        this._fallbackIndex += 1;
-        this._tileErr = 0;
-        this.setUrl(this._fallbackUrls[this._fallbackIndex]);
-      }
-    });
-    return layer;
-  }
-
-  // XYZ tile layer (local tiles folder)
+  // XYZ tile layer (local tiles folder) with smart fallbacks (GitHub Pages is case-sensitive)
   if(def.type === "tile"){
     if(!def.url) throw new Error('Missing "url" for tile definition');
-    const _opt = {
+
+    // Build candidate URL templates for slope/aspect/hillshade (support different folder casing + extensions)
+    function __candidatesFor(url){
+      // url like: tiles/slope/{z}/{x}/{y}.png
+      const m = url.match(/^tiles\/([^\/]+)\/\{z\}\/\{x\}\/\{y\}\.(png|jpg|jpeg|webp)$/i);
+      if(!m) return [url];
+      const folder = m[1];
+      const exts = ['png','jpg','jpeg','webp'];
+      const folders = Array.from(new Set([folder, folder.toLowerCase(), folder.toUpperCase(), folder.charAt(0).toUpperCase()+folder.slice(1).toLowerCase()]));
+      const list = [];
+      for(const f of folders){
+        for(const ext of exts){
+          list.push(`tiles/${f}/{z}/{x}/{y}.${ext}`);
+        }
+      }
+      return list;
+    }
+
+    const candidates = __candidatesFor(def.url);
+
+    // If only one candidate, use normal layer
+    if(candidates.length === 1){
+      return L.tileLayer(def.url, {
+        minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
+        maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
+        opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
+        crossOrigin: true
+      });
+    }
+
+    // Smart fallback: if many tiles error, swap to next candidate
+    let idx = 0;
+    let errCount = 0;
+    const errLimit = 12; // switch after this many errors
+    const layer = L.tileLayer(candidates[idx], {
       minZoom: (typeof def.minZoom === 'number') ? def.minZoom : 0,
       maxZoom: (typeof def.maxZoom === 'number') ? def.maxZoom : 18,
       opacity: (typeof def.opacity === 'number') ? def.opacity : 1,
       crossOrigin: true
-    };
-    if(Array.isArray(def.urls) && def.urls.length){
-      return _createFallbackTileLayer(def.urls, _opt);
-    }
-    return L.tileLayer(def.url, _opt);
+    });
+
+    layer.on('tileerror', ()=>{
+      errCount++;
+      if(errCount >= errLimit && idx < candidates.length - 1){
+        idx++;
+        errCount = 0;
+        try{
+          layer.setUrl(candidates[idx], false);
+        }catch(e){
+          // ignore
+        }
+      }
+    });
+
+    return layer;
   }
 
 // WMS (GeoServer) tile layer
@@ -5247,220 +5507,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-</script>
-
-
-<script>
-/* ===== Embedded climate series (from Series.csv at build time) ===== */
-const EMBEDDED_SERIES = [{"date":"2000-01-01","at":31.71,"ndvi":null,"pr":12.15,"lst":30.17},{"date":"2000-02-01","at":32.15,"ndvi":0.46,"pr":10.57,"lst":32.78},{"date":"2000-03-01","at":31.47,"ndvi":0.53,"pr":175.0,"lst":29.48},{"date":"2000-04-01","at":30.96,"ndvi":0.68,"pr":169.13,"lst":26.67},{"date":"2000-05-01","at":30.51,"ndvi":0.71,"pr":49.0,"lst":35.82},{"date":"2000-06-01","at":28.85,"ndvi":0.67,"pr":95.83,"lst":32.43},{"date":"2000-07-01","at":28.88,"ndvi":0.63,"pr":20.95,"lst":36.75},{"date":"2000-08-01","at":28.71,"ndvi":0.56,"pr":41.9,"lst":34.29},{"date":"2000-09-01","at":30.05,"ndvi":0.48,"pr":8.26,"lst":28.19},{"date":"2000-10-01","at":31.16,"ndvi":0.39,"pr":6.36,"lst":30.07},{"date":"2000-11-01","at":31.34,"ndvi":0.41,"pr":75.81,"lst":28.99},{"date":"2000-12-01","at":30.97,"ndvi":0.6,"pr":196.57,"lst":32.11},{"date":"2001-01-01","at":30.1,"ndvi":0.67,"pr":70.15,"lst":33.73},{"date":"2001-02-01","at":32.44,"ndvi":0.64,"pr":72.87,"lst":30.92},{"date":"2001-03-01","at":32.35,"ndvi":0.67,"pr":125.38,"lst":37.88},{"date":"2001-04-01","at":30.15,"ndvi":0.71,"pr":241.39,"lst":27.92},{"date":"2001-05-01","at":29.99,"ndvi":0.73,"pr":114.88,"lst":31.14},{"date":"2001-06-01","at":29.25,"ndvi":0.71,"pr":28.98,"lst":32.7},{"date":"2001-07-01","at":29.14,"ndvi":0.61,"pr":15.33,"lst":30.31},{"date":"2001-08-01","at":29.42,"ndvi":0.55,"pr":5.44,"lst":37.04},{"date":"2001-09-01","at":30.05,"ndvi":0.47,"pr":6.05,"lst":31.54},{"date":"2001-10-01","at":31.01,"ndvi":0.43,"pr":7.11,"lst":32.0},{"date":"2001-11-01","at":31.49,"ndvi":0.4,"pr":27.87,"lst":40.62},{"date":"2001-12-01","at":31.48,"ndvi":0.41,"pr":80.32,"lst":28.49},{"date":"2002-01-01","at":31.38,"ndvi":0.54,"pr":88.04,"lst":32.03},{"date":"2002-02-01","at":31.66,"ndvi":0.59,"pr":105.84,"lst":31.07},{"date":"2002-03-01","at":31.35,"ndvi":0.63,"pr":187.36,"lst":28.94},{"date":"2002-04-01","at":29.91,"ndvi":0.73,"pr":402.54,"lst":27.87},{"date":"2002-05-01","at":30.68,"ndvi":0.7,"pr":39.15,"lst":27.31},{"date":"2002-06-01","at":29.94,"ndvi":0.68,"pr":10.24,"lst":30.32},{"date":"2002-07-01","at":29.66,"ndvi":0.63,"pr":24.44,"lst":29.49},{"date":"2002-08-01","at":28.92,"ndvi":0.63,"pr":91.38,"lst":35.44},{"date":"2002-09-01","at":29.55,"ndvi":0.6,"pr":52.84,"lst":32.76},{"date":"2002-10-01","at":31.12,"ndvi":0.55,"pr":68.46,"lst":28.91},{"date":"2002-11-01","at":31.47,"ndvi":0.59,"pr":83.84,"lst":33.9},{"date":"2002-12-01","at":32.06,"ndvi":0.62,"pr":123.82,"lst":28.65},{"date":"2003-01-01","at":31.81,"ndvi":0.64,"pr":22.26,"lst":33.27},{"date":"2003-02-01","at":33.03,"ndvi":0.56,"pr":30.29,"lst":32.42},{"date":"2003-03-01","at":33.07,"ndvi":0.53,"pr":101.13,"lst":37.74},{"date":"2003-04-01","at":32.81,"ndvi":0.62,"pr":47.8,"lst":28.96},{"date":"2003-05-01","at":30.84,"ndvi":0.63,"pr":129.77,"lst":30.35},{"date":"2003-06-01","at":30.05,"ndvi":0.66,"pr":83.16,"lst":34.11},{"date":"2003-07-01","at":28.14,"ndvi":0.62,"pr":19.26,"lst":34.08},{"date":"2003-08-01","at":29.94,"ndvi":0.52,"pr":2.0,"lst":35.93},{"date":"2003-09-01","at":30.43,"ndvi":0.45,"pr":13.03,"lst":34.86},{"date":"2003-10-01","at":31.99,"ndvi":0.38,"pr":29.63,"lst":31.47},{"date":"2003-11-01","at":32.19,"ndvi":0.42,"pr":54.94,"lst":36.59},{"date":"2003-12-01","at":32.28,"ndvi":0.51,"pr":34.52,"lst":29.25},{"date":"2004-01-01","at":32.29,"ndvi":0.44,"pr":69.73,"lst":32.96},{"date":"2004-02-01","at":31.89,"ndvi":0.57,"pr":160.61,"lst":28.92},{"date":"2004-03-01","at":31.95,"ndvi":0.63,"pr":131.72,"lst":29.97},{"date":"2004-04-01","at":30.06,"ndvi":0.68,"pr":253.45,"lst":33.27},{"date":"2004-05-01","at":30.84,"ndvi":0.66,"pr":13.75,"lst":35.55},{"date":"2004-06-01","at":29.35,"ndvi":0.6,"pr":42.7,"lst":29.61},{"date":"2004-07-01","at":29.44,"ndvi":0.56,"pr":2.88,"lst":38.91},{"date":"2004-08-01","at":30.3,"ndvi":0.45,"pr":5.13,"lst":32.26},{"date":"2004-09-01","at":29.65,"ndvi":0.39,"pr":36.2,"lst":33.46},{"date":"2004-10-01","at":29.74,"ndvi":0.51,"pr":101.12,"lst":31.03},{"date":"2004-11-01","at":30.64,"ndvi":0.6,"pr":81.69,"lst":29.39},{"date":"2004-12-01","at":30.26,"ndvi":0.66,"pr":148.52,"lst":31.05},{"date":"2005-01-01","at":31.91,"ndvi":0.66,"pr":109.76,"lst":32.51},{"date":"2005-02-01","at":32.85,"ndvi":0.64,"pr":39.58,"lst":28.72},{"date":"2005-03-01","at":32.51,"ndvi":0.62,"pr":123.72,"lst":37.26},{"date":"2005-04-01","at":30.98,"ndvi":0.68,"pr":125.85,"lst":25.61},{"date":"2005-05-01","at":30.48,"ndvi":0.71,"pr":203.0,"lst":32.36},{"date":"2005-06-01","at":30.34,"ndvi":0.67,"pr":6.24,"lst":34.55},{"date":"2005-07-01","at":28.8,"ndvi":0.6,"pr":10.9,"lst":30.77},{"date":"2005-08-01","at":29.14,"ndvi":0.53,"pr":22.23,"lst":37.52},{"date":"2005-09-01","at":30.45,"ndvi":0.48,"pr":24.16,"lst":32.06},{"date":"2005-10-01","at":30.72,"ndvi":0.43,"pr":88.64,"lst":30.69},{"date":"2005-11-01","at":31.29,"ndvi":0.43,"pr":22.19,"lst":37.08},{"date":"2005-12-01","at":32.21,"ndvi":0.45,"pr":12.18,"lst":29.29},{"date":"2006-01-01","at":32.31,"ndvi":0.42,"pr":19.8,"lst":30.02},{"date":"2006-02-01","at":32.55,"ndvi":0.42,"pr":45.46,"lst":30.99},{"date":"2006-03-01","at":31.87,"ndvi":0.6,"pr":232.52,"lst":32.95},{"date":"2006-04-01","at":29.75,"ndvi":0.7,"pr":237.99,"lst":26.71},{"date":"2006-05-01","at":29.71,"ndvi":0.72,"pr":121.62,"lst":25.52},{"date":"2006-06-01","at":28.69,"ndvi":0.7,"pr":115.93,"lst":32.48},{"date":"2006-07-01","at":28.54,"ndvi":0.66,"pr":17.59,"lst":31.26},{"date":"2006-08-01","at":29.2,"ndvi":0.6,"pr":9.05,"lst":35.49},{"date":"2006-09-01","at":29.48,"ndvi":0.52,"pr":36.18,"lst":34.89},{"date":"2006-10-01","at":30.62,"ndvi":0.45,"pr":95.87,"lst":31.35},{"date":"2006-11-01","at":30.57,"ndvi":0.6,"pr":199.37,"lst":32.19},{"date":"2006-12-01","at":30.79,"ndvi":0.65,"pr":223.13,"lst":27.02},{"date":"2007-01-01","at":30.91,"ndvi":0.63,"pr":29.1,"lst":32.34},{"date":"2007-02-01","at":31.76,"ndvi":0.6,"pr":48.8,"lst":28.52},{"date":"2007-03-01","at":31.37,"ndvi":0.62,"pr":217.77,"lst":35.5},{"date":"2007-04-01","at":30.48,"ndvi":0.69,"pr":148.31,"lst":30.06},{"date":"2007-05-01","at":29.78,"ndvi":0.7,"pr":110.27,"lst":30.2},{"date":"2007-06-01","at":29.39,"ndvi":0.67,"pr":21.93,"lst":33.76},{"date":"2007-07-01","at":28.64,"ndvi":0.58,"pr":8.3,"lst":29.75},{"date":"2007-08-01","at":29.24,"ndvi":0.52,"pr":35.56,"lst":37.41},{"date":"2007-09-01","at":30.71,"ndvi":0.46,"pr":22.21,"lst":32.66},{"date":"2007-10-01","at":30.84,"ndvi":0.41,"pr":58.71,"lst":31.37},{"date":"2007-11-01","at":31.09,"ndvi":0.46,"pr":82.34,"lst":34.38},{"date":"2007-12-01","at":31.69,"ndvi":0.57,"pr":66.26,"lst":29.95},{"date":"2008-01-01","at":31.58,"ndvi":0.55,"pr":43.16,"lst":30.92},{"date":"2008-02-01","at":31.14,"ndvi":0.61,"pr":83.39,"lst":29.32},{"date":"2008-03-01","at":31.57,"ndvi":0.57,"pr":180.01,"lst":30.21},{"date":"2008-04-01","at":29.86,"ndvi":0.68,"pr":220.01,"lst":30.72},{"date":"2008-05-01","at":29.91,"ndvi":0.69,"pr":60.48,"lst":32.4},{"date":"2008-06-01","at":28.83,"ndvi":0.64,"pr":11.77,"lst":28.81},{"date":"2008-07-01","at":28.61,"ndvi":0.57,"pr":7.28,"lst":35.4},{"date":"2008-08-01","at":29.3,"ndvi":0.5,"pr":10.04,"lst":30.99},{"date":"2008-09-01","at":30.35,"ndvi":0.44,"pr":20.05,"lst":31.36},{"date":"2008-10-01","at":31.29,"ndvi":0.44,"pr":75.88,"lst":31.9},{"date":"2008-11-01","at":31.04,"ndvi":0.56,"pr":99.92,"lst":29.27},{"date":"2008-12-01","at":31.19,"ndvi":0.63,"pr":21.74,"lst":30.98},{"date":"2009-01-01","at":32.09,"ndvi":0.53,"pr":20.24,"lst":34.31},{"date":"2009-02-01","at":32.84,"ndvi":0.55,"pr":74.24,"lst":29.92},{"date":"2009-03-01","at":31.95,"ndvi":0.61,"pr":91.11,"lst":39.6},{"date":"2009-04-01","at":30.23,"ndvi":0.67,"pr":172.51,"lst":30.07},{"date":"2009-05-01","at":30.25,"ndvi":0.66,"pr":28.35,"lst":33.7},{"date":"2009-06-01","at":30.35,"ndvi":0.59,"pr":23.39,"lst":34.45},{"date":"2009-07-01","at":28.9,"ndvi":0.48,"pr":6.26,"lst":32.04},{"date":"2009-08-01","at":29.65,"ndvi":0.41,"pr":6.61,"lst":40.25},{"date":"2009-09-01","at":30.85,"ndvi":0.35,"pr":3.07,"lst":36.02},{"date":"2009-10-01","at":31.09,"ndvi":0.33,"pr":49.6,"lst":32.51},{"date":"2009-11-01","at":31.53,"ndvi":0.37,"pr":51.75,"lst":34.31},{"date":"2009-12-01","at":32.61,"ndvi":0.41,"pr":92.75,"lst":32.26},{"date":"2010-01-01","at":31.71,"ndvi":0.47,"pr":43.17,"lst":34.04},{"date":"2010-02-01","at":32.36,"ndvi":0.45,"pr":87.35,"lst":32.15},{"date":"2010-03-01","at":32.05,"ndvi":0.51,"pr":148.15,"lst":39.38},{"date":"2010-04-01","at":30.58,"ndvi":0.64,"pr":287.13,"lst":28.61},{"date":"2010-05-01","at":30.38,"ndvi":0.68,"pr":98.03,"lst":29.44},{"date":"2010-06-01","at":29.65,"ndvi":0.67,"pr":13.54,"lst":34.38},{"date":"2010-07-01","at":28.76,"ndvi":0.61,"pr":5.19,"lst":30.93},{"date":"2010-08-01","at":29.5,"ndvi":0.52,"pr":13.23,"lst":37.81},{"date":"2010-09-01","at":29.58,"ndvi":0.46,"pr":51.65,"lst":33.19},{"date":"2010-10-01","at":31.56,"ndvi":0.39,"pr":1.0,"lst":32.01},{"date":"2010-11-01","at":31.59,"ndvi":0.38,"pr":46.35,"lst":32.06},{"date":"2010-12-01","at":32.68,"ndvi":0.48,"pr":91.29,"lst":29.17},{"date":"2011-01-01","at":32.49,"ndvi":0.48,"pr":8.92,"lst":32.52},{"date":"2011-02-01","at":32.43,"ndvi":0.45,"pr":120.02,"lst":34.52},{"date":"2011-03-01","at":32.31,"ndvi":0.54,"pr":70.44,"lst":32.79},{"date":"2011-04-01","at":30.55,"ndvi":0.66,"pr":203.11,"lst":30.69},{"date":"2011-05-01","at":30.17,"ndvi":0.69,"pr":99.79,"lst":28.52},{"date":"2011-06-01","at":29.85,"ndvi":0.66,"pr":23.99,"lst":34.36},{"date":"2011-07-01","at":29.01,"ndvi":0.59,"pr":8.65,"lst":31.46},{"date":"2011-08-01","at":29.0,"ndvi":0.51,"pr":23.22,"lst":32.86},{"date":"2011-09-01","at":29.83,"ndvi":0.44,"pr":70.6,"lst":31.47},{"date":"2011-10-01","at":30.74,"ndvi":0.45,"pr":46.67,"lst":30.7},{"date":"2011-11-01","at":30.86,"ndvi":0.54,"pr":218.32,"lst":31.27},{"date":"2011-12-01","at":31.99,"ndvi":0.64,"pr":292.99,"lst":28.53},{"date":"2012-01-01","at":31.31,"ndvi":0.61,"pr":16.83,"lst":30.12},{"date":"2012-02-01","at":32.15,"ndvi":0.58,"pr":51.54,"lst":35.18},{"date":"2012-03-01","at":31.29,"ndvi":0.59,"pr":55.86,"lst":31.08},{"date":"2012-04-01","at":30.61,"ndvi":0.63,"pr":205.74,"lst":31.02},{"date":"2012-05-01","at":30.11,"ndvi":0.66,"pr":93.88,"lst":34.27},{"date":"2012-06-01","at":29.9,"ndvi":0.59,"pr":9.15,"lst":33.13},{"date":"2012-07-01","at":29.6,"ndvi":0.51,"pr":3.12,"lst":40.01},{"date":"2012-08-01","at":28.7,"ndvi":0.45,"pr":27.49,"lst":34.32},{"date":"2012-09-01","at":30.35,"ndvi":0.39,"pr":18.89,"lst":30.59},{"date":"2012-10-01","at":31.52,"ndvi":0.37,"pr":16.25,"lst":36.89},{"date":"2012-11-01","at":31.17,"ndvi":0.38,"pr":100.44,"lst":32.22},{"date":"2012-12-01","at":32.42,"ndvi":0.43,"pr":73.87,"lst":33.28},{"date":"2013-01-01","at":31.51,"ndvi":0.55,"pr":67.62,"lst":33.19},{"date":"2013-02-01","at":31.86,"ndvi":0.53,"pr":6.67,"lst":32.3},{"date":"2013-03-01","at":31.45,"ndvi":0.55,"pr":184.43,"lst":32.49},{"date":"2013-04-01","at":30.07,"ndvi":0.67,"pr":171.4,"lst":30.34},{"date":"2013-05-01","at":30.24,"ndvi":0.67,"pr":75.77,"lst":33.33},{"date":"2013-06-01","at":29.85,"ndvi":0.59,"pr":4.74,"lst":33.23},{"date":"2013-07-01","at":29.64,"ndvi":0.49,"pr":4.37,"lst":30.56},{"date":"2013-08-01","at":29.6,"ndvi":0.42,"pr":12.85,"lst":33.53},{"date":"2013-09-01","at":30.82,"ndvi":0.38,"pr":32.14,"lst":33.16},{"date":"2013-10-01","at":30.99,"ndvi":0.44,"pr":44.29,"lst":33.06},{"date":"2013-11-01","at":31.79,"ndvi":0.46,"pr":68.93,"lst":33.82},{"date":"2013-12-01","at":31.92,"ndvi":0.57,"pr":85.02,"lst":31.6},{"date":"2014-01-01","at":31.74,"ndvi":0.53,"pr":6.01,"lst":31.63},{"date":"2014-02-01","at":31.95,"ndvi":0.52,"pr":93.66,"lst":33.07},{"date":"2014-03-01","at":31.35,"ndvi":0.63,"pr":148.57,"lst":35.0},{"date":"2014-04-01","at":29.98,"ndvi":0.68,"pr":361.61,"lst":30.07},{"date":"2014-05-01","at":29.61,"ndvi":0.66,"pr":175.41,"lst":31.82},{"date":"2014-06-01","at":30.08,"ndvi":0.6,"pr":9.34,"lst":33.02},{"date":"2014-07-01","at":29.26,"ndvi":0.56,"pr":7.96,"lst":29.32},{"date":"2014-08-01","at":30.1,"ndvi":0.48,"pr":1.0,"lst":34.67},{"date":"2014-09-01","at":29.63,"ndvi":0.47,"pr":82.73,"lst":33.13},{"date":"2014-10-01","at":31.41,"ndvi":0.46,"pr":17.81,"lst":28.09},{"date":"2014-11-01","at":32.35,"ndvi":0.45,"pr":41.67,"lst":37.65},{"date":"2014-12-01","at":32.38,"ndvi":0.49,"pr":67.63,"lst":30.05},{"date":"2015-01-01","at":31.19,"ndvi":0.52,"pr":67.49,"lst":32.62},{"date":"2015-02-01","at":32.05,"ndvi":0.5,"pr":38.27,"lst":31.68},{"date":"2015-03-01","at":31.77,"ndvi":0.48,"pr":95.92,"lst":35.95},{"date":"2015-04-01","at":31.61,"ndvi":0.66,"pr":164.59,"lst":29.31},{"date":"2015-05-01","at":29.76,"ndvi":0.67,"pr":272.1,"lst":28.69},{"date":"2015-06-01","at":29.98,"ndvi":0.63,"pr":3.79,"lst":36.88},{"date":"2015-07-01","at":29.81,"ndvi":0.59,"pr":7.61,"lst":31.34},{"date":"2015-08-01","at":29.74,"ndvi":0.5,"pr":20.94,"lst":38.44},{"date":"2015-09-01","at":30.55,"ndvi":0.43,"pr":18.0,"lst":31.56},{"date":"2015-10-01","at":32.22,"ndvi":0.37,"pr":19.34,"lst":33.67},{"date":"2015-11-01","at":32.07,"ndvi":0.48,"pr":120.78,"lst":35.88},{"date":"2015-12-01","at":32.29,"ndvi":0.51,"pr":67.27,"lst":30.46},{"date":"2016-01-01","at":31.38,"ndvi":0.47,"pr":100.27,"lst":30.06},{"date":"2016-02-01","at":32.13,"ndvi":0.56,"pr":92.59,"lst":35.06},{"date":"2016-03-01","at":32.65,"ndvi":0.57,"pr":55.32,"lst":32.48},{"date":"2016-04-01","at":30.53,"ndvi":0.61,"pr":352.19,"lst":32.22},{"date":"2016-05-01","at":30.91,"ndvi":0.63,"pr":116.63,"lst":34.18},{"date":"2016-06-01","at":30.19,"ndvi":0.58,"pr":38.22,"lst":29.23},{"date":"2016-07-01","at":29.66,"ndvi":0.49,"pr":11.0,"lst":36.48},{"date":"2016-08-01","at":29.57,"ndvi":0.43,"pr":7.21,"lst":33.34},{"date":"2016-09-01","at":29.88,"ndvi":0.39,"pr":33.59,"lst":34.34},{"date":"2016-10-01","at":31.03,"ndvi":0.37,"pr":44.07,"lst":34.84},{"date":"2016-11-01","at":31.26,"ndvi":0.42,"pr":120.38,"lst":32.54},{"date":"2016-12-01","at":30.88,"ndvi":0.47,"pr":87.07,"lst":32.2},{"date":"2017-01-01","at":32.41,"ndvi":0.43,"pr":11.47,"lst":30.5},{"date":"2017-02-01","at":32.1,"ndvi":0.45,"pr":93.6,"lst":31.39},{"date":"2017-03-01","at":31.8,"ndvi":0.55,"pr":111.93,"lst":27.16},{"date":"2017-04-01","at":30.56,"ndvi":0.63,"pr":170.78,"lst":28.95},{"date":"2017-05-01","at":29.38,"ndvi":0.68,"pr":146.81,"lst":29.04},{"date":"2017-06-01","at":29.84,"ndvi":0.65,"pr":55.87,"lst":33.14},{"date":"2017-07-01","at":29.3,"ndvi":0.58,"pr":8.15,"lst":29.51},{"date":"2017-08-01","at":29.55,"ndvi":0.52,"pr":13.65,"lst":36.65},{"date":"2017-09-01","at":30.21,"ndvi":0.47,"pr":48.36,"lst":31.74},{"date":"2017-10-01","at":31.43,"ndvi":0.44,"pr":161.52,"lst":32.77},{"date":"2017-11-01","at":30.15,"ndvi":0.56,"pr":150.08,"lst":31.53},{"date":"2017-12-01","at":31.49,"ndvi":0.59,"pr":58.72,"lst":30.4},{"date":"2018-01-01","at":30.54,"ndvi":0.57,"pr":79.8,"lst":36.72},{"date":"2018-02-01","at":32.65,"ndvi":0.56,"pr":17.49,"lst":31.47},{"date":"2018-03-01","at":31.19,"ndvi":0.61,"pr":201.74,"lst":39.76},{"date":"2018-04-01","at":30.19,"ndvi":0.63,"pr":275.65,"lst":28.8},{"date":"2018-05-01","at":29.66,"ndvi":0.65,"pr":120.05,"lst":30.9},{"date":"2018-06-01","at":29.44,"ndvi":0.62,"pr":14.46,"lst":31.64},{"date":"2018-07-01","at":28.57,"ndvi":0.55,"pr":23.25,"lst":26.46},{"date":"2018-08-01","at":29.13,"ndvi":0.48,"pr":13.87,"lst":37.92},{"date":"2018-09-01","at":29.91,"ndvi":0.47,"pr":44.13,"lst":33.23},{"date":"2018-10-01","at":30.0,"ndvi":0.43,"pr":103.68,"lst":31.43},{"date":"2018-11-01","at":30.48,"ndvi":0.4,"pr":87.6,"lst":37.02},{"date":"2018-12-01","at":32.16,"ndvi":0.46,"pr":120.58,"lst":30.51},{"date":"2019-01-01","at":32.76,"ndvi":0.54,"pr":61.08,"lst":31.8},{"date":"2019-02-01","at":33.07,"ndvi":0.53,"pr":38.02,"lst":33.51},{"date":"2019-03-01","at":33.38,"ndvi":0.55,"pr":61.55,"lst":32.81},{"date":"2019-04-01","at":31.84,"ndvi":0.58,"pr":202.56,"lst":29.42},{"date":"2019-05-01","at":30.18,"ndvi":0.64,"pr":255.93,"lst":31.4},{"date":"2019-06-01","at":30.39,"ndvi":0.62,"pr":14.34,"lst":32.51},{"date":"2019-07-01","at":29.57,"ndvi":0.54,"pr":9.74,"lst":30.7},{"date":"2019-08-01","at":30.25,"ndvi":0.49,"pr":24.36,"lst":35.62},{"date":"2019-09-01","at":31.0,"ndvi":0.45,"pr":22.31,"lst":32.38},{"date":"2019-10-01","at":31.21,"ndvi":0.52,"pr":228.61,"lst":33.89},{"date":"2019-11-01","at":31.66,"ndvi":0.57,"pr":168.87,"lst":33.06},{"date":"2019-12-01","at":32.0,"ndvi":0.63,"pr":191.48,"lst":28.34},{"date":"2020-01-01","at":32.11,"ndvi":0.61,"pr":96.99,"lst":30.71},{"date":"2020-02-01","at":32.49,"ndvi":0.61,"pr":168.44,"lst":32.8},{"date":"2020-03-01","at":32.23,"ndvi":0.65,"pr":255.94,"lst":31.38},{"date":"2020-04-01","at":30.86,"ndvi":0.66,"pr":410.67,"lst":31.69},{"date":"2020-05-01","at":30.49,"ndvi":0.63,"pr":128.79,"lst":32.88},{"date":"2020-06-01","at":30.51,"ndvi":0.57,"pr":20.67,"lst":30.04},{"date":"2020-07-01","at":29.43,"ndvi":0.51,"pr":25.89,"lst":37.61},{"date":"2020-08-01","at":29.8,"ndvi":0.49,"pr":25.4,"lst":32.59},{"date":"2020-09-01","at":30.58,"ndvi":0.45,"pr":22.61,"lst":30.58},{"date":"2020-10-01","at":31.52,"ndvi":0.5,"pr":94.34,"lst":32.58},{"date":"2020-11-01","at":31.13,"ndvi":0.6,"pr":166.47,"lst":27.82},{"date":"2020-12-01","at":32.26,"ndvi":0.62,"pr":50.72,"lst":32.29},{"date":"2021-01-01","at":31.87,"ndvi":0.6,"pr":72.11,"lst":35.31},{"date":"2021-02-01","at":32.02,"ndvi":0.6,"pr":87.3,"lst":32.22},{"date":"2021-03-01","at":32.39,"ndvi":0.57,"pr":79.65,"lst":35.1},{"date":"2021-04-01","at":30.38,"ndvi":0.6,"pr":295.59,"lst":29.77},{"date":"2021-05-01","at":30.12,"ndvi":0.6,"pr":43.44,"lst":31.7},{"date":"2021-06-01","at":29.74,"ndvi":0.55,"pr":29.99,"lst":33.96},{"date":"2021-07-01","at":29.45,"ndvi":0.51,"pr":15.66,"lst":28.29},{"date":"2021-08-01","at":29.75,"ndvi":0.43,"pr":18.25,"lst":36.93},{"date":"2021-09-01","at":30.68,"ndvi":0.4,"pr":26.94,"lst":33.39},{"date":"2021-10-01","at":31.43,"ndvi":0.36,"pr":21.68,"lst":30.09},{"date":"2021-11-01","at":32.12,"ndvi":0.38,"pr":105.02,"lst":27.51},{"date":"2021-12-01","at":31.51,"ndvi":0.52,"pr":182.04,"lst":29.05},{"date":"2022-01-01","at":31.87,"ndvi":0.56,"pr":71.6,"lst":33.88},{"date":"2022-02-01","at":32.19,"ndvi":0.57,"pr":81.22,"lst":32.33},{"date":"2022-03-01","at":32.6,"ndvi":0.55,"pr":73.38,"lst":34.58},{"date":"2022-04-01","at":31.29,"ndvi":0.59,"pr":165.37,"lst":29.74},{"date":"2022-05-01","at":30.76,"ndvi":0.61,"pr":41.19,"lst":30.19},{"date":"2022-06-01","at":30.22,"ndvi":0.55,"pr":16.74,"lst":33.47},{"date":"2022-07-01","at":28.78,"ndvi":0.5,"pr":17.18,"lst":33.75},{"date":"2022-08-01","at":29.18,"ndvi":0.46,"pr":16.15,"lst":37.19},{"date":"2022-09-01","at":30.05,"ndvi":0.4,"pr":19.92,"lst":35.24},{"date":"2022-10-01","at":30.52,"ndvi":0.33,"pr":24.04,"lst":29.77},{"date":"2022-11-01","at":31.56,"ndvi":0.35,"pr":72.52,"lst":35.81},{"date":"2022-12-01","at":32.18,"ndvi":0.47,"pr":84.57,"lst":28.99},{"date":"2023-01-01","at":31.84,"ndvi":0.52,"pr":39.62,"lst":30.93},{"date":"2023-02-01","at":32.51,"ndvi":0.55,"pr":26.46,"lst":28.55},{"date":"2023-03-01","at":32.27,"ndvi":0.53,"pr":88.64,"lst":33.15},{"date":"2023-04-01","at":30.72,"ndvi":0.62,"pr":345.36,"lst":27.94},{"date":"2023-05-01","at":30.77,"ndvi":0.64,"pr":80.83,"lst":28.17},{"date":"2023-06-01","at":30.05,"ndvi":0.59,"pr":41.48,"lst":33.62},{"date":"2023-07-01","at":29.8,"ndvi":0.53,"pr":14.91,"lst":31.11},{"date":"2023-08-01","at":30.24,"ndvi":0.5,"pr":25.39,"lst":35.25},{"date":"2023-09-01","at":31.13,"ndvi":0.44,"pr":25.43,"lst":30.65},{"date":"2023-10-01","at":32.18,"ndvi":0.43,"pr":82.11,"lst":30.13},{"date":"2023-11-01","at":31.02,"ndvi":0.56,"pr":317.15,"lst":29.9},{"date":"2023-12-01","at":32.45,"ndvi":0.62,"pr":129.24,"lst":29.01},{"date":"2024-01-01","at":31.83,"ndvi":0.56,"pr":151.77,"lst":30.71},{"date":"2024-02-01","at":33.16,"ndvi":0.58,"pr":90.94,"lst":30.74},{"date":"2024-03-01","at":32.44,"ndvi":0.59,"pr":292.87,"lst":27.94},{"date":"2024-04-01","at":30.5,"ndvi":0.64,"pr":474.05,"lst":29.84},{"date":"2024-05-01","at":30.77,"ndvi":0.61,"pr":114.58,"lst":30.88},{"date":"2024-06-01","at":30.49,"ndvi":0.58,"pr":34.27,"lst":29.14},{"date":"2024-07-01","at":29.67,"ndvi":0.56,"pr":16.79,"lst":35.28},{"date":"2024-08-01","at":30.24,"ndvi":0.51,"pr":22.87,"lst":30.79},{"date":"2024-09-01","at":30.69,"ndvi":0.49,"pr":24.84,"lst":30.02},{"date":"2024-10-01","at":31.59,"ndvi":0.49,"pr":54.64,"lst":32.1},{"date":"2024-11-01","at":31.97,"ndvi":0.51,"pr":73.16,"lst":27.92},{"date":"2024-12-01","at":31.93,"ndvi":0.56,"pr":171.42,"lst":31.64}];
-
-/* Linear regression y = a + b*x */
-function linreg(x,y){
-  const n=x.length;
-  let sx=0, sy=0, sxx=0, sxy=0;
-  for(let i=0;i<n;i++){ sx+=x[i]; sy+=y[i]; sxx+=x[i]*x[i]; sxy+=x[i]*y[i]; }
-  const denom = (n*sxx - sx*sx);
-  const b = denom===0 ? 0 : (n*sxy - sx*sy)/denom;
-  const a = (sy - b*sx)/n;
-  return {a,b};
-}
-function pearson(x,y){
-  const n=x.length;
-  let sx=0, sy=0, sxx=0, syy=0, sxy=0;
-  for(let i=0;i<n;i++){ sx+=x[i]; sy+=y[i]; sxx+=x[i]*x[i]; syy+=y[i]*y[i]; sxy+=x[i]*y[i]; }
-  const num = n*sxy - sx*sy;
-  const den = Math.sqrt((n*sxx - sx*sx) * (n*syy - sy*sy));
-  return den===0 ? 0 : num/den;
-}
-
-/* Student t CDF via incomplete beta (Numerical Recipes style) */
-function _betacf(a,b,x){
-  const MAXIT=200, EPS=3e-14, FPMIN=1e-30;
-  let qab=a+b, qap=a+1, qam=a-1;
-  let c=1, d=1 - qab*x/qap;
-  if(Math.abs(d)<FPMIN) d=FPMIN;
-  d=1/d;
-  let h=d;
-  for(let m=1, m2=2; m<=MAXIT; m++, m2+=2){
-    let aa = m*(b-m)*x/((qam+m2)*(a+m2));
-    d = 1 + aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
-    c = 1 + aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
-    d=1/d; h*=d*c;
-
-    aa = -(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
-    d = 1 + aa*d; if(Math.abs(d)<FPMIN) d=FPMIN;
-    c = 1 + aa/c; if(Math.abs(c)<FPMIN) c=FPMIN;
-    d=1/d;
-    const del = d*c; h*=del;
-    if(Math.abs(del-1.0) < EPS) break;
-  }
-  return h;
-}
-function _gammaln(xx){
-  const cof=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,0.1208650973866179e-2,-0.5395239384953e-5];
-  let x=xx-1; let tmp=x+5.5; tmp -= (x+0.5)*Math.log(tmp);
-  let ser=1.000000000190015;
-  for(let j=0;j<cof.length;j++){ x+=1; ser += cof[j]/x; }
-  return -tmp + Math.log(2.5066282746310005*ser);
-}
-function _betai(a,b,x){
-  if(x<=0) return 0;
-  if(x>=1) return 1;
-  const bt = Math.exp(_gammaln(a+b)-_gammaln(a)-_gammaln(b)+a*Math.log(x)+b*Math.log(1-x));
-  if(x < (a+1)/(a+b+2)) return bt*_betacf(a,b,x)/a;
-  return 1 - bt*_betacf(b,a,1-x)/b;
-}
-function tCDF(t,df){
-  const x = df/(df + t*t);
-  const a = df/2;
-  const b = 0.5;
-  const ib = _betai(a,b,x);
-  return t>=0 ? 1 - 0.5*ib : 0.5*ib;
-}
-function pValueFromR(r,n){
-  if(n<3) return 1;
-  const df=n-2;
-  const t = Math.abs(r) * Math.sqrt(df/(1-r*r));
-  return 2*(1 - tCDF(t, df));
-}
-function fmtP(p){
-  if(p < 0.0001) return "<0.0001";
-  return p.toFixed(4);
-}
-
-let _climateChartsReady = false;
-
-function toggleClimatePanel(which){
-  const panels = document.getElementById('climatePanels');
-  const trend = document.getElementById('climateTrendPanel');
-  const corr = document.getElementById('climateCorrelationPanel');
-  panels.style.display = 'block';
-  if(which==='trend'){
-    trend.style.display = (trend.style.display==='none') ? 'block' : 'none';
-    corr.style.display = 'none';
-    if(trend.style.display==='block') ensureClimateCharts();
-  }
-  if(which==='correlation'){
-    corr.style.display = (corr.style.display==='none') ? 'block' : 'none';
-    trend.style.display = 'none';
-    if(corr.style.display==='block') ensureClimateCharts();
-  }
-}
-
-function ensureClimateCharts(){
-  if(_climateChartsReady) return;
-  _climateChartsReady = true;
-  renderTrendCharts();
-  renderCorrelationCharts();
-}
-
-function _seriesClean(){
-  const rows = (EMBEDDED_SERIES||[]).filter(r => r && r.date);
-  const t = rows.map(r => new Date(r.date));
-  const x = rows.map((_,i)=>i);
-  return {rows,t,x};
-}
-
-function renderTrendCharts(){
-  if(typeof Plotly === 'undefined'){ _climateChartsReady=false; return; }
-  const {rows,t,x} = _seriesClean();
-
-  function makeTrend(varKey, divId, label, unit){
-    const pairs=[];
-    for(let i=0;i<rows.length;i++){
-      const v = rows[i][varKey];
-      if(v!==null && v!==undefined && !Number.isNaN(v)) pairs.push([x[i], v, t[i]]);
-    }
-    const xx=pairs.map(p=>p[0]), yy=pairs.map(p=>p[1]), tt=pairs.map(p=>p[2]);
-    if(yy.length<2){
-      document.getElementById(divId).innerHTML = '<div style="color:#ffb4b4">Not enough data</div>';
-      return;
-    }
-    const lr=linreg(xx,yy);
-    const yfit=xx.map(v=>lr.a + lr.b*v);
-    const trace={x:tt, y:yy, mode:'lines', name:label};
-    const fit={x:tt, y:yfit, mode:'lines', name:'Trend Line', line:{dash:'dot'}};
-    const layout={
-      margin:{l:52,r:20,t:20,b:40},
-      paper_bgcolor:'rgba(0,0,0,0)',
-      plot_bgcolor:'rgba(0,0,0,0)',
-      xaxis:{title:'Date', gridcolor:'rgba(255,255,255,0.08)'},
-      yaxis:{title: unit ? (label+' ('+unit+')') : label, gridcolor:'rgba(255,255,255,0.08)'},
-      font:{color:'rgba(255,255,255,0.85)'},
-      showlegend:true,
-      legend:{orientation:'h', x:0, y:1.12}
-    };
-    Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
-  }
-
-  makeTrend('ndvi','trend_ndvi','NDVI', null);
-  makeTrend('at','trend_at','Air Temperature','°C');
-  makeTrend('lst','trend_lst','LST','°C');
-  makeTrend('pr','trend_pr','Precipitation','mm');
-}
-
-function renderCorrelationCharts(){
-  if(typeof Plotly === 'undefined') return;
-  const {rows} = _seriesClean();
-
-  function makeCorr(xKey,yKey,divId,xLabel,yLabel){
-    const x=[], y=[];
-    for(const r of rows){
-      const xv=r[xKey], yv=r[yKey];
-      if(xv!==null && yv!==null && xv!==undefined && yv!==undefined && !Number.isNaN(xv) && !Number.isNaN(yv)){ x.push(xv); y.push(yv); }
-    }
-    const n=x.length;
-    if(n<3){
-      document.getElementById(divId).innerHTML = '<div style="color:#ffb4b4">Not enough paired data</div>';
-      return;
-    }
-    const rxy = pearson(x,y);
-    const r2 = rxy*rxy;
-    const p = pValueFromR(rxy,n);
-    const lr=linreg(x,y);
-    const xmin=Math.min(...x), xmax=Math.max(...x);
-    const xline=[xmin,xmax];
-    const yline=[lr.a + lr.b*xmin, lr.a + lr.b*xmax];
-
-    const scatter={x,y, mode:'markers', name:'Data', marker:{size:6}};
-    const fit={x:xline, y:yline, mode:'lines', name:'Line of Best Fit'};
-    const eq = 'y = ' + lr.b.toFixed(4) + 'x + ' + lr.a.toFixed(4);
-    const annText = 'r = ' + rxy.toFixed(4) + '<br>R² = ' + r2.toFixed(4) + '<br>p = ' + fmtP(p) + '<br>n = ' + n + '<br>' + eq;
-
-    const layout={
-      margin:{l:60,r:20,t:20,b:52},
-      paper_bgcolor:'rgba(0,0,0,0)',
-      plot_bgcolor:'rgba(0,0,0,0)',
-      xaxis:{title:xLabel, gridcolor:'rgba(255,255,255,0.08)'},
-      yaxis:{title:yLabel, gridcolor:'rgba(255,255,255,0.08)'},
-      font:{color:'rgba(255,255,255,0.85)'},
-      showlegend:true,
-      legend:{orientation:'h', x:0, y:1.12},
-      annotations:[{
-        xref:'paper',yref:'paper',x:0.98,y:0.98,xanchor:'right',yanchor:'top',
-        text:annText,showarrow:false,align:'left',
-        bgcolor:'rgba(0,0,0,0.35)', bordercolor:'rgba(255,255,255,0.12)', borderwidth:1, borderpad:8,
-        font:{size:11}
-      }]
-    };
-    Plotly.newPlot(divId, [scatter, fit], layout, {displayModeBar:false, responsive:true});
-  }
-
-  makeCorr('at','ndvi','corr_ndvi_at','Air Temperature (°C)','NDVI');
-  makeCorr('lst','ndvi','corr_ndvi_lst','LST (°C)','NDVI');
-  makeCorr('pr','ndvi','corr_ndvi_pr','Precipitation (mm)','NDVI');
-}
-
-/* Preload once dashboard is visible */
-(function(){
-  const _orig = window.showDashboard;
-  window.showDashboard = function(){
-    if(typeof _orig === 'function') _orig();
-    if(!_climateChartsReady){
-      setTimeout(()=>{ ensureClimateCharts(); }, 50);
-    }
-  };
-})();
 </script>
 
 </body>
