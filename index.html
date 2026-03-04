@@ -3440,7 +3440,18 @@ const QML_STYLES = {"police":{"style":{"color":"red","weight":2.0}},"clinic":{"s
 
   // Optional: centroid points (not wired to UI by default)
   QML_STYLES.popcentroid = {
-    pointStyle: {"radius": 2.268, "color": "#232323", "opacity": 1.0, "weight": 0.0, "fillColor": "#834b83", "fillOpacity": 1.0}
+    pointStyle: (feature) => {
+      const p = Number(feature?.properties?.population);
+      let r = 4.91;
+      if(Number.isFinite(p)){
+        if(p >= 26215 && p < 43880.4) r = 2.268;
+        else if(p >= 43880.4 && p < 53143) r = 4.914;
+        else if(p >= 53143 && p < 81367.8) r = 7.56;
+        else if(p >= 81367.8 && p < 114427.4) r = 10.206;
+        else if(p >= 114427.4) r = 12.852;
+      }
+      return { radius: r, color: "#232323", opacity: 1.0, weight: 0.0, fillColor: "#834b83", fillOpacity: 1.0 };
+    }
   };
 })();
 
@@ -3552,7 +3563,10 @@ const LAYER_SOURCES = {
   hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
   contours:  { type: "geojson", url: "data/Contour.geojson", styleKey: "contours" },
   topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
-  popdist:  { type: "geojson", url: "data/Ubungo%20distribution.geojson", styleKey: "popdist" },
+  popdist:  { type: "group", children: [
+    { type: "geojson", url: "data/Ubungo%20distribution.geojson", styleKey: "popdist", pane: "pane_popdist_poly", zIndex: 410 },
+    { type: "geojson", url: "data/Population%20distribution%20centroid.geojson", styleKey: "popcentroid", pane: "pane_popdist_pts", zIndex: 420 }
+  ] },
   popdens:  { type: "geojson", url: "data/Ubungo%20density.geojson", styleKey: "popdens" },
 };
 
@@ -3761,20 +3775,43 @@ async function fetchGeoJSON(url){
   return await res.json();
 }
 
-function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
+function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey, paneName){
+  // Create pane if requested (lets us force draw order: points above polygons)
+  try{
+    if(map && paneName && !map.getPane(paneName)){
+      map.createPane(paneName);
+      map.getPane(paneName).style.zIndex = 400;
+      map.getPane(paneName).style['mix-blend-mode'] = 'normal';
+    }
+  }catch(e){}
+
+  const styleOpt = style ? ((typeof style === 'function') ? (f)=>Object.assign({pane: paneName||undefined}, style(f)) : Object.assign({pane: paneName||undefined}, style)) : undefined;
+
   return L.geoJSON(geojson, {
-    style: style || undefined,
+    pane: paneName || undefined,
+    style: styleOpt,
     pointToLayer: (feature, latlng) => {
       // Prefer SVG icons for known point layers
       if(styleKey && SVG_ICONS && SVG_ICONS[styleKey]){
-        return L.marker(latlng, { icon: SVG_ICONS[styleKey] });
+        return L.marker(latlng, { icon: SVG_ICONS[styleKey], pane: paneName || undefined });
       }
+
+      // If pointStyle is a function, compute per-feature (graduated sizes etc.)
+      if(typeof pointStyle === 'function'){
+        const ps = pointStyle(feature) || {};
+        return L.circleMarker(latlng, Object.assign({ pane: paneName || undefined }, ps));
+      }
+
       // Otherwise, use circle marker styled from QML if available
-      if(pointStyle) return L.circleMarker(latlng, pointStyle);
-      return L.marker(latlng);
+      if(pointStyle){
+        return L.circleMarker(latlng, Object.assign({ pane: paneName || undefined }, pointStyle));
+      }
+
+      return L.marker(latlng, { pane: paneName || undefined });
     }
   });
 }
+
 
 async function buildLayer(def){
   if(!def) throw new Error('Missing layer definition');
@@ -3860,7 +3897,15 @@ if(def.type === "q2w"){
     if(!def.url) throw new Error('Missing "url" for geojson definition');
     const { style, pointStyle } = applyStyleFromQml(def.styleKey || "");
     const gj = await fetchGeoJSON(def.url);
-    return makeLeafletGeoJSONLayer(gj, style, pointStyle, def.styleKey || "");
+        // Optional pane + zIndex for precise ordering
+    try{
+      if(map && def.pane){
+        if(!map.getPane(def.pane)) map.createPane(def.pane);
+        if(def.zIndex != null) map.getPane(def.pane).style.zIndex = String(def.zIndex);
+        map.getPane(def.pane).style['mix-blend-mode'] = 'normal';
+      }
+    }catch(e){}
+    return makeLeafletGeoJSONLayer(gj, style, pointStyle, def.styleKey || "", def.pane || null);
   }
 
 
