@@ -1258,6 +1258,20 @@
 /* Raster filter: readable black text */
 #rasterFilterPanel, #rasterFilterPanel * { color: #000 !important; }
 #rasterFilterPanel select, #rasterFilterPanel option { color: #000 !important; }
+
+/* Population labels (Leaflet tooltips) */
+.pop-label{
+  background: rgba(10, 20, 28, 0.72);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(232,242,255,0.95);
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-weight: 800;
+  font-size: 11px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.40);
+}
+body.hide-pop-labels .pop-label{ display:none !important; }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -2513,6 +2527,9 @@ function atlasApplyOverlays(){
     const showLabels = atlasToggleLabels ? !!atlasToggleLabels.checked : true;
     const showBorders = atlasToggleBorders ? !!atlasToggleBorders.checked : true;
 
+    // Vector labels (population layers) — hide/show via CSS class
+    try{ document.body.classList.toggle('hide-pop-labels', !showLabels); }catch(e){}
+
     // Cesium overlays (globe)
     if(typeof labelsLayer !== 'undefined' && labelsLayer) labelsLayer.show = showLabels;
     if(typeof bordersLayer !== 'undefined' && bordersLayer) bordersLayer.show = showBorders;
@@ -3561,7 +3578,7 @@ const LAYER_SOURCES = {
   slope:  { type: "tile", url: "tiles/slope/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/slope.tif", title: "Slope Map", units: "degrees" } },
   aspect:  { type: "tile", url: "tiles/aspect/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/aspect.tif", title: "Aspect Map", units: "degrees" } },
   hillshade:  { type: "tile", url: "tiles/hillshade/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/hillshade.tif", title: "Hillshade", units: null } },
-  contours:  { type: "geojson", url: "data/Contour.geojson", styleKey: "contours" },
+  contours:  { type: "geojson", url: ["data/Contour.geojson","Contour.geojson","data/contour.geojson","contour.geojson"], styleKey: "contours" },
   topo:  { type: "tile", url: "tiles/topo/{z}/{x}/{y}.png", minZoom: 9, maxZoom: 15, raster: { tiff: "rasters/topo.tif", title: "Topographic Map", units: null } },
   popdist:  { type: "group", children: [
     { type: "geojson", url: "data/Ubungo%20distribution.geojson", styleKey: "popdist", pane: "pane_popdist_poly", zIndex: 410 },
@@ -3769,6 +3786,21 @@ function applyStyleFromQml(styleKey){
   return { style: s.style || null, pointStyle: s.pointStyle || null };
 }
 
+// Pane ordering overrides (lower zIndex = draw underneath)
+const PANE_Z_OVERRIDES = {
+  // Roads (keep below other overlays)
+  'pane_Trunkroad_8': 210,
+  'pane_Primaryroad_4': 210,
+  'pane_secondaryroad_6': 210,
+  'pane_Tertiaryroad_7': 210,
+  'pane_Unclassified_9': 210,
+
+  // Transport network (still below thematic layers)
+  'pane_railway_5': 220,
+  'pane_busstp_2': 220,
+  'pane_Petrolstn_3': 220
+};
+
 async function fetchGeoJSON(url){
   const res = await fetch(url, { cache: 'no-store' });
   if(!res.ok) throw new Error('Failed to load ' + url + ' (' + res.status + ')');
@@ -3780,7 +3812,7 @@ function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey, paneName)
   try{
     if(map && paneName && !map.getPane(paneName)){
       map.createPane(paneName);
-      map.getPane(paneName).style.zIndex = 400;
+      map.getPane(paneName).style.zIndex = String(PANE_Z_OVERRIDES[paneName] != null ? PANE_Z_OVERRIDES[paneName] : 400);
       map.getPane(paneName).style['mix-blend-mode'] = 'normal';
     }
   }catch(e){}
@@ -3790,6 +3822,30 @@ function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey, paneName)
   return L.geoJSON(geojson, {
     pane: paneName || undefined,
     style: styleOpt,
+    onEachFeature: (feature, layer) => {
+      try{
+        // Population labels (QGIS-style: ward name + key value)
+        if(styleKey === 'popdist' || styleKey === 'popdens'){
+          const name = feature?.properties?.NAME_3 ?? '';
+          const pop = feature?.properties?.population;
+          const dens = feature?.properties?.pop_densit;
+          const parts = [];
+          if(name) parts.push(String(name));
+          if(pop != null && pop !== '' && pop !== undefined) parts.push('Pop: ' + Number(pop).toLocaleString());
+          if(styleKey === 'popdens' && dens != null && dens !== '' && dens !== undefined) parts.push('Dens: ' + Number(dens).toLocaleString() + '/km²');
+          const label = parts.join('<br/>');
+          if(label){
+            layer.bindTooltip(label, { permanent: true, direction: 'center', className: 'pop-label', opacity: 0.95 });
+          }
+        }
+        if(styleKey === 'popcentroid'){
+          const name = feature?.properties?.NAME_3 ?? '';
+          const pop = feature?.properties?.population;
+          const label = (name ? String(name) : 'Ward') + (pop != null ? ('<br/>Pop: ' + Number(pop).toLocaleString()) : '');
+          layer.bindTooltip(label, { permanent: true, direction: 'top', className: 'pop-label', opacity: 0.95 });
+        }
+      }catch(e){}
+    },
     pointToLayer: (feature, latlng) => {
       // Prefer SVG icons for known point layers
       if(styleKey && SVG_ICONS && SVG_ICONS[styleKey]){
