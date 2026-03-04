@@ -1279,9 +1279,7 @@ body.drawer-open #explore .content{
   }
 }
 </style>
-
-<link rel="stylesheet" href="q2w/styles/qgis2web.css">
-
+<link href="q2w/styles/qgis2web.css" rel="stylesheet"/>
 <script src="https://unpkg.com/geotiff@2.1.3/dist-browser/geotiff.js"></script>
 </head>
 <body>
@@ -1338,14 +1336,13 @@ body.drawer-open #explore .content{
 </div>
 </div>
 </div>
-</div>
+
 <!-- ================= ATLAS ================= -->
 <div aria-label="Atlas" class="section" id="explore">
-  <div id="drawerScrim" aria-hidden="true"></div>
+<div aria-hidden="true" id="drawerScrim"></div>
 <div class="sidebar collapsed">
-
-<button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse / expand sidebar">
-  <div class="bars"><span></span></div>
+<button aria-label="Collapse / expand sidebar" class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button">
+<div class="bars"><span></span></div>
 </button>
 <button class="secondary" onclick="showHome()">← Home</button>
 <div class="title">
@@ -1363,23 +1360,21 @@ body.drawer-open #explore .content{
 <button class="secondary" id="sidebarLarger" title="Make sidebar larger" type="button">+</button>
 </div>
 </div>
-
-<div id="rasterFilterPanel" class="raster-filter" style="display:none" aria-label="Raster time filter">
-  <div class="rf-head">
-    <b id="rfTitle">Raster filter</b>
-    <button type="button" class="secondary rf-close" id="rfCloseBtn" title="Hide filter">✕</button>
-  </div>
-  <div class="rf-row">
-    <label for="rfDataset">Dataset</label>
-    <select id="rfDataset"></select>
-  </div>
-  <div class="rf-row">
-    <label for="rfYear">Year</label>
-    <select id="rfYear"></select>
-  </div>
-  <div class="rf-hint" id="rfHint">Choose a year to switch the raster layer.</div>
+<div aria-label="Raster time filter" class="raster-filter" id="rasterFilterPanel" style="display:none">
+<div class="rf-head">
+<b id="rfTitle">Raster filter</b>
+<button class="secondary rf-close" id="rfCloseBtn" title="Hide filter" type="button">✕</button>
 </div>
-
+<div class="rf-row">
+<label for="rfDataset">Dataset</label>
+<select id="rfDataset"></select>
+</div>
+<div class="rf-row">
+<label for="rfYear">Year</label>
+<select id="rfYear"></select>
+</div>
+<div class="rf-hint" id="rfHint">Choose a year to switch the raster layer.</div>
+</div>
 <div class="layers-group" id="layersGroup">
 <div class="layer-item">
 <label class="layer-switch" title="Toggle layer on/off">
@@ -1437,8 +1432,6 @@ body.drawer-open #explore .content{
 </label>
 <button class="layer-btn" data-layer="transport" type="button">Transport Network Map</button>
 </div>
-
-
 <div class="layer-item">
 <label class="layer-switch" title="Toggle layer on/off">
 <input aria-label="Toggle Population Distribution" class="layer-toggle" data-layer="popdist" type="checkbox"/>
@@ -1488,7 +1481,6 @@ body.drawer-open #explore .content{
 </label>
 <button class="layer-btn" data-layer="topo" type="button">Topographic Map</button>
 </div>
-
 <div class="layer-item">
 <label class="layer-switch" title="Toggle layer on/off">
 <input aria-label="Toggle Land Use Map" class="layer-toggle" data-layer="landuse" type="checkbox"/>
@@ -1527,100 +1519,90 @@ body.drawer-open #explore .content{
 </div>
 <div style="height:10px"></div>
 <button class="secondary" onclick="showDashboard()">📊 View Dashboard</button>
-
 <div aria-label="Resize sidebar" class="sidebar-resizer" id="sidebarResizer" role="separator"></div></div>
 <div class="content">
 <div id="map">
 <!-- Map UI overlays (professional UX) -->
 <div id="map-ui">
-  <!-- Atlas settings (floating) -->
-  <button id="atlasSettingsBtn" class="atlas-settings-btn" type="button" aria-label="Atlas settings">⚙</button>
-  <div id="atlasSettings" class="atlas-settings" role="dialog" aria-label="Atlas settings panel" aria-hidden="true">
-    <div class="head">
-      <b>Atlas settings</b>
-      <button id="atlasSettingsClose" class="xbtn" type="button" aria-label="Close settings">✕</button>
-    </div>
-    <div class="body">
+<!-- Atlas settings (floating) -->
+<button aria-label="Atlas settings" class="atlas-settings-btn" id="atlasSettingsBtn" type="button">⚙</button>
+<div aria-hidden="true" aria-label="Atlas settings panel" class="atlas-settings" id="atlasSettings" role="dialog">
+<div class="head">
+<b>Atlas settings</b>
+<button aria-label="Close settings" class="xbtn" id="atlasSettingsClose" type="button">✕</button>
+</div>
+<div class="body">
 <label>
-        <span>Labels</span>
-        <input id="atlasToggleLabels" type="checkbox" checked>
-      </label>
-
-      <label>
-        <span>Borders</span>
-        <input id="atlasToggleBorders" type="checkbox" checked>
-      </label>
-      <label>
-        <span>Search panel</span>
-        <input id="atlasToggleSearch" type="checkbox">
-      </label>
-
-      <label>
-        <span>Scale bar</span>
-        <input id="atlasToggleScale" type="checkbox">
-      </label>
-
+<span>Labels</span>
+<input checked="" id="atlasToggleLabels" type="checkbox"/>
+</label>
 <label>
-        <span>Basemap</span>
-        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
-          <select id="atlasBasemap" style="flex:1;">
-            <option value="imagery" selected>Imagery</option>
-            <option value="streets">Streets</option>
-          </select>
-          <button id="atlasBasemapToggleBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
-        </div>
-      </label>
-      <label>
-        <span>Show legend</span>
-        <input id="atlasShowLegend" type="checkbox" checked>
-      </label>
-
-      <label>
-        <span>Zoom to layer</span>
-        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
-          <div style="flex:1; font-size:12px; color: rgba(232,237,245,0.65);">Auto-zoom to selected layer</div>
-          <button id="atlasZoomToLayerBtn" type="button" class="toggle-btn" aria-pressed="true">ON</button>
-        </div>
-      </label>
-
+<span>Borders</span>
+<input checked="" id="atlasToggleBorders" type="checkbox"/>
+</label>
+<label>
+<span>Search panel</span>
+<input id="atlasToggleSearch" type="checkbox"/>
+</label>
+<label>
+<span>Scale bar</span>
+<input id="atlasToggleScale" type="checkbox"/>
+</label>
+<label>
+<span>Basemap</span>
+<div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+<select id="atlasBasemap" style="flex:1;">
+<option selected="" value="imagery">Imagery</option>
+<option value="streets">Streets</option>
+</select>
+<button aria-pressed="true" class="toggle-btn" id="atlasBasemapToggleBtn" type="button">ON</button>
+</div>
+</label>
+<label>
+<span>Show legend</span>
+<input checked="" id="atlasShowLegend" type="checkbox"/>
+</label>
+<label>
+<span>Zoom to layer</span>
+<div style="display:flex; gap:10px; align-items:center; justify-content:space-between; width:100%;">
+<div style="flex:1; font-size:12px; color: rgba(232,237,245,0.65);">Auto-zoom to selected layer</div>
+<button aria-pressed="true" class="toggle-btn" id="atlasZoomToLayerBtn" type="button">ON</button>
+</div>
+</label>
 <div style="margin-top:8px; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:rgba(232,242,255,0.82); font-size:12.5px;">
-  <b style="color:rgba(232,242,255,0.95)">Selected layer:</b>
-  <span id="atlasCurrentLayerName" class="meta-pill">None</span>
+<b style="color:rgba(232,242,255,0.95)">Selected layer:</b>
+<span class="meta-pill" id="atlasCurrentLayerName">None</span>
 </div>
 <div style="display:grid; grid-template-columns: 1fr; gap:10px; margin-top: 10px;">
-  <button id="atlasMetaBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(52,152,219,0.72); color:#fff; cursor:pointer; font-weight:800;">Metadata</button>
-  <button id="atlasExportBtn" type="button" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(26,188,156,0.78); color:#04221c; cursor:pointer; font-weight:900;">Export layer</button>
+<button id="atlasMetaBtn" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(52,152,219,0.72); color:#fff; cursor:pointer; font-weight:800;" type="button">Metadata</button>
+<button id="atlasExportBtn" style="width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.14); background:rgba(26,188,156,0.78); color:#04221c; cursor:pointer; font-weight:900;" type="button">Export layer</button>
 </div>
-
 </div>
-  
-  <!-- Map Search (toggle in Atlas settings) -->
-  <div id="mapSearchPanel" aria-label="Place search panel">
-    <div class="row">
-      <input id="placeSearch" type="text" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)">
-      <button id="searchBtn" type="button">Search</button>
-      <button id="atlasDirectionsBtn" type="button" title="Get directions" aria-label="Get directions" class="icon-btn">➤</button>
-    </div>
-
-    <div id="atlasDirectionsPanel" class="directions-panel" style="display:none;">
-      <div class="dir-row">
-        <input id="dirStart" type="text" placeholder="Start (type or pick)">
-        <button id="dirMyLoc" type="button" title="Use my location" class="small-btn">📍</button>
-        <button id="dirPickStart" type="button" title="Pick start on map" class="small-btn">🖱️</button>
-      </div>
-      <div class="dir-row">
-        <input id="dirDest" type="text" placeholder="Destination (type or pick)">
-        <button id="dirPickDest" type="button" title="Pick destination on map" class="small-btn">🖱️</button>
-      </div>
-      <div class="dir-actions">
-        <button id="dirGo" type="button">Route</button>
-        <button id="dirClear" type="button" class="secondary">Clear</button>
-      </div>
-      <div id="dirStatus" class="dir-status" aria-live="polite"></div>
-    </div>
-  </div>
-  </div>
-
+<!-- Map Search (toggle in Atlas settings) -->
+<div aria-label="Place search panel" id="mapSearchPanel">
+<div class="row">
+<input id="placeSearch" placeholder="Search places (e.g., Ubungo, Kimara, Sinza)" type="text"/>
+<button id="searchBtn" type="button">Search</button>
+<button aria-label="Get directions" class="icon-btn" id="atlasDirectionsBtn" title="Get directions" type="button">➤</button>
+</div>
+<div class="directions-panel" id="atlasDirectionsPanel" style="display:none;">
+<div class="dir-row">
+<input id="dirStart" placeholder="Start (type or pick)" type="text"/>
+<button class="small-btn" id="dirMyLoc" title="Use my location" type="button">📍</button>
+<button class="small-btn" id="dirPickStart" title="Pick start on map" type="button">🖱️</button>
+</div>
+<div class="dir-row">
+<input id="dirDest" placeholder="Destination (type or pick)" type="text"/>
+<button class="small-btn" id="dirPickDest" title="Pick destination on map" type="button">🖱️</button>
+</div>
+<div class="dir-actions">
+<button id="dirGo" type="button">Route</button>
+<button class="secondary" id="dirClear" type="button">Clear</button>
+</div>
+<div aria-live="polite" class="dir-status" id="dirStatus"></div>
+</div>
+</div>
+</div>
 </div>
 <div aria-label="Map legend" class="map-legend collapsed" id="mapLegend">
 <div class="legend-header">
@@ -1651,33 +1633,74 @@ body.drawer-open #explore .content{
           Analytical layers for climate relationships and patterns.
         </div>
 <div class="dash-actions">
-<button class="dash-action" onclick="window.location.href='Correlation.html'">
+<button class="dash-action" onclick="toggleDashboardPanel('corr')">
 <b>Correlation</b>
 <span>Explore relationships between climate variables (demo placeholder).</span>
 </button>
-<button class="dash-action" onclick="window.location.href='Trend.html'">
+<button class="dash-action" onclick="toggleDashboardPanel('trend')">
 <b>Trend</b>
 <span>View time-based climate trends (demo placeholder).</span>
 </button>
 </div>
+<div id="dashEmbeddedPanels" style="margin-top:12px;">
+<div id="trendPanel" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:14px;margin-bottom:12px;">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+<b style="font-size:16px">Trend</b>
+<span style="color:rgba(255,255,255,0.72);font-size:12px">Data: Series.csv (2000–2024). Filter halafu Apply.</span>
+<div style="flex:1"></div>
+<label style="font-size:12px;color:rgba(255,255,255,0.72)">From</label>
+<input id="trendFrom" style="padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.16);background:rgba(0,0,0,0.25);color:#fff" type="date"/>
+<label style="font-size:12px;color:rgba(255,255,255,0.72)">To</label>
+<input id="trendTo" style="padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.16);background:rgba(0,0,0,0.25);color:#fff" type="date"/>
+<button class="btn btn-secondary" onclick="applyTrendFilter()" style="padding:8px 10px">Apply</button>
+<button class="btn btn-secondary" onclick="resetTrendFilter()" style="padding:8px 10px">Reset</button>
+</div>
+<div id="trendStatus" style="color:rgba(255,255,255,0.7);font-size:12px;margin:6px 0 10px 0"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<div class="dash-card" style="margin:0"><b id="trendKpiNdvi">--</b><span>Mean NDVI</span></div>
+<div class="dash-card" style="margin:0"><b id="trendKpiPr">--</b><span>Mean Rainfall (mm)</span></div>
+<div class="dash-card" style="margin:0"><b id="trendKpiAt">--</b><span>Mean Air Temp (°C)</span></div>
+<div class="dash-card" style="margin:0"><b id="trendKpiLst">--</b><span>Mean LST (°C)</span></div>
+</div>
+<div style="height:12px"></div>
+<div id="trendPlotNdvi" style="height:360px"></div>
+<div id="trendPlotPr" style="height:360px"></div>
+<div id="trendPlotAt" style="height:360px"></div>
+<div id="trendPlotLst" style="height:360px"></div>
+</div>
+<div id="corrPanel" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:14px;">
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+<b style="font-size:16px">Correlation</b>
+<span style="color:rgba(255,255,255,0.72);font-size:12px">Pearson r, R², p-value, n, equation.</span>
+<div style="flex:1"></div>
+<label style="font-size:12px;color:rgba(255,255,255,0.72)">X</label>
+<select id="corrX" style="padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.16);background:rgba(0,0,0,0.25);color:#fff"></select>
+<label style="font-size:12px;color:rgba(255,255,255,0.72)">Y</label>
+<select id="corrY" style="padding:6px 8px;border-radius:10px;border:1px solid rgba(255,255,255,0.16);background:rgba(0,0,0,0.25);color:#fff"></select>
+<button class="btn btn-secondary" onclick="renderCorrelationSelected()" style="padding:8px 10px">Plot</button>
+</div>
+<div id="corrStatus" style="color:rgba(255,255,255,0.7);font-size:12px;margin:6px 0 10px 0"></div>
+<div id="corrPlot" style="height:520px"></div>
 </div>
 </div>
-</div>
-</div>
-  <!-- qgis2web exported GeoJSON data (required for vector layers) -->
-  <script src="q2w/data/pppppolicemerged_0.js"></script>
-  <script src="q2w/data/hspita_1.js"></script>
-  <script src="q2w/data/busstp_2.js"></script>
-  <script src="q2w/data/Petrolstn_3.js"></script>
-  <script src="q2w/data/Primaryroad_4.js"></script>
-  <script src="q2w/data/railway_5.js"></script>
-  <script src="q2w/data/secondaryroad_6.js"></script>
-  <script src="q2w/data/Tertiaryroad_7.js"></script>
-  <script src="q2w/data/Trunkroad_8.js"></script>
-  <script src="q2w/data/Unclassified_9.js"></script>
-  <script src="q2w/data/primaryschlshp1_10.js"></script>
-  <script src="q2w/data/secondaryschools_11.js"></script>
 
+</div>
+</div>
+</div>
+
+<!-- qgis2web exported GeoJSON data (required for vector layers) -->
+<script src="q2w/data/pppppolicemerged_0.js"></script>
+<script src="q2w/data/hspita_1.js"></script>
+<script src="q2w/data/busstp_2.js"></script>
+<script src="q2w/data/Petrolstn_3.js"></script>
+<script src="q2w/data/Primaryroad_4.js"></script>
+<script src="q2w/data/railway_5.js"></script>
+<script src="q2w/data/secondaryroad_6.js"></script>
+<script src="q2w/data/Tertiaryroad_7.js"></script>
+<script src="q2w/data/Trunkroad_8.js"></script>
+<script src="q2w/data/Unclassified_9.js"></script>
+<script src="q2w/data/primaryschlshp1_10.js"></script>
+<script src="q2w/data/secondaryschools_11.js"></script>
 <script>
 /* ============ Screen switching (with fade) ============ */
 function showHome(){
@@ -4089,9 +4112,8 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 </div>
 <div style="display:flex; justify-content:center; margin-top:18px;">
-  <button class="modal-action-btn" id="aboutContactBtn" type="button" title="Contact the team">✉️ Contact Us</button>
+<button class="modal-action-btn" id="aboutContactBtn" title="Contact the team" type="button">✉️ Contact Us</button>
 </div>
-
 </div>
 </div>
 </div>
@@ -4919,25 +4941,19 @@ document.addEventListener("DOMContentLoaded", () => {
 <div>🟥 LST</div>
 <div>🟦 Rainfall</div>
 <div>⬛ Roads</div>
-</div>
-
-
-
 
 <!-- ================= LAYER METADATA MODAL ================= -->
-<div id="layerMetaModal" role="dialog" aria-modal="true" aria-hidden="true">
-  <div id="layerMetaCard">
-    <div class="head">
-      <b id="layerMetaTitle">Metadata</b>
-      <button id="layerMetaClose" type="button" aria-label="Close">✕</button>
-    </div>
-    <div class="body" id="layerMetaBody">
-      <!-- populated by JS -->
-    </div>
-  </div>
+<div aria-hidden="true" aria-modal="true" id="layerMetaModal" role="dialog">
+<div id="layerMetaCard">
+<div class="head">
+<b id="layerMetaTitle">Metadata</b>
+<button aria-label="Close" id="layerMetaClose" type="button">✕</button>
 </div>
-
-
+<div class="body" id="layerMetaBody">
+<!-- populated by JS -->
+</div>
+</div>
+</div>
 <script>
 // ================= PATCH: Drawer toggle + scrim + move hamburger to body + map resize =================
 (function(){
@@ -4997,8 +5013,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 })();
 </script>
-
-
 <script>
 // ===== Patch: robust hamburger click (capture) to always toggle drawer =====
 (function(){
@@ -5073,8 +5087,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 })();
 </script>
-
-
 <script>
 (function(){
   // Robust qgis2web loader for GitHub Pages (handles /<repo>/ prefix + caching)
@@ -5210,5 +5222,376 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </script>
 
+<!-- Plotly + jStat for p-values -->
+<script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstat/1.9.6/jstat.min.js"></script>
+<script>
+(function(){
+  const CSV_CANDIDATES = ["Series.csv","data/Series.csv","series.csv","data/series.csv"];
+
+  // Shared state
+  let SERIES = null;
+  let FILTER = {from:null, to:null};
+
+  function parseDMY(s){
+    // expects dd/mm/yyyy
+    if(!s) return null;
+    const parts = String(s).split(/[\/\-]/);
+    if(parts.length<3) return null;
+    const dd = parseInt(parts[0],10);
+    const mm = parseInt(parts[1],10)-1;
+    const yy = parseInt(parts[2],10);
+    const d = new Date(Date.UTC(yy,mm,dd));
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  function fmt(num, digits=2){
+    if(num===null || num===undefined || !isFinite(num)) return "--";
+    return Number(num).toFixed(digits);
+  }
+
+  async function fetchText(url){
+    const res = await fetch(url, {cache:"no-store"});
+    if(!res.ok) throw new Error(res.status+" "+res.statusText);
+    return await res.text();
+  }
+
+  async function loadSeries(){
+    if(SERIES) return SERIES;
+    let lastErr = null;
+    for(const p of CSV_CANDIDATES){
+      try{
+        const txt = await fetchText(p);
+        SERIES = csvToSeries(txt);
+        SERIES._source = p;
+        return SERIES;
+      }catch(e){ lastErr = e; }
+    }
+    throw new Error("Could not load Series.csv (tried: " + CSV_CANDIDATES.join(", ") + ")");
+  }
+
+  function csvToSeries(txt){
+    const lines = txt.replace(/\r/g,"").trim().split("\n");
+    if(lines.length<2) throw new Error("CSV empty");
+    const headers = lines[0].split(",").map(h=>h.trim());
+    const idx = (name)=>headers.findIndex(h=>h.toLowerCase()===name);
+    const iDate = idx("date");
+    const iNdvi = idx("ndvi");
+    const iPr = idx("pr");
+    const iAt = idx("at");
+    const iLst = idx("lst");
+    if(iDate<0) throw new Error("CSV missing 'date' column");
+    const rows=[];
+    for(let i=1;i<lines.length;i++){
+      const cols = lines[i].split(",");
+      const d = parseDMY(cols[iDate]);
+      if(!d) continue;
+      const row = {
+        date: d,
+        ndvi: parseFloat(cols[iNdvi]),
+        pr: parseFloat(cols[iPr]),
+        at: parseFloat(cols[iAt]),
+        lst: parseFloat(cols[iLst]),
+      };
+      rows.push(row);
+    }
+    rows.sort((a,b)=>a.date-b.date);
+    return {rows};
+  }
+
+  function inFilter(d){
+    if(FILTER.from && d < FILTER.from) return false;
+    if(FILTER.to && d > FILTER.to) return false;
+    return true;
+  }
+
+  function getFilteredRows(){
+    if(!SERIES) return [];
+    return SERIES.rows.filter(r=>inFilter(r.date));
+  }
+
+  function mean(arr){
+    const v = arr.filter(x=>isFinite(x));
+    if(!v.length) return NaN;
+    return v.reduce((a,b)=>a+b,0)/v.length;
+  }
+
+  function linreg(x,y){
+    // returns {a,b} for y = a + b x
+    const pts=[];
+    for(let i=0;i<x.length;i++){
+      if(isFinite(x[i]) && isFinite(y[i])) pts.push([x[i],y[i]]);
+    }
+    const n=pts.length;
+    if(n<2) return {a:NaN,b:NaN,n};
+    let sx=0,sy=0,sxx=0,sxy=0;
+    for(const [xi,yi] of pts){ sx+=xi; sy+=yi; sxx+=xi*xi; sxy+=xi*yi; }
+    const denom = (n*sxx - sx*sx);
+    const b = denom===0 ? NaN : (n*sxy - sx*sy)/denom;
+    const a = (sy - b*sx)/n;
+    return {a,b,n};
+  }
+
+  function pearson(x,y){
+    const pts=[];
+    for(let i=0;i<x.length;i++){
+      if(isFinite(x[i]) && isFinite(y[i])) pts.push([x[i],y[i]]);
+    }
+    const n=pts.length;
+    if(n<3) return {r:NaN,n};
+    let sx=0,sy=0;
+    for(const [xi,yi] of pts){ sx+=xi; sy+=yi; }
+    const mx=sx/n, my=sy/n;
+    let num=0,dx=0,dy=0;
+    for(const [xi,yi] of pts){
+      const vx=xi-mx, vy=yi-my;
+      num += vx*vy; dx += vx*vx; dy += vy*vy;
+    }
+    const r = (dx===0 || dy===0) ? NaN : num/Math.sqrt(dx*dy);
+    return {r,n};
+  }
+
+  function ensureSelectOptions(){
+    const xSel = document.getElementById("corrX");
+    const ySel = document.getElementById("corrY");
+    if(!xSel || !ySel) return;
+    if(xSel.options.length) return;
+    const vars = [
+      {k:"ndvi", label:"NDVI"},
+      {k:"pr", label:"Rainfall (pr)"},
+      {k:"at", label:"Air Temperature (at)"},
+      {k:"lst", label:"LST (lst)"},
+    ];
+    for(const v of vars){
+      const o1=document.createElement("option"); o1.value=v.k; o1.textContent=v.label; xSel.appendChild(o1);
+      const o2=document.createElement("option"); o2.value=v.k; o2.textContent=v.label; ySel.appendChild(o2);
+    }
+    xSel.value="ndvi";
+    ySel.value="pr";
+  }
+
+  function setStatus(id,msg,isError=false){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.textContent = msg || "";
+    el.style.color = isError ? "#ff8a8a" : "rgba(255,255,255,0.7)";
+  }
+
+  function setKPI(id,val,d=2){
+    const el=document.getElementById(id);
+    if(el) el.textContent = (isFinite(val)? Number(val).toFixed(d) : "--");
+  }
+
+  function setMainDashboardKPIs(rows){
+    // update main dashboard KPIs if those ids exist
+    const ndvi = mean(rows.map(r=>r.ndvi));
+    const pr   = mean(rows.map(r=>r.pr));
+    const at   = mean(rows.map(r=>r.at));
+    const lst  = mean(rows.map(r=>r.lst));
+    const set = (id,v,d)=>{ const el=document.getElementById(id); if(el) el.textContent = isFinite(v)?Number(v).toFixed(d):"--"; };
+    set("kpiNdvi", ndvi, 2);
+    set("kpiRain", pr, 2);
+    set("kpiAirTemp", at, 2);
+    set("kpiLST", lst, 2);
+    // save summary for other parts to read
+    try{
+      localStorage.setItem("atlasTrendSummary", JSON.stringify({
+        source: SERIES?SERIES._source:null,
+        from: FILTER.from?FILTER.from.toISOString():null,
+        to: FILTER.to?FILTER.to.toISOString():null,
+        mean_ndvi: ndvi, mean_pr: pr, mean_at: at, mean_lst: lst,
+        n: rows.length
+      }));
+    }catch(e){}
+  }
+
+  function plotTimeSeries(divId, rows, key, title, yLabel){
+    const div = document.getElementById(divId);
+    if(!div) return;
+
+    const x = [];
+    const y = [];
+    const t = [];
+    // use month index for regression
+    for(const r of rows){
+      const v = r[key];
+      if(!isFinite(v)) continue;
+      x.push(new Date(r.date)); // local date ok for display
+      y.push(v);
+      t.push(r.date.getTime());
+    }
+    if(y.length<2){
+      Plotly.purge(div);
+      div.innerHTML = '<div style="color:#ff8a8a;padding:10px">Not enough data to plot.</div>';
+      return;
+    }
+    // regression on time (ms)
+    const reg = linreg(t, y);
+    const yhat = t.map(tt=>reg.a + reg.b*tt);
+    const trace1 = {x:x, y:y, mode:"lines", name:title};
+    const trace2 = {x:x, y:yhat, mode:"lines", name:"Trend Line (Line of Best Fit)"};
+    const layout = {
+      title: {text: title, font:{size:16}},
+      margin:{l:55,r:20,t:50,b:40},
+      paper_bgcolor:"rgba(0,0,0,0)",
+      plot_bgcolor:"rgba(0,0,0,0)",
+      xaxis:{title:"Date", gridcolor:"rgba(255,255,255,0.08)"},
+      yaxis:{title:yLabel, gridcolor:"rgba(255,255,255,0.08)"},
+      legend:{orientation:"h", x:0, y:1.1}
+    };
+    const config = {displayModeBar:false, responsive:true};
+    Plotly.newPlot(div, [trace1, trace2], layout, config);
+  }
+
+  async function renderTrend(){
+    setStatus("trendStatus","Loading Series.csv…");
+    try{
+      await loadSeries();
+      const rows = getFilteredRows();
+      setStatus("trendStatus","Loaded " + rows.length + " rows from " + SERIES._source);
+      // KPIs
+      setKPI("trendKpiNdvi", mean(rows.map(r=>r.ndvi)), 2);
+      setKPI("trendKpiPr", mean(rows.map(r=>r.pr)), 2);
+      setKPI("trendKpiAt", mean(rows.map(r=>r.at)), 2);
+      setKPI("trendKpiLst", mean(rows.map(r=>r.lst)), 2);
+      setMainDashboardKPIs(rows);
+
+      plotTimeSeries("trendPlotNdvi", rows, "ndvi", "Monthly average NDVI trend graph for the year 2000–2024", "NDVI");
+      plotTimeSeries("trendPlotPr", rows, "pr", "Monthly average precipitation trend graph for the year 2000–2024", "Precipitation (mm)");
+      plotTimeSeries("trendPlotAt", rows, "at", "Monthly average Air temperature trend graph for the year 2000–2024", "Air temperature (°C)");
+      plotTimeSeries("trendPlotLst", rows, "lst", "Monthly average LST trend graph for the year 2000–2024", "LST (°C)");
+    }catch(e){
+      setStatus("trendStatus", "Failed to load data: " + e.message, true);
+    }
+  }
+
+  function getXY(rows, kx, ky){
+    const x=[], y=[];
+    for(const r of rows){
+      const vx=r[kx], vy=r[ky];
+      if(isFinite(vx) && isFinite(vy)){ x.push(vx); y.push(vy); }
+    }
+    return {x,y};
+  }
+
+  function renderCorrelationPlot(rows, kx, ky){
+    ensureSelectOptions();
+    const lbl = {ndvi:"NDVI", pr:"Precipitation (mm)", at:"Air temperature (°C)", lst:"LST (°C)"};
+    const {x,y} = getXY(rows, kx, ky);
+
+    if(x.length<3){
+      setStatus("corrStatus","Not enough paired samples to compute correlation.", true);
+      Plotly.purge("corrPlot");
+      return;
+    }
+
+    const prc = pearson(x,y);
+    const r = prc.r;
+    const r2 = r*r;
+    const n = prc.n;
+    const df = n-2;
+    const t = Math.abs(r) * Math.sqrt(df / (1 - r*r));
+    const p = (window.jStat && isFinite(t)) ? 2*(1 - jStat.studentt.cdf(t, df)) : NaN;
+
+    const reg = linreg(x,y); // y = a + b x
+    const minX = Math.min(...x), maxX = Math.max(...x);
+    const lineX = [minX, maxX];
+    const lineY = lineX.map(xx=>reg.a + reg.b*xx);
+
+    const eq = "y = " + fmt(reg.a,4) + " + " + fmt(reg.b,4) + "x";
+
+    const annText = [
+      "r = " + fmt(r,4),
+      "R² = " + fmt(r2,4),
+      "p = " + (isFinite(p) ? (p<0.0001 ? "<0.0001" : p.toPrecision(4)) : "--"),
+      "n = " + n,
+      eq
+    ].join("<br>");
+
+    const tracePts = {x, y, mode:"markers", name:"Samples"};
+    const traceLine = {x:lineX, y:lineY, mode:"lines", name:"Trend Line (Line of Best Fit)"};
+
+    const layout = {
+      title:{text: lbl[ky] + " vs " + lbl[kx], font:{size:16}},
+      margin:{l:60,r:30,t:60,b:50},
+      paper_bgcolor:"rgba(0,0,0,0)",
+      plot_bgcolor:"rgba(0,0,0,0)",
+      xaxis:{title: lbl[kx], gridcolor:"rgba(255,255,255,0.08)"},
+      yaxis:{title: lbl[ky], gridcolor:"rgba(255,255,255,0.08)"},
+      annotations:[{
+        xref:"paper", yref:"paper", x:0.98, y:0.98, xanchor:"right", yanchor:"top",
+        text: annText,
+        showarrow:false,
+        align:"left",
+        font:{size:11, color:"rgba(255,255,255,0.85)"},
+        bordercolor:"rgba(255,255,255,0.18)",
+        borderwidth:1,
+        bgcolor:"rgba(0,0,0,0.35)",
+        borderpad:8
+      }],
+      legend:{orientation:"h", x:0, y:1.12}
+    };
+    Plotly.newPlot("corrPlot", [tracePts, traceLine], layout, {displayModeBar:false, responsive:true});
+    setStatus("corrStatus","Computed on " + n + " paired samples (filtered window).");
+  }
+
+  async function ensureDataAndRenderCorrelation(){
+    setStatus("corrStatus","Loading Series.csv…");
+    try{
+      await loadSeries();
+      const rows = getFilteredRows();
+      ensureSelectOptions();
+      const kx = document.getElementById("corrX").value;
+      const ky = document.getElementById("corrY").value;
+      renderCorrelationPlot(rows, kx, ky);
+    }catch(e){
+      setStatus("corrStatus", "Failed to load data: " + e.message, true);
+    }
+  }
+
+  // Public API for buttons
+  window.toggleDashboardPanel = async function(which){
+    const trend = document.getElementById("trendPanel");
+    const corr  = document.getElementById("corrPanel");
+    if(!trend || !corr) return;
+
+    if(which==="trend"){
+      const show = trend.style.display==="none";
+      trend.style.display = show ? "block" : "none";
+      if(show) corr.style.display="none";
+      if(show) await renderTrend();
+      setTimeout(()=>{ try{ Plotly.Plots.resize("trendPlotNdvi"); }catch(e){} }, 300);
+    }else if(which==="corr"){
+      const show = corr.style.display==="none";
+      corr.style.display = show ? "block" : "none";
+      if(show) trend.style.display="none";
+      if(show) await ensureDataAndRenderCorrelation();
+      setTimeout(()=>{ try{ Plotly.Plots.resize("corrPlot"); }catch(e){} }, 300);
+    }
+  };
+
+  window.applyTrendFilter = function(){
+    const f = document.getElementById("trendFrom").value;
+    const t = document.getElementById("trendTo").value;
+    FILTER.from = f ? new Date(f+"T00:00:00Z") : null;
+    FILTER.to   = t ? new Date(t+"T23:59:59Z") : null;
+    renderTrend();
+    ensureDataAndRenderCorrelation();
+  };
+
+  window.resetTrendFilter = function(){
+    FILTER.from = null; FILTER.to = null;
+    const a = document.getElementById("trendFrom"); if(a) a.value="";
+    const b = document.getElementById("trendTo"); if(b) b.value="";
+    renderTrend();
+    ensureDataAndRenderCorrelation();
+  };
+
+  window.renderCorrelationSelected = function(){
+    ensureDataAndRenderCorrelation();
+  };
+
+})();
+</script>
 </body>
 </html>
