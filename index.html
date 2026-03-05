@@ -1728,6 +1728,9 @@ body.drawer-open #explore .content{
           <option value="ndvi_at" selected>NDVI vs Air temperature</option>
           <option value="ndvi_lst">NDVI vs LST</option>
           <option value="ndvi_pr">NDVI vs Precipitation</option>
+          <option value="at_lst">Air temperature vs LST</option>
+          <option value="at_pr">Air temperature vs Precipitation</option>
+          <option value="lst_pr">LST vs Precipitation</option>
         </select>
       </div>
       <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__renderCorr(true)">Render</button>
@@ -2252,7 +2255,10 @@ function __renderCorr(force){
   const pairs = {
     ndvi_at: {x:'ndvi', y:'at',  title:'NDVI vs Air Temperature', xLabel:'NDVI', yLabel:'°C', file:'corr_ndvi_at'},
     ndvi_lst:{x:'ndvi', y:'lst', title:'NDVI vs LST',            xLabel:'NDVI', yLabel:'°C', file:'corr_ndvi_lst'},
-    ndvi_pr: {x:'ndvi', y:'pr',  title:'NDVI vs Precipitation',  xLabel:'NDVI', yLabel:'mm', file:'corr_ndvi_pr'}
+    ndvi_pr: {x:'ndvi', y:'pr',  title:'NDVI vs Precipitation',  xLabel:'NDVI', yLabel:'mm', file:'corr_ndvi_pr'},
+    at_lst: {x:'at',   y:'lst', title:'Air Temperature vs LST', xLabel:'Air temperature (°C)', yLabel:'LST (°C)', file:'corr_at_lst'},
+    at_pr:  {x:'at',   y:'pr',  title:'Air Temperature vs Precipitation', xLabel:'Air temperature (°C)', yLabel:'Precipitation (mm)', file:'corr_at_pr'},
+    lst_pr: {x:'lst',  y:'pr',  title:'LST vs Precipitation', xLabel:'LST (°C)', yLabel:'Precipitation (mm)', file:'corr_lst_pr'}
   };
   const cfg = pairs[pair] || pairs.ndvi_at;
 
@@ -2283,7 +2289,7 @@ function __renderCorr(force){
     x: xLine, y: yLine,
     mode:'lines',
     name: 'Line of Best Fit',
-    line:{color:'rgba(255,255,255,0.80)', width:2}
+    line:{color:'#ff2d2d', width:2}
   };
 
   const info = [
@@ -2537,7 +2543,10 @@ const _placeSearch = document.getElementById('placeSearch');
 if(_searchBtn) _searchBtn.addEventListener('click', runSearch);
 if(_placeSearch) _placeSearch.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') runSearch(); });
 /* ============ Leaflet 2D Map ============ */
-const map = L.map('map').setView([-6.79,39.25],12);
+const map = L.map('map', { preferCanvas:true }).setView([-6.79,39.25],12);
+
+// Canvas renderer (prevents SVG/canvas misalignment in exports)
+const __canvasRenderer = L.canvas({ padding: 0.5 });
 
 window.map = map;
 
@@ -2881,7 +2890,7 @@ async function loadUbungoBoundary(){
       const gj = await res.json();
 // Main sharp boundary (add second)
       ubungoLayer = L.geoJSON(gj, {
-        style: {
+        renderer: __canvasRenderer,        style: {
           color: '#000000',
           weight: 1.5,
           opacity: 1,
@@ -3571,9 +3580,15 @@ async function exportSelectedLayer(){
     // Force Leaflet to recalc panes before capture
     try{ map.invalidateSize(true); }catch(e){}
     try{ map._resetView(map.getCenter(), map.getZoom(), true); }catch(e){}
+    try{ map._update && map._update(); }catch(e){}
+    try{
+      map.eachLayer(l=>{ try{ if(l.redraw) l.redraw(); }catch(e){} });
+    }catch(e){}
 
-    // Let map re-render
-    await new Promise(r => setTimeout(r, 180));
+    // Let map re-render (important for canvas + tiles)
+    await new Promise(r => setTimeout(r, 420));
+    try{ map.invalidateSize(true); }catch(e){}
+    await new Promise(r => setTimeout(r, 120));
 
     const target = map.getContainer();
     const canvas = await html2canvas(target, { useCORS:true, backgroundColor: null, scale: 2 });
@@ -4329,6 +4344,7 @@ async function fetchGeoJSON(url){
 
 function makeLeafletGeoJSONLayer(geojson, style, pointStyle, styleKey){
   return L.geoJSON(geojson, {
+    renderer: __canvasRenderer,
     style: style || undefined,
     pointToLayer: (feature, latlng) => {
       // Prefer SVG icons for known point layers
@@ -4379,6 +4395,7 @@ if(def.type === "q2w"){
   const fallbackPoint = pointStyle || { radius: 6, color: "#111", weight: 1, fillColor: "#1abc9c", fillOpacity: 1 };
 
   return L.geoJSON(gj, {
+    renderer: __canvasRenderer,
     pane: paneName,
     style: (feature) => {
       if(styleFn){
@@ -4510,6 +4527,7 @@ if(def.type === "q2w"){
     const pointToLayer = def.pointToLayer || null;
 
     const layer = L.geoJSON(data, {
+      renderer: __canvasRenderer,
       pane: paneName,
       style: (feature) => styleFn ? styleFn(feature) : (def.pathStyle || { color:'#000', weight: 1 }),
       pointToLayer: pointToLayer ? pointToLayer : undefined
