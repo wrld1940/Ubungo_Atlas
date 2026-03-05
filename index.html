@@ -3066,7 +3066,7 @@ const layerMetadata = {
   },
   landcover_change_map: {
     Theme: "Landcover change",
-    Source: "Sentinel-2",
+    Source: "landcover map",
     Date: "2020–2025",
     CRS: "WGS 84 (EPSG:4326)",
     Format: "Raster",
@@ -3089,27 +3089,11 @@ const layerMetadata = {
     Theme: "Transport network",
     Source: "OpenStreetMap (OSM)",
     CRS: "WGS 84 (EPSG:4326)",
-    Format: "Vector lines / routes",
+    Format: "Vector lines / routes/points",
     Notes: "Transport routes/network (e.g., bus routes)."
   },
 
-  // =========================
-  // Water supply / Boreholes
-  // =========================
-  water_supply_network: {
-    Theme: "Water supply",
-    Source: "DAWASA",
-    CRS: "WGS 84 (EPSG:4326)",
-    Format: "Vector lines",
-    Notes: "Pipe network and related infrastructure."
-  },
-  boreholes_map_service_areas: {
-    Theme: "Water resources",
-    Source: "Utility records",
-    CRS: "WGS 84 (EPSG:4326)",
-    Format: "Vector points + polygons",
-    Notes: "Borehole locations and derived service areas."
-  },
+  
 
   // =========================
   // Climate: Rainfall / Temperature / LST
@@ -3166,10 +3150,10 @@ const layerMetadata = {
   // =========================
   topographic_map: {
     Theme: "Topography",
-    Source: "To be provided (e.g., SRTM/ALOS DEM + contours)",
-    Date: "To be provided",
+    Source: "SRTM & OSM",
+    Date: "2026",
     CRS: "WGS 84 (EPSG:4326)",
-    Format: "Raster + contours (vector)",
+    Format: "vector",
     Notes: "Elevation/contours/hillshade. Mention DEM source and vertical units.",
     spatial_resolution: "To be provided (e.g., 30 m)"
   },
@@ -3188,32 +3172,28 @@ const layerMetadata = {
   // =========================
   police_stations_map: {
     Theme: "Public safety",
-    Source: "To be provided (government/field survey/OSM)",
-    Date: "To be provided",
+    Source: "OSM",
     CRS: "WGS 84 (EPSG:4326)",
     Format: "Vector points",
     Notes: "Police station locations. Include attribute info (name/level/contact) if available."
   },
   public_health_centres_map: {
     Theme: "Health services",
-    Source: "To be provided",
-    Date: "To be provided",
+    Source: "OSM",
     CRS: "WGS 84 (EPSG:4326)",
     Format: "Vector points",
     Notes: "Public health centres/clinics/hospitals. Define what counts as a health centre."
   },
   public_primary_schools_map: {
     Theme: "Education",
-    Source: "To be provided",
-    Date: "To be provided",
+    Source: "OSM",
     CRS: "WGS 84 (EPSG:4326)",
     Format: "Vector points",
     Notes: "Public primary schools. Add data completeness notes if needed."
   },
   public_secondary_schools_map: {
     Theme: "Education",
-    Source: "To be provided",
-    Date: "To be provided",
+    Source: "OSM",
     CRS: "WGS 84 (EPSG:4326)",
     Format: "Vector points",
     Notes: "Public secondary schools. Add data completeness notes if needed."
@@ -3224,21 +3204,21 @@ const layerMetadata = {
   // =========================
   population_distribution: {
     Theme: "Population",
-    Source: "To be provided (e.g., census / WorldPop)",
-    Date: "To be provided",
+    Source: "NBS",
+    Date: "2022",
     CRS: "WGS 84 (EPSG:4326)",
-    Format: "Raster / polygons",
+    Format: "Vectors",
     Notes: "Population distribution for a stated year/period. State population measure and year.",
-    spatial_resolution: "To be provided"
+    spatial_resolution: "Ubungo MC"
   },
   population_density: {
     Theme: "Population",
-    Source: "To be provided (derived from population + area)",
-    Date: "To be provided",
+    Source: "NBS population/Area",
+    Date: "2022",
     CRS: "WGS 84 (EPSG:4326)",
-    Format: "Raster / polygons",
+    Format: "polygons",
     Notes: "Population density (people/km²). State computation method and year.",
-    spatial_resolution: "To be provided"
+    spatial_resolution: "Ubungo MC"
   }
 };
 
