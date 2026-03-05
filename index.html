@@ -1870,27 +1870,30 @@ function __openClimatePanel(which){
 
   if(which === 'trend'){
     pCorr.style.display = 'none';
-    pTrend.style.display = (pTrend.style.display === 'none' || !pTrend.style.display) ? 'block' : 'none';
-    if(pTrend.style.display === 'block') __renderTrend(false);
-  } else {
+    pTrend.style.display = 'block';
+    // Plotly needs visible containers; render after layout settles
+    setTimeout(()=>{ try{ __renderTrend(true); }catch(e){} }, 0);
+  }else{
     pTrend.style.display = 'none';
-    pCorr.style.display = (pCorr.style.display === 'none' || !pCorr.style.display) ? 'block' : 'none';
-    if(pCorr.style.display === 'block') __renderCorr();
+    pCorr.style.display = 'block';
+    setTimeout(()=>{ try{ __renderCorr(); }catch(e){} }, 0);
   }
 
-  // Ensure charts size correctly when panel is shown (Plotly needs visible container)
+  // Resize plots once visible
   setTimeout(()=> {
     try{
       if(window.Plotly){
-        const t1 = document.getElementById('trendChart_ndvi');
-        const t2 = document.getElementById('trendChart_at');
-        const t3 = document.getElementById('trendChart_lst');
-        const t4 = document.getElementById('trendChart_pr');
-        const c1 = document.getElementById('corrChart');
-        [t1,t2,t3,t4,c1].forEach(el=>{ if(el && el.offsetWidth) Plotly.Plots.resize(el); });
+        const ids = [
+          'trend_ndvi','trend_at','trend_lst','trend_pr',
+          'corr_ndvi_at','corr_ndvi_lst','corr_ndvi_pr'
+        ];
+        ids.forEach(id=>{
+          const el = document.getElementById(id);
+          if(el && el.offsetWidth) Plotly.Plots.resize(el);
+        });
       }
     }catch(e){}
-  }, 60);
+  }, 80);
 }
 
 
@@ -2150,11 +2153,7 @@ function __renderTrend(force){
       legend: {orientation:'h', x:0, y:1.12},
     };
     if(usePlotly){
-      if(usePlotly){
       Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
-    }else{
-      __fallbackPlotScatter(divId, xs, ys, xLabel, yLabel, title, ann.replace(/<br>/g,'\n'), xLine, yLine);
-    }
     }else{
       __fallbackPlotLine(divId, xs, ys, yFit, title, yLabel);
     }
@@ -2172,7 +2171,7 @@ function __renderTrend(force){
   const pr = rows.map(r=>r.pr).filter(v=>v!==null);
 
   const setTxt = (id,val,dec)=>{ const el=document.getElementById(id); if(el) el.textContent = (val===null?'--':val.toFixed(dec)); };
-  setTxt('kpiNDVI', mean(nd), 2);
+  setTxt('kpiNdvi', mean(nd), 2);
   setTxt('kpiAT', mean(at), 1);
   setTxt('kpiLST', mean(lst), 1);
   setTxt('kpiRain', mean(pr), 0);
