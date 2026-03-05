@@ -1699,22 +1699,43 @@ body.drawer-open #explore .content{
         <input id="trendFrom" type="date" style="margin-left:8px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
         <input id="trendTo" type="date" style="margin-left:6px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
       </div>
+
+      <div class="chip" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10);">
+        <span style="opacity:.85">Variable:</span>
+        <select id="trendVar" style="margin-left:8px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
+          <option value="ndvi" selected>NDVI</option>
+          <option value="at">Air temperature</option>
+          <option value="lst">LST</option>
+          <option value="pr">Precipitation</option>
+        </select>
+      </div>
+
       <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__renderTrend(true)">Apply</button>
       <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__resetTrend()">Reset</button>
+      <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__exportTrendPng()">Export PNG</button>
     </div>
-    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
-      <div class="dash-card"><div id="trend_ndvi" style="height:340px;"></div></div>
-      <div class="dash-card"><div id="trend_at" style="height:340px;"></div></div>
-      <div class="dash-card"><div id="trend_lst" style="height:340px;"></div></div>
-      <div class="dash-card"><div id="trend_pr" style="height:340px;"></div></div>
+
+    <div class="dash-card">
+      <div id="trend_chart" style="height:420px;"></div>
     </div>
   </div>
 
   <div id="panelCorr" style="display:none;">
-    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px;">
-      <div class="dash-card"><div id="corr_ndvi_at" style="height:360px;"></div></div>
-      <div class="dash-card"><div id="corr_ndvi_lst" style="height:360px;"></div></div>
-      <div class="dash-card" style="grid-column:1/-1;"><div id="corr_ndvi_pr" style="height:360px;"></div></div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin: 6px 0 10px 0;">
+      <div class="chip" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10);">
+        <span style="opacity:.85">Pair:</span>
+        <select id="corrPair" style="margin-left:8px; padding:7px 9px; border-radius:12px; border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:#fff;">
+          <option value="ndvi_at" selected>NDVI vs Air temperature</option>
+          <option value="ndvi_lst">NDVI vs LST</option>
+          <option value="ndvi_pr">NDVI vs Precipitation</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__renderCorr(true)">Render</button>
+      <button class="btn btn-secondary" type="button" style="padding:9px 12px;" onclick="__exportCorrPng()">Export PNG</button>
+    </div>
+
+    <div class="dash-card">
+      <div id="corr_chart" style="height:460px;"></div>
     </div>
   </div>
 </div>
@@ -2117,8 +2138,9 @@ function __fallbackPlotScatter(divId, xs, ys, xLabel, yLabel, title, ann, xLine,
   }
 }
 function __renderTrend(force){
-  // Fallback renderer for offline devices (no Plotly)
   const usePlotly = !!window.Plotly;
+
+  // always allow re-render when variable changes
   if(__trendRendered && !force) return;
 
   const rows = __filterRows();
@@ -2127,7 +2149,17 @@ function __renderTrend(force){
   if(fromEl && !fromEl.value && rows.length) fromEl.value = rows[0].date.toISOString().slice(0,10);
   if(toEl && !toEl.value && rows.length) toEl.value = rows[rows.length-1].date.toISOString().slice(0,10);
 
-  function drawTime(divId, key, title, yLabel){
+  const sel = document.getElementById('trendVar');
+  const key = sel ? sel.value : 'ndvi';
+
+  const cfg = {
+    ndvi: {title:'Monthly average NDVI trend graph for the year 2000-2024', y:'NDVI', color:'#2ecc71', file:'trend_ndvi'},
+    at:   {title:'Monthly average Air temperature trend graph for the year 2000-2024', y:'°C',   color:'#f39c12', file:'trend_air_temperature'},
+    lst:  {title:'Monthly average LST trend graph for the year 2000-2024', y:'°C',   color:'#e74c3c', file:'trend_lst'},
+    pr:   {title:'Monthly average precipitation trend graph for the year 2000-2024', y:'mm',   color:'#3498db', file:'trend_precipitation'},
+  }[key] || {title:'Trend', y:'', color:'#3498db', file:'trend'};
+
+  function drawTime(divId){
     const xs = [];
     const ys = [];
     for(const r of rows){
@@ -2136,45 +2168,64 @@ function __renderTrend(force){
       xs.push(r.date);
       ys.push(v);
     }
+
     const xNum = xs.map(d=>d.getTime());
     const reg = __linreg(xNum, ys);
     const yFit = xNum.map(x=>reg.m*x+reg.b);
 
-    const trace = {x: xs, y: ys, mode:'lines+markers', name:title};
-    const fit = {x: xs, y: yFit, mode:'lines', name:'Trend Line'};
+    const trace = {
+      x: xs, y: ys,
+      mode:'lines+markers',
+      name: cfg.title,
+      line:{color: cfg.color, width:2},
+      marker:{color: cfg.color, size:6}
+    };
+
+    const fit = {
+      x: xs, y: yFit,
+      mode:'lines',
+      name:'Trend Line',
+      line:{color:'rgba(255,255,255,0.75)', width:2}
+    };
+
     const layout = {
-      margin: {l:48,r:18,t:42,b:44},
-      title: {text: title, font: {size: 14}},
+      margin: {l:52,r:18,t:56,b:52},
+      title: {text: cfg.title, font: {size: 14}},
       paper_bgcolor:'rgba(0,0,0,0)',
       plot_bgcolor:'rgba(0,0,0,0)',
       font: {color:'#e8f2ff'},
       xaxis: {title:'Date', gridcolor:'rgba(255,255,255,0.08)'},
-      yaxis: {title:yLabel||'', gridcolor:'rgba(255,255,255,0.08)'},
-      legend: {orientation:'h', x:0, y:1.12},
+      yaxis: {title: cfg.y, gridcolor:'rgba(255,255,255,0.08)'},
+      legend: {orientation:'h', x:0, y:1.10},
     };
+
     if(usePlotly){
-      Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
+      Plotly.newPlot(divId, [trace, fit], layout, {
+        responsive:true,
+        displayModeBar:true,
+        displaylogo:false,
+        toImageButtonOptions:{format:'png', filename: cfg.file, height: 900, width: 1400, scale: 2}
+      });
     }else{
-      __fallbackPlotLine(divId, xs, ys, yFit, title, yLabel);
+      __fallbackPlotLine(divId, xs, ys, yFit, cfg.title, cfg.y);
     }
   }
 
-  drawTime('trend_ndvi','ndvi','Monthly average NDVI trend graph for the year 2000-2024','NDVI');
-  drawTime('trend_at','at','Monthly average Air temperature trend graph for the year 2000-2024','°C');
-  drawTime('trend_lst','lst','Monthly average LST trend graph for the year 2000-2024','°C');
-  drawTime('trend_pr','pr','Monthly average precipitation trend graph for the year 2000-2024','mm');
+  // Draw single chart
+  drawTime('trend_chart');
 
+  // KPIs
   const mean = (arr)=> arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length) : null;
   const nd = rows.map(r=>r.ndvi).filter(v=>v!==null);
   const at = rows.map(r=>r.at).filter(v=>v!==null);
   const lst = rows.map(r=>r.lst).filter(v=>v!==null);
   const pr = rows.map(r=>r.pr).filter(v=>v!==null);
 
-  const setTxt = (id,val,dec)=>{ const el=document.getElementById(id); if(el) el.textContent = (val===null?'--':val.toFixed(dec)); };
-  setTxt('kpiNdvi', mean(nd), 2);
-  setTxt('kpiAT', mean(at), 1);
-  setTxt('kpiLST', mean(lst), 1);
-  setTxt('kpiRain', mean(pr), 0);
+  const setTxt = (id,val,dec)=>{ const el=document.getElementById(id); if(el) el.textContent = (val===null?'--':val.toFixed(dec||2)); };
+  setTxt('kpiNdvi', mean(nd), 3);
+  setTxt('kpiRain', mean(pr), 1);
+  setTxt('kpiAT', mean(at), 2);
+  setTxt('kpiLST', mean(lst), 2);
 
   __trendRendered = true;
 }
@@ -2188,69 +2239,128 @@ function __resetTrend(){
   __renderTrend(true);
 }
 
-function __renderCorr(){
+function __renderCorr(force){
   const usePlotly = !!window.Plotly;
-  if(__corrRendered) return;
   if(!__seriesRows) __seriesRows = __parseSeries();
 
-  function scatter(divId, xKey, yKey, title, xLabel, yLabel){
-    const xs=[], ys=[];
-    for(const r of __seriesRows){
-      const x=r[xKey], y=r[yKey];
-      if(x===null || y===null || x===undefined || y===undefined) continue;
-      xs.push(x); ys.push(y);
-    }
-    const stats = __pearson(xs, ys);
-    const reg = __linreg(xs, ys);
-    const p = __pValueFromR(stats.r, stats.n);
-    const eq = `y = ${reg.m.toFixed(4)}x + ${reg.b.toFixed(4)}`;
-    const ann = `r = ${stats.r.toFixed(4)}<br>R² = ${stats.r2.toFixed(4)}<br>n = ${stats.n}<br>p = ${p===null?'--':(p<0.0001?'<0.0001':p.toFixed(4))}<br>${eq}`;
+  // allow re-render on selection change
+  if(__corrRendered && !force) return;
 
-    const trace = {x: xs, y: ys, mode:'markers', name:'Data'};
-    const xMin=Math.min(...xs), xMax=Math.max(...xs);
-    const xLine=[xMin,xMax];
-    const yLine=xLine.map(x=>reg.m*x+reg.b);
-    const fit = {x:xLine, y:yLine, mode:'lines', name:'Line of Best Fit'};
+  const sel = document.getElementById('corrPair');
+  const pair = sel ? sel.value : 'ndvi_at';
 
-    const layout = {
-      margin: {l:52,r:18,t:42,b:44},
-      title: {text:title, font: {size:14}},
-      paper_bgcolor:'rgba(0,0,0,0)',
-      plot_bgcolor:'rgba(0,0,0,0)',
-      font: {color:'#e8f2ff'},
-      xaxis: {title:xLabel, gridcolor:'rgba(255,255,255,0.08)'},
-      yaxis: {title:yLabel, gridcolor:'rgba(255,255,255,0.08)'},
-      legend: {orientation:'h', x:0, y:1.12},
-      annotations: [{
-        xref:'paper', yref:'paper', x:0.98, y:0.98,
-        xanchor:'right', yanchor:'top',
-        text: ann,
-        showarrow:false,
-        font: {size: 11},
-        align:'left',
-        bgcolor:'rgba(0,0,0,0.25)',
-        bordercolor:'rgba(255,255,255,0.18)',
-        borderwidth:1,
-        borderpad:8
-      }]
-    };
-    if(usePlotly){
-      if(usePlotly){
-      Plotly.newPlot(divId, [trace, fit], layout, {displayModeBar:false, responsive:true});
-    }else{
-      __fallbackPlotScatter(divId, xs, ys, xLabel, yLabel, title, ann.replace(/<br>/g,'\n'), xLine, yLine);
-    }
-    }else{
-      __fallbackPlotLine(divId, xs, ys, yFit, title, yLabel);
-    }
+  const pairs = {
+    ndvi_at: {x:'ndvi', y:'at',  title:'NDVI vs Air Temperature', xLabel:'NDVI', yLabel:'°C', file:'corr_ndvi_at'},
+    ndvi_lst:{x:'ndvi', y:'lst', title:'NDVI vs LST',            xLabel:'NDVI', yLabel:'°C', file:'corr_ndvi_lst'},
+    ndvi_pr: {x:'ndvi', y:'pr',  title:'NDVI vs Precipitation',  xLabel:'NDVI', yLabel:'mm', file:'corr_ndvi_pr'}
+  };
+  const cfg = pairs[pair] || pairs.ndvi_at;
+
+  const xs=[], ys=[];
+  for(const r of __seriesRows){
+    const x=r[cfg.x], y=r[cfg.y];
+    if(x===null || y===null || x===undefined || y===undefined) continue;
+    xs.push(x); ys.push(y);
   }
 
-  scatter('corr_ndvi_at','ndvi','at','NDVI vs Air Temperature','NDVI','Air Temperature (°C)');
-  scatter('corr_ndvi_lst','ndvi','lst','NDVI vs LST','NDVI','LST (°C)');
-  scatter('corr_ndvi_pr','ndvi','pr','NDVI vs Precipitation','NDVI','Precipitation (mm)');
+  const stats = __pearson(xs, ys);
+  const reg = __linreg(xs, ys);
+  const p = __pValueFromR(stats.r, stats.n);
+  const eq = `y = ${reg.m.toFixed(4)}x + ${reg.b.toFixed(4)}`;
+
+  // regression line
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const xLine = [xMin, xMax];
+  const yLine = xLine.map(x=>reg.m*x+reg.b);
+
+  const trace = {
+    x: xs, y: ys,
+    mode:'markers',
+    name: 'Samples',
+    marker:{color:'blue', size:6}
+  };
+  const fit = {
+    x: xLine, y: yLine,
+    mode:'lines',
+    name: 'Line of Best Fit',
+    line:{color:'rgba(255,255,255,0.80)', width:2}
+  };
+
+  const info = [
+    `r = ${stats.r.toFixed(4)}`,
+    `R² = ${(stats.r*stats.r).toFixed(4)}`,
+    `p = ${p < 0.0001 ? '<0.0001' : p.toFixed(6)}`,
+    `n = ${stats.n}`,
+    eq
+  ].join('<br>');
+
+  const layout = {
+    margin: {l:52,r:18,t:56,b:52},
+    title: {text: cfg.title, font: {size: 14}},
+    paper_bgcolor:'rgba(0,0,0,0)',
+    plot_bgcolor:'rgba(0,0,0,0)',
+    font: {color:'#e8f2ff'},
+    xaxis: {title: cfg.xLabel, gridcolor:'rgba(255,255,255,0.08)'},
+    yaxis: {title: cfg.yLabel, gridcolor:'rgba(255,255,255,0.08)'},
+    legend: {orientation:'h', x:0, y:1.10},
+    annotations: [{
+      xref:'paper', yref:'paper',
+      x: 0.98, y: 0.98,
+      xanchor:'right', yanchor:'top',
+      align:'left',
+      text: info,
+      showarrow:false,
+      bgcolor:'rgba(10,20,28,0.65)',
+      bordercolor:'rgba(255,255,255,0.14)',
+      borderwidth:1,
+      font:{size:11, color:'#e8f2ff'},
+      borderpad:8
+    }]
+  };
+
+  if(usePlotly){
+    Plotly.newPlot('corr_chart', [trace, fit], layout, {
+      responsive:true,
+      displayModeBar:true,
+      displaylogo:false,
+      toImageButtonOptions:{format:'png', filename: cfg.file, height: 900, width: 1400, scale: 2}
+    });
+  }else{
+    // fallback scatter not implemented - show a quick message
+    const el=document.getElementById('corr_chart');
+    if(el) el.innerHTML = '<div style="padding:12px;color:rgba(232,242,255,0.8);font-size:12px;">Plotly is required to render correlation charts offline.</div>';
+  }
 
   __corrRendered = true;
 }
+
+function __exportTrendPng(){
+  if(!window.Plotly) return;
+  const sel = document.getElementById('trendVar');
+  const key = sel ? sel.value : 'trend';
+  const file = (key==='ndvi'?'trend_ndvi':key==='at'?'trend_air_temperature':key==='lst'?'trend_lst':key==='pr'?'trend_precipitation':'trend');
+  Plotly.downloadImage('trend_chart', {format:'png', filename:file, height:900, width:1400, scale:2});
+}
+
+function __exportCorrPng(){
+  if(!window.Plotly) return;
+  const sel = document.getElementById('corrPair');
+  const pair = sel ? sel.value : 'corr';
+  const file = pair==='ndvi_at'?'corr_ndvi_at':pair==='ndvi_lst'?'corr_ndvi_lst':pair==='ndvi_pr'?'corr_ndvi_pr':'correlation';
+  Plotly.downloadImage('corr_chart', {format:'png', filename:file, height:900, width:1400, scale:2});
+}
+
+// auto re-render when dropdown changes
+document.addEventListener('change', (e)=>{
+  if(e.target && e.target.id === 'trendVar'){
+    __trendRendered = false;
+    __renderTrend(true);
+  }
+  if(e.target && e.target.id === 'corrPair'){
+    __corrRendered = false;
+    __renderCorr(true);
+  }
+});
 /* ====================================================================== */
 
 function showHome(){
@@ -3440,10 +3550,27 @@ async function exportSelectedLayer(){
     }
   }catch(e){}
 
+  let sidebarEl=null, scrimEl=null, wasDrawerOpen=false;
+
   try{
     if(ui) ui.style.display = 'none';
     if(legend) legend.style.display = 'none';
     if(controls) controls.style.display = 'none';
+
+        // --- Fix: avoid misalignment in export (drawer shifts map + Leaflet needs a fresh layout) ---
+    const bodyEl = document.body;
+    sidebarEl = document.querySelector('#explore .sidebar');
+    scrimEl = document.getElementById('drawerScrim');
+    wasDrawerOpen = bodyEl.classList.contains('drawer-open') || (sidebarEl && !sidebarEl.classList.contains('collapsed'));
+
+    // Temporarily close drawer so map has stable origin (0,0)
+    if(sidebarEl) sidebarEl.classList.add('collapsed');
+    if(scrimEl) scrimEl.classList.remove('open');
+    bodyEl.classList.remove('drawer-open');
+
+    // Force Leaflet to recalc panes before capture
+    try{ map.invalidateSize(true); }catch(e){}
+    try{ map._resetView(map.getCenter(), map.getZoom(), true); }catch(e){}
 
     // Let map re-render
     await new Promise(r => setTimeout(r, 180));
@@ -3472,6 +3599,16 @@ async function exportSelectedLayer(){
     if(ui) ui.style.display = prevUI || '';
     if(legend) legend.style.display = prevLegend || '';
     if(controls) controls.style.display = prevControls || '';
+
+    // Restore drawer state
+    try{
+      if(wasDrawerOpen){
+        if(sidebarEl) sidebarEl.classList.remove('collapsed');
+        if(scrimEl) scrimEl.classList.add('open');
+        document.body.classList.add('drawer-open');
+      }
+      map.invalidateSize(true);
+    }catch(e){}
   }
 }
 
