@@ -3859,231 +3859,241 @@ function legendItemHTML(item){
     </div>`;
 }
 
-
 function setLegend(layerKey, layerTitle){
-  if(!legendEl || !legendBody) return;
+  if(!legendBody) return;
 
   const key = (layerKey || '').trim();
-  const title = (layerTitle || '').trim();
+  const title = (layerTitle || (typeof LAYER_TITLES !== 'undefined' ? (LAYER_TITLES[key] || key) : key) || 'Legend').trim();
 
-  // Update header title (QGIS-like: show current layer name)
+  // Ensure legend is visible (user still can collapse)
   try{
-    const headerSpan = legendEl.querySelector('.legend-header span');
-    if(headerSpan) headerSpan.textContent = key ? (title || key) : 'Legend';
-  }catch(e){}
-
-  // Empty state
-  if(!key){
-    legendBody.innerHTML = `
-      <div class="legend-row">
-        <span class="legend-swatch"></span>
-        <span class="legend-text">No layer selected</span>
-      </div>`;
-    return;
-  }
-
-  // ---------- 1) Raster / Tile legends (built from layer ranges) ----------
-  const AUTO_RASTER_LEGENDS = {
-    ndvi: [
-      { type:'fill', color:'#f7fcf5', label:'Low vegetation' },
-      { type:'fill', color:'#c7e9c0', label:'Moderate vegetation' },
-      { type:'fill', color:'#74c476', label:'High vegetation' },
-      { type:'fill', color:'#00441b', label:'Dense vegetation' }
-    ],
-    lst: [
-      { type:'fill', color:'#ffffb2', label:'Low LST' },
-      { type:'fill', color:'#fecc5c', label:'Moderate LST' },
-      { type:'fill', color:'#fd8d3c', label:'High LST' },
-      { type:'fill', color:'#e31a1c', label:'Very high LST' }
-    ],
-    rainfall: [
-      { type:'fill', color:'#edf8fb', label:'Low rainfall' },
-      { type:'fill', color:'#99d8c9', label:'Moderate rainfall' },
-      { type:'fill', color:'#2ca25f', label:'High rainfall' },
-      { type:'fill', color:'#006d2c', label:'Very high rainfall' }
-    ],
-    airtemp: [
-      { type:'fill', color:'#fff7bc', label:'Low temperature' },
-      { type:'fill', color:'#fec44f', label:'Moderate temperature' },
-      { type:'fill', color:'#fe9929', label:'High temperature' },
-      { type:'fill', color:'#cc4c02', label:'Very high temperature' }
-    ],
-    landcover: [
-      { type:'fill', color:'#006400', label:'Forest / Dense vegetation' },
-      { type:'fill', color:'#7FFF00', label:'Vegetation / Grassland' },
-      { type:'fill', color:'#FFD700', label:'Bare land' },
-      { type:'fill', color:'#FF0000', label:'Built-up' },
-      { type:'fill', color:'#1E90FF', label:'Water' }
-    ],
-    changeDetection: [
-      { type:'fill', color:'#00c853', label:'Increase' },
-      { type:'fill', color:'#ffd600', label:'No change' },
-      { type:'fill', color:'#d50000', label:'Decrease' }
-    ],
-    slope: [
-      { type:'fill', color:'#ffffcc', label:'Gentle slope' },
-      { type:'fill', color:'#a1dab4', label:'Moderate slope' },
-      { type:'fill', color:'#41b6c4', label:'Steep slope' },
-      { type:'fill', color:'#225ea8', label:'Very steep slope' }
-    ],
-    aspect: [
-      { type:'fill', color:'#f7fbff', label:'North' },
-      { type:'fill', color:'#c6dbef', label:'East' },
-      { type:'fill', color:'#9ecae1', label:'South' },
-      { type:'fill', color:'#6baed6', label:'West' }
-    ],
-    hillshade: [
-      { type:'fill', color:'#f0f0f0', label:'Low shade' },
-      { type:'fill', color:'#bdbdbd', label:'Medium shade' },
-      { type:'fill', color:'#636363', label:'High shade' }
-    ]
-  };
-
-  if(typeof RASTER_SERIES !== 'undefined' && RASTER_SERIES[key]){
-    const yr = (window.rasterYearSelection && window.rasterYearSelection[key]) ? window.rasterYearSelection[key] : null;
-    const yrTxt = yr ? ` (${yr})` : '';
-    const cfg = RASTER_SERIES[key];
-    const items = AUTO_RASTER_LEGENDS[key] || [];
-    legendBody.innerHTML = `
-      <div class="legend-row" style="padding-top:2px;">
-        <span class="legend-text" style="opacity:.9"><b>${(cfg && cfg.title) ? cfg.title : (title || key)}${yrTxt}</b></span>
-      </div>
-      ${items.map(it => legendItemHTML({ type:'polygon', label: it.label, color: it.color, weight: 3 })).join('')}
-    `;
-    return;
-  }
-
-  // ---------- 2) QGIS2Web styles / icons (automatic from styleKey) ----------
-  // If this layer is powered by q2w, we can:
-  // (a) show the style icon if available in SVG_ICONS using styleKey
-  // (b) else attempt to derive legend from leaflet layer styles
-  const src = (typeof LAYER_SOURCES !== 'undefined') ? (LAYER_SOURCES[key] || null) : null;
-
-  // (a) Icon legend via q2w styleKey => SVG_ICONS
-  try{
-    const styleKey = src && src.styleKey ? src.styleKey : null;
-    if(styleKey && typeof SVG_ICONS !== 'undefined' && SVG_ICONS[styleKey]){
-      legendBody.innerHTML = legendItemHTML({ type:'icon', label: (title || key), iconKey: styleKey });
-      return;
+    if(legendEl){
+      legendEl.style.display = '';
+      if(legendEl.classList.contains('collapsed')) legendEl.classList.remove('collapsed');
     }
   }catch(e){}
 
-  // (b) Derive legend from actual leaflet layer (styles)
-  const layerObj = (window.activeLayers && window.activeLayers[key]) ? window.activeLayers[key] : null;
+  // 1) Manual legend (if present)
+  if(typeof LEGEND_CONFIG !== 'undefined' && LEGEND_CONFIG && LEGEND_CONFIG[key]){
+    const items = LEGEND_CONFIG[key];
+    legendBody.innerHTML = '';
+    items.forEach(it=>{
+      const row = document.createElement('div');
+      row.className = 'legend-row';
 
-  function buildFromLeafletLayer(layer){
-    // Collect unique style signatures by sampling child layers
-    const sigs = [];
-    const addSig = (st) => {
-      if(!st) return;
-      const sig = {
-        color: st.color || st.stroke || '#ff0000',
-        weight: (typeof st.weight === 'number') ? st.weight : 3,
-        dash: st.dashArray || st.dash || null,
-        fillColor: st.fillColor || null,
-        fillOpacity: (typeof st.fillOpacity === 'number') ? st.fillOpacity : null,
-        opacity: (typeof st.opacity === 'number') ? st.opacity : null
-      };
-      const keySig = JSON.stringify(sig);
-      if(!sigs.some(s => s._k === keySig)){
-        sig._k = keySig;
-        sigs.push(sig);
-      }
-    };
-
-    try{
-      // Leaflet GeoJSON or LayerGroup
-      if(layer && typeof layer.eachLayer === 'function'){
-        let c = 0;
-        layer.eachLayer((child)=>{
-          if(c > 80) return; // limit work
-          c++;
-          // vector style is often on options
-          addSig(child.options || null);
-          // if it's a Path, try getStyle
-          try{
-            if(child && typeof child.getStyle === 'function') addSig(child.getStyle());
-          }catch(e){}
-        });
+      if(it.icon){
+        row.innerHTML = `<img src="${it.icon}" width="18" height="18" style="display:block"> <span class="legend-text">${it.label || title}</span>`;
+      }else if(it.svg){
+        row.innerHTML = `<span style="width:18px;height:18px;display:grid;place-items:center">${it.svg}</span> <span class="legend-text">${it.label || title}</span>`;
       }else{
-        addSig(layer && layer.options ? layer.options : null);
+        const bg = it.fill || it.color || 'rgba(26,188,156,0.16)';
+        const bd = it.color || it.stroke || bg;
+        row.innerHTML = `<span class="legend-swatch" style="background:${bg};border-color:${bd}"></span> <span class="legend-text">${it.label || title}</span>`;
+      }
+      legendBody.appendChild(row);
+    });
+    return;
+  }
+
+  // 2) Source-driven auto legend
+  const def = (key && typeof LAYER_SOURCES !== 'undefined') ? LAYER_SOURCES[key] : null;
+
+  // Helper: add a row with swatch (polygon) or line
+  function addSwatchRow(label, style){
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+
+    const isLine = style && (style.weight || style.width) && !(style.fillColor || style.fill);
+    const stroke = (style && (style.color || style.stroke)) || 'rgba(26,188,156,0.95)';
+    const fill = (style && (style.fillColor || style.fill)) || 'rgba(26,188,156,0.16)';
+    const weight = (style && (style.weight || style.width)) || 3;
+
+    if(isLine){
+      row.innerHTML = `
+        <span style="width:18px;height:18px;display:flex;align-items:center">
+          <span style="height:${Math.max(2, Math.min(6, weight))}px;width:18px;background:${stroke};border-radius:6px;display:block"></span>
+        </span>
+        <span class="legend-text">${label}</span>
+      `;
+    }else{
+      row.innerHTML = `
+        <span class="legend-swatch" style="background:${fill};border-color:${stroke}"></span>
+        <span class="legend-text">${label}</span>
+      `;
+    }
+    legendBody.appendChild(row);
+  }
+
+  // Helper: add svg icon row if available
+  function addIconRow(label, svgIcon){
+    const row = document.createElement('div');
+    row.className = 'legend-row';
+    // svgIcon may be a Leaflet Icon or string, handle both
+    let iconHtml = '';
+    if(typeof svgIcon === 'string'){
+      iconHtml = svgIcon;
+    }else if(svgIcon && svgIcon.options && svgIcon.options.html){
+      iconHtml = svgIcon.options.html;
+    }
+    row.innerHTML = `<span style="width:18px;height:18px;display:grid;place-items:center">${iconHtml || ''}</span><span class="legend-text">${label}</span>`;
+    legendBody.appendChild(row);
+  }
+
+  // Helper: heuristic raster ramps
+  function rasterRampFor(k){
+    // return list of {color,label}
+    if(k === 'ndvi'){
+      return [
+        {color:'#f7fcf5', label:'Low NDVI'},
+        {color:'#c7e9c0', label:'Moderate NDVI'},
+        {color:'#74c476', label:'High NDVI'},
+        {color:'#00441b', label:'Very High NDVI'}
+      ];
+    }
+    if(k === 'lst'){
+      return [
+        {color:'#ffffb2', label:'Low LST'},
+        {color:'#fecc5c', label:'Moderate LST'},
+        {color:'#fd8d3c', label:'High LST'},
+        {color:'#e31a1c', label:'Very High LST'}
+      ];
+    }
+    if(k === 'airtemp'){
+      return [
+        {color:'#fff7bc', label:'Low Air Temp'},
+        {color:'#fec44f', label:'Moderate Air Temp'},
+        {color:'#fe9929', label:'High Air Temp'},
+        {color:'#d95f0e', label:'Very High Air Temp'}
+      ];
+    }
+    if(k === 'rainfall'){
+      return [
+        {color:'#edf8fb', label:'Low Rainfall'},
+        {color:'#b2e2e2', label:'Moderate Rainfall'},
+        {color:'#66c2a4', label:'High Rainfall'},
+        {color:'#238b45', label:'Very High Rainfall'}
+      ];
+    }
+    if(k === 'landcover'){
+      return [
+        {color:'#1a9850', label:'Vegetation'},
+        {color:'#91cf60', label:'Grassland'},
+        {color:'#fee08b', label:'Bare land'},
+        {color:'#d73027', label:'Built-up'}
+      ];
+    }
+    if(k === 'changeDetection'){
+      return [
+        {color:'#2ecc71', label:'Positive change'},
+        {color:'#f1c40f', label:'No change'},
+        {color:'#e74c3c', label:'Negative change'}
+      ];
+    }
+    // default generic
+    return [
+      {color:'#e8f2ff', label:title}
+    ];
+  }
+
+  legendBody.innerHTML = '';
+
+  if(!def){
+    addSwatchRow(title, {color:'rgba(26,188,156,0.95)', fillColor:'rgba(26,188,156,0.16)', weight:2});
+    return;
+  }
+
+  // 2a) WMS layers keep existing behavior if GEOSERVER_WMS_URL is present
+  if(def.type === 'wms' && def.layers && typeof GEOSERVER_WMS_URL !== 'undefined'){
+    const legendUrl = (layerName) => {
+      const u = GEOSERVER_WMS_URL
+        + '?service=WMS&request=GetLegendGraphic&format=image/png'
+        + '&layer=' + encodeURIComponent(layerName)
+        + '&legend_options=' + encodeURIComponent('fontName:Arial;fontSize:12;bgColor:0x00000000')
+        + '&v=' + Date.now();
+      return u;
+    };
+    const img = document.createElement('img');
+    img.src = legendUrl(def.layers);
+    img.alt = title;
+    img.style.maxWidth = '100%';
+    img.style.display = 'block';
+    legendBody.appendChild(img);
+    return;
+  }
+
+  // 2b) Tile/raster legend
+  if(def.type === 'tile' || def.type === 'raster'){
+    const ramp = rasterRampFor(key);
+    ramp.forEach(it=>{
+      addSwatchRow(it.label, {color:it.color, fillColor:it.color, weight:2});
+    });
+    return;
+  }
+
+  // 2c) Group (e.g., roads / transport)
+  if(def.type === 'group' && Array.isArray(def.children)){
+    // Title row
+    addSwatchRow(title, {color:'rgba(232,242,255,0.35)', fillColor:'rgba(255,255,255,0.06)', weight:2});
+
+    def.children.forEach((ch)=>{
+      const sk = ch.styleKey || ch.key || '';
+      const label = (typeof STYLE_TITLES !== 'undefined' && STYLE_TITLES[sk]) ? STYLE_TITLES[sk] : (sk || 'Class');
+
+      // icon first
+      if(typeof SVG_ICONS !== 'undefined' && SVG_ICONS && SVG_ICONS[sk]){
+        addIconRow(label, SVG_ICONS[sk]);
+        return;
+      }
+
+      // qml style
+      if(typeof QML_STYLES !== 'undefined' && QML_STYLES && QML_STYLES[sk] && QML_STYLES[sk].style){
+        addSwatchRow(label, QML_STYLES[sk].style);
+        return;
+      }
+
+      // fallback line
+      addSwatchRow(label, {color:'rgba(52,152,219,0.9)', weight:3});
+    });
+    return;
+  }
+
+  // 2d) QGIS2Web vector layer
+  if(def.type === 'q2w'){
+    const sk = def.styleKey || key;
+    const label = title;
+
+    if(typeof SVG_ICONS !== 'undefined' && SVG_ICONS && SVG_ICONS[sk]){
+      addIconRow(label, SVG_ICONS[sk]);
+      return;
+    }
+
+    if(typeof QML_STYLES !== 'undefined' && QML_STYLES && QML_STYLES[sk] && QML_STYLES[sk].style){
+      addSwatchRow(label, QML_STYLES[sk].style);
+      return;
+    }
+
+    // Fallback: if we can inspect the actual Leaflet layer instance style
+    try{
+      const lyr = window.activeLayers && window.activeLayers[key];
+      if(lyr && lyr.eachLayer){
+        let firstStyle = null;
+        lyr.eachLayer((l)=>{
+          if(!firstStyle && l && l.options) firstStyle = l.options;
+        });
+        if(firstStyle){
+          addSwatchRow(label, firstStyle);
+          return;
+        }
       }
     }catch(e){}
 
-    if(!sigs.length) return false;
-
-    legendBody.innerHTML = `
-      <div class="legend-row" style="padding-top:2px;">
-        <span class="legend-text" style="opacity:.9"><b>${title || key}</b></span>
-      </div>
-      ${sigs.map((s,idx)=>{
-        const isPoly = !!s.fillColor && (s.fillOpacity === null || s.fillOpacity > 0);
-        if(isPoly){
-          return legendItemHTML({ type:'polygon', label:`Class ${idx+1}`, color: s.fillColor || s.color, weight: s.weight, dash: s.dash });
-        }
-        return legendItemHTML({ type:'line', label:`Class ${idx+1}`, color: s.color, weight: s.weight, dash: s.dash });
-      }).join('')}
-    `;
-    return true;
+    addSwatchRow(label, {color:'rgba(26,188,156,0.95)', fillColor:'rgba(26,188,156,0.16)', weight:2});
+    return;
   }
 
-  if(layerObj && buildFromLeafletLayer(layerObj)) return;
-
-  // ---------- 3) Try to load q2w legend image automatically ----------
-  const candidates = [];
-  const sk = src && src.styleKey ? src.styleKey : null;
-  // common qgis2web legend locations
-  const base = 'q2w/styles/legend/';
-  [key, sk].filter(Boolean).forEach(n=>{
-    candidates.push(base + n + '.png');
-    candidates.push(base + n + '.svg');
-    candidates.push(base + n + '.jpg');
-  });
-
-  function tryImage(url){
-    return new Promise((resolve)=>{
-      const img = new Image();
-      img.onload = ()=>resolve(url);
-      img.onerror = ()=>resolve(null);
-      // cache-bust to avoid stale 404 caching when developing
-      img.src = url + (url.includes('?') ? '' : `?v=${Date.now()}`);
-    });
-  }
-
-  (async ()=>{
-    legendBody.innerHTML = `
-      <div class="legend-row">
-        <span class="legend-text" style="opacity:.8">Loading legend…</span>
-      </div>`;
-    for(const u of candidates){
-      const ok = await tryImage(u);
-      if(ok){
-        legendBody.innerHTML = `
-          <div class="legend-row" style="padding-top:2px;">
-            <span class="legend-text" style="opacity:.9"><b>${title || key}</b></span>
-          </div>
-          <div style="padding:6px 0;">
-            <img alt="Legend" src="${ok}" style="max-width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.10);">
-          </div>`;
-        return;
-      }
-    }
-
-    // ---------- 4) Fallback to existing manual legend config ----------
-    const items = (typeof LEGEND_CONFIG !== 'undefined') ? (LEGEND_CONFIG[key] || null) : null;
-    if(items){
-      legendBody.innerHTML = items.map(legendItemHTML).join('');
-      return;
-    }
-
-    // Nothing found
-    legendBody.innerHTML = `
-      <div class="legend-row">
-        <span class="legend-text">No legend available for this layer</span>
-      </div>`;
-  })();
+  // default
+  addSwatchRow(title, {color:'rgba(26,188,156,0.95)', fillColor:'rgba(26,188,156,0.16)', weight:2});
 }
-
 
 // Toast notifications (top-center)
 const toastHost = document.getElementById('toastHost');
@@ -5047,14 +5057,6 @@ function applyRasterSelection(datasetKey, year){
   if(LAYER_TITLES[datasetKey]){
     LAYER_TITLES[datasetKey] = `${cfg.title} ${y}`;
   }
-
-  // Refresh legend if this raster is currently selected
-  try{
-    if(window.activeLayerKey === datasetKey){
-      setLegend(datasetKey, (LAYER_TITLES && LAYER_TITLES[datasetKey]) ? LAYER_TITLES[datasetKey] : cfg.title);
-    }
-  }catch(e){}
-
 }
 
 // Build the filter UI based on active raster series layers
