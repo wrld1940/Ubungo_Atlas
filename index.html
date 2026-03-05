@@ -1311,6 +1311,32 @@ body.drawer-open #explore .content{
     width: 100vw !important;
   }
 }
+
+/* ===== Dashboard responsive when sidebar (drawer) is open ===== */
+body.drawer-open #dashboard{
+  margin-left: var(--drawerWidth);
+  width: calc(100% - var(--drawerWidth));
+}
+@media (max-width: 760px){
+  body.drawer-open #dashboard{
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ===== Dashboard filter inputs readable (black text) ===== */
+#dashboard input,
+#dashboard select{
+  color:#000 !important;
+  background:#fff !important;
+}
+#dashboard option{ color:#000 !important; }
+
+/* ===== Export capture stability ===== */
+body.exporting *{
+  transition: none !important;
+  animation: none !important;
+}
 </style>
 
 <link rel="stylesheet" href="q2w/styles/qgis2web.css">
@@ -2140,6 +2166,24 @@ function __fallbackPlotScatter(divId, xs, ys, xLabel, yLabel, title, ann, xLine,
     host.appendChild(box);
   }
 }
+
+function __resizeDashboardPlots(){
+  if(!window.Plotly) return;
+  const ids = ['trend_chart','corr_chart'];
+  // also resize any old ids if still present
+  const extra = ['trend_ndvi','trend_at','trend_lst','trend_pr','corr_ndvi_at','corr_ndvi_lst','corr_ndvi_pr'];
+  for(const id of ids.concat(extra)){
+    const el = document.getElementById(id);
+    if(el && el.data && el.layout){
+      try{ Plotly.Plots.resize(el); }catch(e){}
+    }else if(el){
+      // Plotly attaches _fullLayout/_fullData even if data/layout not on el
+      try{ Plotly.Plots.resize(el); }catch(e){}
+    }
+  }
+}
+window.addEventListener('resize', ()=>{ try{ __resizeDashboardPlots(); }catch(e){} });
+
 function __renderTrend(force){
   const usePlotly = !!window.Plotly;
 
@@ -2203,7 +2247,7 @@ function __renderTrend(force){
     };
 
     if(usePlotly){
-      Plotly.newPlot(divId, [trace, fit], layout, {
+      Plotly.react(divId, [trace, fit], layout, {
         responsive:true,
         displayModeBar:true,
         displaylogo:false,
@@ -2325,7 +2369,7 @@ function __renderCorr(force){
   };
 
   if(usePlotly){
-    Plotly.newPlot('corr_chart', [trace, fit], layout, {
+    Plotly.react('corr_chart', [trace, fit], layout, {
       responsive:true,
       displayModeBar:true,
       displaylogo:false,
@@ -3591,7 +3635,40 @@ async function exportSelectedLayer(){
     await new Promise(r => setTimeout(r, 120));
 
     const target = map.getContainer();
-    const canvas = await html2canvas(target, { useCORS:true, backgroundColor: null, scale: 2 });
+
+    // Wait for tiles to finish loading to prevent boundary/tile misalignment
+    const __waitTiles = async (timeoutMs=4500)=>{
+      const start = Date.now();
+      const tileLayers = [];
+      try{
+        map.eachLayer(l=>{
+          if(l && l._tiles) tileLayers.push(l);
+        });
+      }catch(e){}
+      while(Date.now()-start < timeoutMs){
+        let pending = 0;
+        for(const tl of tileLayers){
+          try{ pending += (tl._tilesToLoad||0); }catch(e){}
+        }
+        if(pending<=0) return true;
+        await new Promise(r=>setTimeout(r,120));
+      }
+      return false;
+    };
+    await __waitTiles(5200);
+
+    document.body.classList.add('exporting');
+    const scale = Math.max(2, Math.round((window.devicePixelRatio||1) * 2));
+
+    const canvas = await html2canvas(target, {
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor: null,
+      scale: scale,
+      logging:false,
+      removeContainer:true
+    });
+    document.body.classList.remove('exporting');
 
     const link = document.createElement('a');
     const safeName = (currentLayerTitle() || 'layer').replace(/[^a-z0-9\-\_]+/gi, '_');
@@ -5983,12 +6060,24 @@ document.addEventListener("DOMContentLoaded", () => {
 (function(){
   const sidebar = document.querySelector('.sidebar');
   const btn = document.getElementById('sidebarCollapseBtn');
+  const scrim = document.getElementById('drawerScrim');
   if(!sidebar || !btn) return;
 
   function setCollapsed(collapsed){
     sidebar.classList.toggle('collapsed', !!collapsed);
+
+    // body class helps dashboard resize
+    document.body.classList.toggle('drawer-open', !collapsed);
+
+    // scrim + hamburger state
+    if(scrim) scrim.classList.toggle('open', !collapsed);
+    btn.classList.toggle('is-open', !collapsed);
+
     // Leaflet needs resize after layout change
-    try{ setTimeout(()=>{ map.invalidateSize(); }, 50); }catch(e){}
+    try{ setTimeout(()=>{ map.invalidateSize(true); }, 60); }catch(e){}
+
+    // Plotly needs resize after layout change (dashboard charts)
+    try{ setTimeout(()=>{ __resizeDashboardPlots(); }, 140); }catch(e){}
   }
 
   // collapsed by default
